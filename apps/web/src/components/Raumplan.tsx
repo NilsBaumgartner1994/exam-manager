@@ -62,6 +62,8 @@ interface Zug {
 }
 
 const GITTER_ABSTAND = 4;
+/** Breite/Höhe der Zeilen- und Spaltenköpfe (wie in einer Tabelle). */
+const KOPF_GROESSE = 20;
 
 /**
  * Sitzplan eines Raums als Raster.
@@ -69,6 +71,10 @@ const GITTER_ABSTAND = 4;
  * Die Ansicht lässt sich um jeweils 90° drehen, damit sie zur eigenen
  * Blickrichtung im Raum passt. Gedreht wird nur die Darstellung – jede Zelle
  * behält ihre gespeicherte Position, Sitzplatznummern bleiben also gleich.
+ *
+ * Jedes Feld hat eine dünne Linie und das Raster Zeilen- und Spaltenköpfe:
+ * So ist zu sehen, wie groß der Raum ist und wo sich klicken lässt – auch
+ * dort, wo (noch) nichts steht. Der Aushang (`anonym`) verzichtet darauf.
  *
  * Im Bearbeiten-Modus wird gezogen wie in einer Tabellenkalkulation:
  * über Zellen ziehen malt (praktisch für Wände), am Griff an der unteren Ecke
@@ -109,10 +115,12 @@ export function Raumplan({
   const zelleBeiPunkt = (x: number, y: number): { zeile: number; spalte: number } | null => {
     const knoten = gitterRef.current as unknown as HTMLElement | null;
     if (!knoten) return null;
+    // Der gemessene Knoten ist genau das Zellraster (die Köpfe liegen außerhalb),
+    // die erste Zelle beginnt also an seiner Ecke.
     const rect = knoten.getBoundingClientRect();
     const schritt = groesse + GITTER_ABSTAND;
-    const zeile = Math.floor((y - rect.top - spacing.xs) / schritt);
-    const spalte = Math.floor((x - rect.left - spacing.xs) / schritt);
+    const zeile = Math.floor((y - rect.top) / schritt);
+    const spalte = Math.floor((x - rect.left) / schritt);
     if (zeile < 0 || spalte < 0 || zeile >= raster.length || spalte >= (raster[0]?.length ?? 0)) return null;
     return { zeile, spalte };
   };
@@ -210,10 +218,39 @@ export function Raumplan({
     setZug(null);
   };
 
+  const mitGitter = !anonym;
+  const spaltenAnzahl = raster[0]?.length ?? 0;
+
   return (
     <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator testID={testID}>
+      <View style={styles.aussen}>
+        {mitGitter ? (
+          <View style={styles.kopfZeile}>
+            <View style={styles.kopfEcke} />
+            {Array.from({ length: spaltenAnzahl }, (_, s) => (
+              <View key={s} style={[styles.kopf, { width: groesse, height: KOPF_GROESSE }]}>
+                <Text style={styles.kopfText}>{s + 1}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        <View style={styles.innen}>
+          {mitGitter ? (
+            <View style={styles.kopfSpalte}>
+              {raster.map((_, z) => (
+                <View key={z} style={[styles.kopf, { width: KOPF_GROESSE, height: groesse }]}>
+                  <Text style={styles.kopfText}>{z + 1}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
       <View
         ref={gitterRef}
+        // Eigene Kennung: Die Köpfe liegen außerhalb, das reine Zellraster ist
+        // der Bezugspunkt für Koordinaten (und für Tests).
+        testID={testID ? `${testID}-raster` : undefined}
         style={[styles.raster, bearbeiten ? ohneBrowserGeste : null]}
         onPointerMove={bearbeiten || zug ? pointerMove : undefined}
         onPointerUp={pointerUp}
@@ -235,6 +272,7 @@ export function Raumplan({
                   personen={personen}
                   ausgewaehlt={ausgewaehlt ?? null}
                   anonym={anonym ?? false}
+                  gitter={mitGitter}
                   markiert={!!auswahl && imBereich(auswahl, zelle.zeile, zelle.spalte)}
                   vorschau={inVorschau(z, s) || istZiel}
                   griff={
@@ -253,6 +291,8 @@ export function Raumplan({
           </View>
         ))}
       </View>
+        </View>
+      </View>
     </ScrollView>
   );
 }
@@ -268,6 +308,7 @@ function Zelle({
   markiert,
   vorschau,
   griff,
+  gitter,
   interaktiv,
   datenSchluessel,
   onPointerDown,
@@ -283,6 +324,7 @@ function Zelle({
   markiert: boolean;
   vorschau: boolean;
   griff: boolean;
+  gitter: boolean;
   interaktiv: boolean;
   datenSchluessel: string;
   onPointerDown: () => void;
@@ -324,6 +366,7 @@ function Zelle({
       style={[
         styles.zelle,
         { width: groesse, height: groesse },
+        gitter && styles.gitterlinie,
         zelle.typ === 'tisch' && styles.tisch,
         zelle.typ === 'tuer' && styles.tuer,
         zelle.typ === 'pult' && styles.pult,
@@ -358,7 +401,16 @@ const ohneBrowserGeste = {
 } as unknown as object;
 
 const styles = StyleSheet.create({
-  raster: { gap: GITTER_ABSTAND, padding: spacing.xs },
+  aussen: { padding: spacing.xs, gap: GITTER_ABSTAND },
+  innen: { flexDirection: 'row', gap: GITTER_ABSTAND },
+  raster: { gap: GITTER_ABSTAND },
+  kopfZeile: { flexDirection: 'row', gap: GITTER_ABSTAND },
+  kopfSpalte: { gap: GITTER_ABSTAND },
+  kopfEcke: { width: KOPF_GROESSE, height: KOPF_GROESSE },
+  kopf: { alignItems: 'center', justifyContent: 'center' },
+  kopfText: { fontSize: 11, color: colors.textMuted },
+  /** Dünne Linie um jedes Feld – zeigt Größe des Rasters und Klickflächen. */
+  gitterlinie: { borderColor: colors.gitter, borderStyle: 'solid' },
   zeile: { flexDirection: 'row', gap: GITTER_ABSTAND },
   zelle: {
     borderRadius: radius.md,

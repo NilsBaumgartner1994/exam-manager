@@ -201,6 +201,10 @@ Die Startseite zeigt vier Kacheln entlang des Workflows:
      unteren Ecke** zieht man ihn wie in einer Tabellenkalkulation über
      mehrere Felder auf oder wieder zusammen. Zeilen und Spalten lassen sich
      zusätzlich über die Knöpfe hinzufügen und entfernen.
+   - **Raster sehen** – jedes Feld hat eine dünne Linie, links und oben stehen
+     Zeilen- und Spaltennummern, und die Überschrift nennt die Rastergröße.
+     So ist zu erkennen, wie groß der Raum ist und wo sich klicken lässt –
+     auch dort, wo noch nichts steht. Der Aushang verzichtet darauf.
    - **Drehen** – die Ansicht je Raum um 90° drehen (vier Richtungen), damit
      sie zur eigenen Blickrichtung im Raum passt. Gedreht wird nur die
      Darstellung; die gespeicherten Positionen und die Sitzplatznummern

@@ -3,6 +3,8 @@ export const colors = {
   background: '#f4f6f8',
   surface: '#ffffff',
   border: '#d7dce1',
+  /** Feine Rasterlinie im Sitzplan. */
+  gitter: '#e3e8ee',
   primary: '#1d4ed8',
   primaryText: '#ffffff',
   text: '#1f2933',

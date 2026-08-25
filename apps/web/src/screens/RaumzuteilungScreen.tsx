@@ -728,7 +728,9 @@ export function RaumzuteilungScreen() {
             return (
               <View key={schema.raum} style={styles.planBlock}>
                 <Text style={styles.raumUeberschrift}>
-                  {schema.raum} ({belegt}/{tische} belegt{reserven > 0 ? `, ${reserven} Reserve` : ''})
+                  {schema.raum} ({belegt}/{tische} belegt
+                  {reserven > 0 ? `, ${reserven} Reserve` : ''}) · Raster{' '}
+                  {schema.zellen.length} × {schema.zellen[0]?.length ?? 0} Felder
                 </Text>
                 <View style={styles.buttonZeile}>
                   <AppButton

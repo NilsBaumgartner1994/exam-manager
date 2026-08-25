@@ -1,8 +1,17 @@
 /**
  * Schlanker Hash-Router (#/Vips …) statt react-navigation:
  * Der Hash macht Screens verlinkbar und übersteht einen Reload (auch auf
- * GitHub Pages). Die Kopfzeile ist responsiv – ihr Seitenrand folgt dem
- * Seitenrand der Screens, und auf schmalen Fenstern bricht sie um.
+ * GitHub Pages).
+ *
+ * Aufbau als App-Shell: Die Seite ist genau so hoch wie der Viewport
+ * (`src/webLayout.ts`), die Kopfzeile steht als eigene Zeile fest darüber und
+ * scrollt nicht mit; darunter füllt der Screen den Rest und bringt sein
+ * eigenes Scrollen mit (`ScreenContainer`). `minHeight: 0` ist dabei nicht
+ * kosmetisch: Ohne diese Regel wächst ein Flex-Kind über seinen Anteil hinaus
+ * und der ScrollView bekäme nie eine begrenzte Höhe zum Scrollen.
+ *
+ * Die Kopfzeile ist responsiv – ihr Seitenrand folgt dem Seitenrand der
+ * Screens, und auf schmalen Fenstern bricht sie um.
  */
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -70,7 +79,7 @@ export function Router({ screens }: { screens: Record<Route, ScreenDef> }) {
             </Text>
           </View>
         ) : null}
-        {component()}
+        <View style={styles.content}>{component()}</View>
       </View>
     </NavContext.Provider>
   );
@@ -78,11 +87,15 @@ export function Router({ screens }: { screens: Record<Route, ScreenDef> }) {
 
 const styles = StyleSheet.create({
   page: {
-    minHeight: '100vh' as unknown as number,
+    flex: 1,
+    minHeight: 0,
     width: '100%',
     backgroundColor: colors.background,
   },
+  /** Bleibt stehen, weil die Kopfzeile außerhalb des ScrollViews liegt. */
+  content: { flex: 1, minHeight: 0 },
   header: {
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',

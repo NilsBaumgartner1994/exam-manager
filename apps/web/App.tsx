@@ -6,11 +6,11 @@ import { KlausurTeilnehmerScreen } from './src/screens/KlausurTeilnehmerScreen';
 import { RaumzuteilungScreen } from './src/screens/RaumzuteilungScreen';
 import { VipsScreen } from './src/screens/VipsScreen';
 import { ZulassungsPdfsScreen } from './src/screens/ZulassungsPdfsScreen';
-import { aktiviereSeitenScrollen } from './src/webScroll';
+import { aktiviereAppLayout } from './src/webLayout';
 
-// Die Seite soll im Browser nativ scrollen – Expo unterbindet das per
-// Reset-Stylesheet (siehe src/webScroll.ts).
-aktiviereSeitenScrollen();
+// Die App füllt den Viewport, gescrollt wird im ScrollView der Screens
+// (siehe src/webLayout.ts).
+aktiviereAppLayout();
 
 const titel = (route: (typeof SCREENS)[number]['route']) =>
   SCREENS.find((s) => s.route === route)!.titel;

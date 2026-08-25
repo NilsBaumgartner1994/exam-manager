@@ -16,12 +16,9 @@ interface Props {
  * Keine feste Fensterbreite – Ränder, Abstände und Schriftgrößen kommen aus
  * `useResponsiveLayout()` und wachsen mit dem Fenster.
  *
- * Der Inhalt steckt in einem ScrollView, damit lange Seiten immer scrollbar
- * sind. Im Web bleibt die Höhe des Containers ungebunden (`#root` ist auf
- * `height: auto` gesetzt, siehe App.tsx) – dort scrollt weiterhin die Seite
- * selbst, was normales Browser-Verhalten und Maestros `scrollUntilVisible`
- * erhält. Wird die Höhe begrenzt (kleines Fenster, mobiler Browser, native
- * Plattform), übernimmt der ScrollView.
+ * Der ScrollView ist der Scroller der App: Er füllt den Platz unter der festen
+ * Kopfzeile (`flex: 1`) und scrollt seinen Inhalt. Das Dokument selbst scrollt
+ * nicht (siehe `src/webLayout.ts`), damit die Kopfzeile stehen bleibt.
  */
 export function ScreenContainer({ title, intro, children, testID }: Props) {
   const layout = useResponsiveLayout();
@@ -56,7 +53,7 @@ export function ScreenContainer({ title, intro, children, testID }: Props) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { backgroundColor: colors.background },
+  scroll: { flex: 1, minHeight: 0, backgroundColor: colors.background },
   content: { flexGrow: 1, alignItems: 'center' },
   inner: { alignSelf: 'stretch', alignItems: 'stretch' },
   title: { fontWeight: '700', color: colors.text },

@@ -70,19 +70,26 @@ Konventionen des Datensatzes:
   ableitet. Neue UI bekommt keine festen Pixelbreiten – prozentuale Breiten,
   `flexGrow`/`flexBasis` und Umbruch (`flexWrap`) verwenden; Pixelwerte nur
   als Umbruchgrenze (`flexBasis`, `minWidth`).
-- Jeder Screen steckt über `ScreenContainer` in einem `ScrollView`, damit
-  lange Seiten auch bei begrenzter Höhe scrollbar bleiben. Im Web scrollt
-  aber die Seite selbst: `src/webScroll.ts` hebt Expos Reset-Stylesheet
-  (`#expo-reset`) auf, das `html, body { height: 100% }` und vor allem
-  `body { overflow: hidden }` setzt. Dieses `overflow: hidden` überträgt sich
-  auf den Viewport und macht die Seite per Touch und Mausrad unscrollbar –
-  auf dem iPad hingen dadurch lange Seiten fest. `window.scrollTo` wirkt
-  trotzdem, deshalb bleibt der Maestro-Flow davon unberührt und deckt den
-  Fehler nicht ab: **Scrollen von Hand prüfen**, am besten auf einem
-  Touchgerät oder mit Geräte-Emulation.
-  Wer das Layout auf feste Höhe (`100vh`) plus innerem Scrollen umstellt,
-  muss `webScroll.ts`, das Seiten-Scrollen und den Maestro-Flow zusammen neu
-  bewerten – halb umgestellt scrollt gar nichts mehr.
+- **App-Shell mit fester Kopfzeile:** Die App ist genau so hoch wie der
+  Viewport, gescrollt wird *innerhalb* des Screens. Drei Teile greifen
+  ineinander und gehören zusammen geändert:
+  1. `src/webLayout.ts` – hält `html`, `body` und `#root` auf Viewport-Höhe
+     (`100dvh` wegen der ein-/ausblendenden Safari-Leisten auf iPad/iPhone)
+     und lässt das Dokument nicht scrollen.
+  2. `src/Router.tsx` – Kopfzeile als eigene Zeile (`flexShrink: 0`) über
+     einem Inhaltsbereich mit `flex: 1, minHeight: 0`. Ohne `minHeight: 0`
+     wächst der Bereich über seinen Anteil hinaus und nichts scrollt mehr.
+  3. `ScreenContainer` – der `ScrollView` mit `flex: 1` ist der Scroller.
+  Vorbild ist der Aufbau üblicher Expo-Apps (View `flex: 1` + ScrollView,
+  Header außerhalb des ScrollViews), z. B. rocket-meals/score-tracker.
+- Scrollen ist die fehleranfälligste Stelle dieser App und **von Hand zu
+  prüfen** – am besten auf einem Touchgerät oder mit Geräte-Emulation. Der
+  Maestro-Flow deckt es nicht zuverlässig ab: Vorher konnte man auf dem iPad
+  gar nicht scrollen (Expos `body { overflow: hidden }` blockierte den
+  Viewport), während `window.scrollTo` weiterhin wirkte und der Flow grün
+  blieb. Umgekehrt scrollt jetzt nur noch der ScrollView – Werkzeuge, die
+  das Fenster scrollen (`window.scrollBy`), bewegen nichts mehr; wer den
+  Flow anpasst, prüft ihn danach komplett.
 - Die App läuft vollständig lokal im Browser: Dateien per Dateiauswahl rein,
   Ergebnisse als Download raus. Kein Backend, kein Netzwerkzugriff mit
   Nutzdaten, keine Telemetrie. Diese Eigenschaft ist ein Feature – jede

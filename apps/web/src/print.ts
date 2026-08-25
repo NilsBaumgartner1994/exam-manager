@@ -1,4 +1,4 @@
-import { ViewProps } from 'react-native';
+import { datenAttribute } from './domProps';
 
 /**
  * Drucken bzw. „Als PDF sichern“ im Browser.
@@ -17,10 +17,9 @@ import { ViewProps } from 'react-native';
  * Marker für „im Druck hier eine neue Seite beginnen“, als Props für einen
  * View: `<View {...SEITENUMBRUCH}>`.
  *
- * React Native Web macht daraus `data-print-break="true"`; im RN-Typ gibt es
- * `dataSet` nicht, deshalb der Cast.
+ * React Native Web macht daraus `data-print-break="true"`.
  */
-export const SEITENUMBRUCH = { dataSet: { printBreak: 'true' } } as unknown as ViewProps;
+export const SEITENUMBRUCH = datenAttribute({ printBreak: 'true' });
 
 function stylesheetsDerSeite(): string {
   return Array.from(document.styleSheets)

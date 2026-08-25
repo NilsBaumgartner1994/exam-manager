@@ -1,5 +1,11 @@
 import {
   anzeigeRaster,
+  bereichAendern,
+  bereichAus,
+  fuelleBereich,
+  imBereich,
+  verschiebeBelegung,
+  verschiebeBereich,
   belegungToCsv,
   erstelleRaumzuteilung,
   leeresRaumschema,
@@ -79,6 +85,43 @@ describe('Raumschema', () => {
     }
   });
 
+  it('bildet Bereiche aus zwei Ecken, egal in welcher Reihenfolge gezogen wird', () => {
+    expect(bereichAus({ zeile: 3, spalte: 4 }, { zeile: 1, spalte: 2 })).toEqual({
+      zeile: 1, spalte: 2, hoehe: 3, breite: 3,
+    });
+    const bereich = bereichAus({ zeile: 1, spalte: 1 }, { zeile: 1, spalte: 3 });
+    expect(imBereich(bereich, 1, 2)).toBe(true);
+    expect(imBereich(bereich, 2, 2)).toBe(false);
+  });
+
+  it('zieht ein Element über mehrere Felder auf', () => {
+    const leer = leeresRaumschema('X', 3, 4);
+    const wand = fuelleBereich(leer, bereichAus({ zeile: 0, spalte: 0 }, { zeile: 0, spalte: 3 }), 'wand');
+    expect(wand.zellen[0]).toEqual(['wand', 'wand', 'wand', 'wand']);
+    expect(wand.zellen[1]).toEqual(['leer', 'leer', 'leer', 'leer']);
+  });
+
+  it('verkleinert einen Bereich wieder und gibt die Zellen frei', () => {
+    const leer = leeresRaumschema('X', 3, 4);
+    const gross = fuelleBereich(leer, { zeile: 0, spalte: 0, hoehe: 1, breite: 4 }, 'tisch');
+    const klein = bereichAendern(gross, { zeile: 0, spalte: 0, hoehe: 1, breite: 4 }, { zeile: 0, spalte: 0, hoehe: 1, breite: 2 }, 'tisch');
+    expect(klein.zellen[0]).toEqual(['tisch', 'tisch', 'leer', 'leer']);
+  });
+
+  it('verschiebt einen Bereich samt Inhalt und gibt die alten Zellen frei', () => {
+    const schema = parseRaumschemata('Raum;X\nT;T;.;.\n.;.;.;.\n')[0];
+    const verschoben = verschiebeBereich(schema, { zeile: 0, spalte: 0, hoehe: 1, breite: 2 }, 1, 2);
+    expect(verschoben.zellen[0]).toEqual(['leer', 'leer', 'leer', 'leer']);
+    expect(verschoben.zellen[1]).toEqual(['leer', 'leer', 'tisch', 'tisch']);
+  });
+
+  it('lässt beim Verschieben liegen, was aus dem Raster fallen würde', () => {
+    const schema = parseRaumschemata('Raum;X\nT;T\n.;.\n')[0];
+    const verschoben = verschiebeBereich(schema, { zeile: 0, spalte: 0, hoehe: 1, breite: 2 }, 0, 1);
+    // Die rechte Zelle fällt heraus, die linke wandert eins nach rechts.
+    expect(verschoben.zellen[0]).toEqual(['leer', 'tisch']);
+  });
+
   it('setzt einzelne Zellen, ohne das Schema zu verändern', () => {
     const leer = leeresRaumschema('X', 2, 2);
     const neu = setzeZelle(leer, 0, 1, 'tisch');
@@ -154,6 +197,14 @@ describe('Raumbelegung', () => {
     expect(getauscht[0].matrikelnummer).toBe('b');
     expect(getauscht[1].matrikelnummer).toBe('a');
     expect(zweiter.matrikelnummer).toBe('b'); // Original unverändert
+  });
+
+  it('nimmt die Belegung beim Verschieben eines Blocks mit', () => {
+    const { belegung } = verteileImRaum(schemata[1], ['a', 'b'], []);
+    const verschoben = verschiebeBelegung(belegung, '94/E03', { zeile: 0, spalte: 1, hoehe: 1, breite: 2 }, 1, 0);
+    expect(verschoben.find((p) => p.matrikelnummer === 'a')).toMatchObject({ zeile: 1, spalte: 1 });
+    // Andere Räume bleiben unberührt.
+    expect(verschiebeBelegung(belegung, '94/E01', { zeile: 0, spalte: 0, hoehe: 9, breite: 9 }, 1, 1)).toEqual(belegung);
   });
 
   it('schaltet Reserve und Vorgabe um', () => {

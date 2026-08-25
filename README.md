@@ -193,8 +193,14 @@ Die Startseite zeigt vier Kacheln entlang des Workflows:
      einen freien Tisch nach (bleibt keiner übrig, nennt die App die Person).
    - **Vorgabe** – eine Person fest auf ihren Platz binden; sie bleibt dort
      auch bei „Sitzplan neu verteilen“.
-   - **Raum bearbeiten** – Zellenart wählen und Zellen antippen, Zeilen und
-     Spalten hinzufügen oder entfernen.
+   - **Raum bearbeiten** – links liegt die Palette (Auswählen, Tisch, Wand,
+     Tür, Pult, Radierer). Ein Element auf eine Zelle **ziehen** setzt es
+     dort; **antippen** wählt es aus und man malt damit im Plan (über Zellen
+     ziehen zeichnet z. B. eine ganze Wand). Mit **Auswählen** verschiebt man
+     einen Block – die Belegung wandert mit –, und am blauen **Griff an der
+     unteren Ecke** zieht man ihn wie in einer Tabellenkalkulation über
+     mehrere Felder auf oder wieder zusammen. Zeilen und Spalten lassen sich
+     zusätzlich über die Knöpfe hinzufügen und entfernen.
    - **Drehen** – die Ansicht je Raum um 90° drehen (vier Richtungen), damit
      sie zur eigenen Blickrichtung im Raum passt. Gedreht wird nur die
      Darstellung; die gespeicherten Positionen und die Sitzplatznummern

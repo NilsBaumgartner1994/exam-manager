@@ -118,6 +118,28 @@ Konventionen des Datensatzes:
 - Wer im Screen die Belegung ändert, geht über `belegungSetzen()` – das setzt
   Verdrängte auf freie Tische nach und hält die Warnung „Ohne Tisch im
   Sitzplan“ aktuell.
+- Ein „Element“ (Tischreihe, Wand) ist ein Rechteck gleicher Zellen: `Bereich`
+  plus `fuelleBereich`/`bereichAendern`/`verschiebeBereich`. Dadurch bleibt die
+  CSV ein Raster und lässt sich trotzdem wie in einer Tabellenkalkulation
+  bedienen.
+
+### Ziehen im Editor
+
+- Gezogen wird mit Pointer-Events (`onPointerDown/Move/Up`), nicht mit
+  Hover-Ereignissen: Beim Ziehen mit dem Finger fängt der Browser den Zeiger
+  am Startelement ein, `onPointerEnter` anderer Zellen käme nie an. Welche
+  Zelle gemeint ist, rechnet `Raumplan` deshalb aus den Koordinaten
+  (`getBoundingClientRect` des Rasters, Zellgröße + Abstand); die Palette
+  findet ihr Ziel über `document.elementFromPoint` und das `data-zelle` jeder
+  Zelle (`datenAttribute()` in `src/domProps.ts`).
+- Auf den ziehbaren Flächen steht `touch-action: none`, sonst scrollt die
+  Seite mit, statt zu zeichnen.
+- Schema und Belegung liegen im Screen zusätzlich in Refs
+  (`schemataRef`/`belegungRef`) und werden über `uebernehmeSchemata()` bzw.
+  `uebernehmeBelegung()` geschrieben. Beim Ziehen kommen viele Änderungen
+  schnell hintereinander, und jede muss auf dem Ergebnis der vorherigen
+  aufsetzen – der Zustand aus dem Render wäre dafür zu alt. Deshalb: in
+  Ereignis-Handlern immer `.current` lesen, im Render den Zustand.
 
 ## PDF aus der sichtbaren Ansicht
 

@@ -17,7 +17,7 @@
  * neuen Tisches.
  */
 import { parseCsvObjects, toCsv } from './csv';
-import { Raumschema, tischzellen } from './raumschema';
+import { Bereich, imBereich, Raumschema, tischzellen } from './raumschema';
 import { Sitzplatz } from './types';
 
 export interface Platzbelegung {
@@ -132,6 +132,24 @@ export function verteileAufRaumschemata(
   }
 
   return { belegung, ohnePlatz };
+}
+
+/**
+ * Belegung mitverschieben, wenn im Editor ein Block bewegt wird – sonst
+ * verlören die Personen beim Verschieben eines Tisches ihren Platz.
+ */
+export function verschiebeBelegung(
+  belegung: Platzbelegung[],
+  raum: string,
+  bereich: Bereich,
+  dZeile: number,
+  dSpalte: number,
+): Platzbelegung[] {
+  return belegung.map((platz) =>
+    platz.raum === raum && imBereich(bereich, platz.zeile, platz.spalte)
+      ? { ...platz, zeile: platz.zeile + dZeile, spalte: platz.spalte + dSpalte }
+      : platz,
+  );
 }
 
 /**

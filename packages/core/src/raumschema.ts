@@ -186,6 +186,103 @@ export function tischzellen(schema: Raumschema): { zeile: number; spalte: number
   return plaetze;
 }
 
+/**
+ * Ein rechteckiger Bereich im Raster – die Einheit, mit der der Editor
+ * arbeitet: Ein „Element“ (Tischreihe, Wand, Tür) ist ein Rechteck aus Zellen
+ * desselben Typs. Damit bleibt die CSV ein Raster und trotzdem lassen sich
+ * Elemente wie in einer Tabellenkalkulation aufziehen.
+ */
+export interface Bereich {
+  zeile: number;
+  spalte: number;
+  hoehe: number;
+  breite: number;
+}
+
+/** Bereich aus zwei Eckpunkten (in beliebiger Reihenfolge). */
+export function bereichAus(
+  von: { zeile: number; spalte: number },
+  bis: { zeile: number; spalte: number },
+): Bereich {
+  const zeile = Math.min(von.zeile, bis.zeile);
+  const spalte = Math.min(von.spalte, bis.spalte);
+  return {
+    zeile,
+    spalte,
+    hoehe: Math.abs(von.zeile - bis.zeile) + 1,
+    breite: Math.abs(von.spalte - bis.spalte) + 1,
+  };
+}
+
+export function imBereich(bereich: Bereich, zeile: number, spalte: number): boolean {
+  return (
+    zeile >= bereich.zeile &&
+    zeile < bereich.zeile + bereich.hoehe &&
+    spalte >= bereich.spalte &&
+    spalte < bereich.spalte + bereich.breite
+  );
+}
+
+/** Alle Zellen eines Bereichs auf einen Typ setzen. */
+export function fuelleBereich(schema: Raumschema, bereich: Bereich, typ: ZellTyp): Raumschema {
+  return {
+    raum: schema.raum,
+    zellen: schema.zellen.map((reihe, z) =>
+      reihe.map((alt, s) => (imBereich(bereich, z, s) ? typ : alt)),
+    ),
+  };
+}
+
+/**
+ * Bereich verschieben: Der Inhalt wandert um `dZeile`/`dSpalte`, die alten
+ * Zellen werden frei. Was außerhalb des Rasters landen würde, bleibt liegen.
+ */
+export function verschiebeBereich(
+  schema: Raumschema,
+  bereich: Bereich,
+  dZeile: number,
+  dSpalte: number,
+): Raumschema {
+  if (dZeile === 0 && dSpalte === 0) return schema;
+  const hoehe = zeilen(schema);
+  const breite = spalten(schema);
+  const passt = (z: number, s: number) => z >= 0 && z < hoehe && s >= 0 && s < breite;
+
+  // Inhalt merken, Quelle leeren, am Ziel einsetzen.
+  const inhalt: { zeile: number; spalte: number; typ: ZellTyp }[] = [];
+  for (let z = bereich.zeile; z < bereich.zeile + bereich.hoehe; z++) {
+    for (let s = bereich.spalte; s < bereich.spalte + bereich.breite; s++) {
+      if (passt(z, s)) inhalt.push({ zeile: z + dZeile, spalte: s + dSpalte, typ: schema.zellen[z][s] });
+    }
+  }
+  const zellen = schema.zellen.map((reihe, z) =>
+    reihe.map((typ, s) => (imBereich(bereich, z, s) ? ('leer' as ZellTyp) : typ)),
+  );
+  for (const zelle of inhalt) {
+    if (passt(zelle.zeile, zelle.spalte)) zellen[zelle.zeile][zelle.spalte] = zelle.typ;
+  }
+  return { raum: schema.raum, zellen };
+}
+
+/**
+ * Bereich aufziehen oder verkleinern (Ziehen an der unteren Ecke): Der neue
+ * Bereich wird mit `typ` gefüllt, weggefallene Zellen werden frei.
+ */
+export function bereichAendern(
+  schema: Raumschema,
+  alt: Bereich,
+  neu: Bereich,
+  typ: ZellTyp,
+): Raumschema {
+  const geleert: Raumschema = {
+    raum: schema.raum,
+    zellen: schema.zellen.map((reihe, z) =>
+      reihe.map((zellTyp, s) => (imBereich(alt, z, s) && !imBereich(neu, z, s) ? 'leer' : zellTyp)),
+    ),
+  };
+  return fuelleBereich(geleert, neu, typ);
+}
+
 /** Zelltyp setzen (unveränderlich, gibt ein neues Schema zurück). */
 export function setzeZelle(schema: Raumschema, zeile: number, spalte: number, typ: ZellTyp): Raumschema {
   return {

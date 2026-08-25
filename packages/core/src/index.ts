@@ -6,5 +6,7 @@ export * from './vips';
 export * from './zulassung';
 export * from './hisExport';
 export * from './raumzuteilung';
+export * from './raumschema';
+export * from './raumbelegung';
 export * from './pdf';
 export * from './zip';

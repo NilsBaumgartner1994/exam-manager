@@ -27,7 +27,7 @@ python3 tools/generate_sample_data.py
 ```
 
 Das Skript schreibt nur die **Eingangsdaten** (HIS-Export, VIPS-Notenliste,
-Stud.IP-Export, alte Zulassungsliste, Raumliste). Alle abgeleiteten Dateien
+Stud.IP-Export, alte Zulassungsliste, Raumliste, Raumschema). Alle abgeleiteten Dateien
 entstehen, indem die Pipeline darüber läuft – die Befehlsfolge steht in der
 README unter „Kompletter Durchlauf“. Wer den Datensatz ändert, führt sie
 komplett aus und committet die neuen Ergebnisse.
@@ -99,6 +99,35 @@ Konventionen des Datensatzes:
 - `apps/web/src/sampleData.ts` ist GENERIERT
   (`python3 tools/sync_sample_data_to_app.py`) – nie von Hand editieren.
   Jeder Screen bietet „Beispieldaten laden“ an; darauf baut der Maestro-Test.
+
+## Sitzplan im Raum (Screen 4)
+
+- `packages/core/src/raumschema.ts` hält das Raster eines Raums (Tische, Tür,
+  Wand, Pult) und die Drehung der Ansicht, `raumbelegung.ts` die Frage, wer an
+  welchem Tisch sitzt (Reserveplätze, Vorgaben, Umsetzen).
+- Zwei Regeln, an denen sich alles andere ausrichtet:
+  1. **Die Sitzplatznummer gehört zum Tisch**, nicht zur Person – vergeben in
+     Lesereihenfolge des gespeicherten Rasters, über alle Räume fortlaufend.
+     Wer umgesetzt wird, bekommt die Nummer des neuen Tisches.
+  2. **Gedreht wird nur die Ansicht.** `anzeigeRaster()` liefert Zellen, die
+     ihre gespeicherte Position mitführen; Nummern und Belegung bleiben von
+     der Blickrichtung unberührt.
+- `verteileImRaum()` behält bestehende Plätze (auch ohne Vorgabe), damit ein
+  Umbau des Raums manuelle Platzierungen nicht zunichtemacht. Für eine
+  Verteilung von vorne vorher `ohneFreieBelegung()` anwenden.
+- Wer im Screen die Belegung ändert, geht über `belegungSetzen()` – das setzt
+  Verdrängte auf freie Tische nach und hält die Warnung „Ohne Tisch im
+  Sitzplan“ aktuell.
+
+## PDF aus der sichtbaren Ansicht
+
+`apps/web/src/print.ts` druckt den DOM-Knoten eines Views: klonen, die
+Stylesheets der Seite mitgeben, als Blob-URL öffnen, `window.print()`. Die
+PDF-Ausgabe ist damit genau das, was auf dem Bildschirm steht – kein zweites
+Layout, das man mitpflegen müsste (Vorbild: Speiseplan-Druck von
+rocket-meals). Für seitenweise Ausgabe `{...SEITENUMBRUCH}` an den View
+hängen. Personenbezogene PDFs (Zulassung, Sitzplatz) entstehen weiterhin mit
+pdf-lib in `packages/core/src/pdf.ts`, weil sie ohne Browser laufen müssen.
 
 ## Änderungen prüfen
 

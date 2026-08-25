@@ -52,6 +52,9 @@ export const BEISPIEL_HIS_EXPORT_XLSX_BASE64: string =
 /** Raumliste (`raeume.csv`). */
 export const BEISPIEL_RAEUME: string = {json.dumps(text("Zuslassungliste_Erstellen/4_MailRaumZuordnung/2_raum_zuteilung_erstellen/raeume.csv"))};
 
+/** Raumschema (`raumschema.csv`): Raster mit Tischen, Tuer und Pult je Raum. */
+export const BEISPIEL_RAUMSCHEMA: string = {json.dumps(text("Zuslassungliste_Erstellen/4_MailRaumZuordnung/2_raum_zuteilung_erstellen/raumschema.csv"))};
+
 /** Ergebnis aus Schritt 3 (`allowedStudents.csv` mit E-Mail aus Schritt 2). */
 export const BEISPIEL_KLAUSUR_TEILNEHMER: string = {json.dumps(text("Zuslassungliste_Erstellen/4_MailRaumZuordnung/2_raum_zuteilung_erstellen/result.csv"))};
 

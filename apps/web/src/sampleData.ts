@@ -23,6 +23,9 @@ export const BEISPIEL_HIS_EXPORT_XLSX_BASE64: string =
 /** Raumliste (`raeume.csv`). */
 export const BEISPIEL_RAEUME: string = "Raum;Pl\u00e4tze;ReservierteZeit\n94/E01;4;01.02.2026 Gruppe 1: ca. 09:15 Uhr = Einlassstart / 09:30 Uhr (s.t.) = Einlassschluss (fix)\n94/E03;4;01.02.2026 Gruppe 2: ca. 12:15 Uhr = Einlassstart / 12:30 Uhr (s.t.) = Einlassschluss (fix)\n";
 
+/** Raumschema (`raumschema.csv`): Raster mit Tischen, Tuer und Pult je Raum. */
+export const BEISPIEL_RAUMSCHEMA: string = "Raum;94/E01\nP;.;.;.\n.;T;.;T\n.;T;.;T\nD;.;.;.\nRaum;94/E03\n.;.;P;.\nT;T;.;.\nT;T;.;.\n.;.;.;D\n";
+
 /** Ergebnis aus Schritt 3 (`allowedStudents.csv` mit E-Mail aus Schritt 2). */
 export const BEISPIEL_KLAUSUR_TEILNEHMER: string = "Archi;Archimedes;1000001\nDarwin;Charles;1000003\nGalilei;Galileo;1000007\nHodgkin;Dorothy;1000004\nLamarr;Hedy;1000008\nPascal;Blaise;1000002\nSchr\u00f6dinger;Erwin;1000005\n";
 

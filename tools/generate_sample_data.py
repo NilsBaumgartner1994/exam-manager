@@ -190,6 +190,28 @@ def raeume(path):
     write_rows(path, [["94/E01", "4", zeit1], ["94/E03", "4", zeit2]], header=header)
 
 
+def raumschema(path):
+    """Raster der Raeume: T=Tisch, D=Tuer, W=Wand, P=Pult, .=frei.
+
+    Bildet den Aufbau des Raumes ab (siehe packages/core/src/raumschema.ts) und
+    ist bewusst je Raum anders geschnitten, damit das Drehen der Ansicht in der
+    App sichtbar etwas aendert.
+    """
+    rows = [
+        ["Raum", "94/E01"],
+        ["P", ".", ".", "."],
+        [".", "T", ".", "T"],
+        [".", "T", ".", "T"],
+        ["D", ".", ".", "."],
+        ["Raum", "94/E03"],
+        [".", ".", "P", "."],
+        ["T", "T", ".", "."],
+        ["T", "T", ".", "."],
+        [".", ".", ".", "D"],
+    ]
+    write_rows(path, rows)
+
+
 def main():
     print("Erzeuge anonymisierte Beispiel-Eingangsdaten:")
 
@@ -211,6 +233,7 @@ def main():
 
     # Schritt 4: Raeume
     raeume(LST / "4_MailRaumZuordnung" / "2_raum_zuteilung_erstellen" / "raeume.csv")
+    raumschema(LST / "4_MailRaumZuordnung" / "2_raum_zuteilung_erstellen" / "raumschema.csv")
 
     print("Fertig. Abgeleitete Dateien entstehen ueber die Pipeline (siehe README.md).")
 

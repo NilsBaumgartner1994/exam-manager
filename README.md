@@ -85,6 +85,19 @@ Alle CSV-Dateien: Trennzeichen `;`, UTF-8, Zeilenende `\n`.
 | VIPS-Notenliste | `Nachname;Vorname;Kennung;Matrikelnr.;<Aufgabenblatt …>;Summe` (Zeile 2 = Maximalpunktzahl, Datei mit BOM) |
 | Stud.IP-Export | `Status;Anrede;Titel;Vorname;Nachname;…;E-Mail;Anmeldedatum;Matrikelnummer;Studiengänge;Position` (alle Felder in `"`) |
 | Raumliste | `Raum;Plätze;ReservierteZeit` |
+| Raumschema (`raumschema.csv`) | Raster statt Kopfzeile: `Raum;<Name>` beginnt einen Raum, jede weitere Zeile ist eine Reihe im Raum. Zellen: `T` Tisch, `D` Tür, `W` Wand, `P` Pult, `.` frei |
+| Raumbelegung (`raumbelegung.csv`) | `Raum;Zeile;Spalte;Sitzplatznummer;Matrikelnummer;Nachname;Vorname;Reserviert;Vorgabe` (Sitzplatznummer, Nachname und Vorname stehen nur zur Lesbarkeit darin und werden beim Einlesen ignoriert) |
+
+Ein Raumschema bildet den Aufbau des Raumes direkt ab und lässt sich deshalb
+auch in Excel bearbeiten – so sieht `raumschema.csv` der Beispieldaten aus:
+
+```
+Raum;94/E01
+P;.;.;.
+.;T;.;T
+.;T;.;T
+D;.;.;.
+```
 
 ## Voraussetzungen
 
@@ -166,8 +179,31 @@ Die Startseite zeigt vier Kacheln entlang des Workflows:
 4. **Raumzuteilung & Sitzplan** – Teilnehmer-CSV aus Schritt 3 laden, Räume
    modellieren (und als Blanko-CSV speichern), Sitzplätze ab Startnummer
    (Default 1001) vergeben; Ansichten: Aushang (anonym), Dozent (nach
-   Sitzplatz), Tutor (nach Nachname), Raum-Ansicht; Export als CSV und
-   Sitzplatz-PDFs (ZIP).
+   Sitzplatz), Tutor (nach Nachname), Räume/Aushänge je Raum; Export als CSV,
+   Sitzplatz-PDFs (ZIP) und alle Aushänge als PDF über den Druckdialog.
+
+   **Sitzplan im Raum:** Zu jedem Raum lässt sich ein Raster hinterlegen, das
+   den Aufbau des Raumes abbildet – wo Tische stehen, wo Tür, Wand und Pult
+   sind (`raumschema.csv`, siehe unten). Auf diesem Raster werden die
+   Studierenden platziert:
+
+   - **Platzieren** – Person antippen, Zieltisch antippen; sitzt dort jemand,
+     tauschen die beiden.
+   - **Reserve** – Tische frei halten; wer dadurch verdrängt wird, rückt auf
+     einen freien Tisch nach (bleibt keiner übrig, nennt die App die Person).
+   - **Vorgabe** – eine Person fest auf ihren Platz binden; sie bleibt dort
+     auch bei „Sitzplan neu verteilen“.
+   - **Raum bearbeiten** – Zellenart wählen und Zellen antippen, Zeilen und
+     Spalten hinzufügen oder entfernen.
+   - **Drehen** – die Ansicht je Raum um 90° drehen (vier Richtungen), damit
+     sie zur eigenen Blickrichtung im Raum passt. Gedreht wird nur die
+     Darstellung; die gespeicherten Positionen und die Sitzplatznummern
+     bleiben gleich.
+
+   Die Sitzplatznummer gehört zum **Tisch** (fortlaufend über alle Räume in
+   Lesereihenfolge des Rasters), nicht zur Person: Wer umgesetzt wird, bekommt
+   die Nummer des neuen Tisches. Raster und Belegung lassen sich als CSV
+   speichern und wieder laden.
 
 Jeder Screen hat einen Button **„Beispieldaten laden“**, der den
 anonymisierten Datensatz dieses Repos lädt – zum Ausprobieren und für den

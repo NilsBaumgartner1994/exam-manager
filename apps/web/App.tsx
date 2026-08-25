@@ -6,17 +6,11 @@ import { KlausurTeilnehmerScreen } from './src/screens/KlausurTeilnehmerScreen';
 import { RaumzuteilungScreen } from './src/screens/RaumzuteilungScreen';
 import { VipsScreen } from './src/screens/VipsScreen';
 import { ZulassungsPdfsScreen } from './src/screens/ZulassungsPdfsScreen';
+import { aktiviereSeitenScrollen } from './src/webScroll';
 
-// Die Seite soll im Browser nativ scrollen: Expo fixiert #root auf 100 % Höhe,
-// wir lassen den Inhalt stattdessen natürlich wachsen. Der ScrollView der
-// Screens (ScreenContainer) bleibt dadurch höhenoffen und übernimmt nur dort,
-// wo die Höhe begrenzt ist – im Browser scrollt weiterhin die Seite selbst.
-if (typeof document !== 'undefined' && !document.getElementById('exam-manager-css')) {
-  const style = document.createElement('style');
-  style.id = 'exam-manager-css';
-  style.textContent = '#root { height: auto !important; min-height: 100vh; }';
-  document.head.appendChild(style);
-}
+// Die Seite soll im Browser nativ scrollen – Expo unterbindet das per
+// Reset-Stylesheet (siehe src/webScroll.ts).
+aktiviereSeitenScrollen();
 
 const titel = (route: (typeof SCREENS)[number]['route']) =>
   SCREENS.find((s) => s.route === route)!.titel;

@@ -71,11 +71,18 @@ Konventionen des Datensatzes:
   `flexGrow`/`flexBasis` und Umbruch (`flexWrap`) verwenden; Pixelwerte nur
   als Umbruchgrenze (`flexBasis`, `minWidth`).
 - Jeder Screen steckt über `ScreenContainer` in einem `ScrollView`, damit
-  lange Seiten auch bei begrenzter Höhe scrollbar bleiben. Im Web ist `#root`
-  weiterhin `height: auto` (siehe `App.tsx`), der ScrollView also nicht
-  höhenbegrenzt – dort scrollt nach wie vor die Seite selbst, was normales
-  Browser-Verhalten und Maestros `scrollUntilVisible` erhält. Wer das ändert
-  (feste Höhe, sticky Header), muss den Maestro-Flow neu prüfen.
+  lange Seiten auch bei begrenzter Höhe scrollbar bleiben. Im Web scrollt
+  aber die Seite selbst: `src/webScroll.ts` hebt Expos Reset-Stylesheet
+  (`#expo-reset`) auf, das `html, body { height: 100% }` und vor allem
+  `body { overflow: hidden }` setzt. Dieses `overflow: hidden` überträgt sich
+  auf den Viewport und macht die Seite per Touch und Mausrad unscrollbar –
+  auf dem iPad hingen dadurch lange Seiten fest. `window.scrollTo` wirkt
+  trotzdem, deshalb bleibt der Maestro-Flow davon unberührt und deckt den
+  Fehler nicht ab: **Scrollen von Hand prüfen**, am besten auf einem
+  Touchgerät oder mit Geräte-Emulation.
+  Wer das Layout auf feste Höhe (`100vh`) plus innerem Scrollen umstellt,
+  muss `webScroll.ts`, das Seiten-Scrollen und den Maestro-Flow zusammen neu
+  bewerten – halb umgestellt scrollt gar nichts mehr.
 - Die App läuft vollständig lokal im Browser: Dateien per Dateiauswahl rein,
   Ergebnisse als Download raus. Kein Backend, kein Netzwerkzugriff mit
   Nutzdaten, keine Telemetrie. Diese Eigenschaft ist ein Feature – jede

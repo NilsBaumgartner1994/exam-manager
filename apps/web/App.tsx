@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { SCREENS } from './src/navigation';
+import { ProjektProvider } from './src/projekt';
 import { Router } from './src/Router';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { KlausurTeilnehmerScreen } from './src/screens/KlausurTeilnehmerScreen';
@@ -17,7 +18,7 @@ const titel = (route: (typeof SCREENS)[number]['route']) =>
 
 export default function App() {
   return (
-    <>
+    <ProjektProvider>
       <Router
         screens={{
           Home: { titel: 'Start', component: () => <HomeScreen /> },
@@ -28,6 +29,6 @@ export default function App() {
         }}
       />
       <StatusBar style="auto" />
-    </>
+    </ProjektProvider>
   );
 }

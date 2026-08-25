@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import readXlsxFile from 'read-excel-file';
 import {
@@ -19,6 +19,7 @@ import {
   StatusText,
 } from '../components';
 import { downloadCsv, readFileAsArrayBuffer, readFileAsText } from '../files';
+import { useProjekt } from '../projekt';
 import {
   BEISPIEL_HIS_EXPORT_XLSX_BASE64,
   BEISPIEL_ZULASSUNGS_BESTAND,
@@ -56,6 +57,33 @@ export function KlausurTeilnehmerScreen() {
   const [dateinameZugelassen, setDateinameZugelassen] = useState('allowedStudents.csv');
   const [dateinameNichtZugelassen, setDateinameNichtZugelassen] =
     useState('notAllowedStudents.csv');
+  const [ausProjekt, setAusProjekt] = useState<string | null>(null);
+
+  // Eingaben aus dem Projektordner, solange nichts eigenes geladen wurde.
+  const projekt = useProjekt();
+  useEffect(() => {
+    if (anmeldungen !== null || bestandCsvs !== null) return;
+    const his = projekt.datei('hisExport');
+    const listen = projekt.dateienMit('zulassungsbestand').filter((datei) => !!datei.text);
+    if (!his?.bytes && listen.length === 0) return;
+    const uebernehmen = async () => {
+      if (his?.bytes) {
+        // Kopie, damit der Excel-Reader einen eigenständigen Puffer bekommt.
+        const rows = await readXlsxFile(his.bytes.slice().buffer);
+        setAnmeldungen(parseHisRows(rows));
+      }
+      if (listen.length > 0) {
+        setBestandCsvs(listen.map((datei) => datei.text ?? ''));
+        setAnzahlListen(listen.length);
+      }
+      setAusProjekt(
+        `Aus dem Projektordner: ${[his?.pfad, listen.length > 0 ? `${listen.length} Zulassungslisten` : null]
+          .filter(Boolean)
+          .join(', ')}`,
+      );
+    };
+    uebernehmen().catch((e) => setEingabeFehler(e instanceof Error ? e.message : String(e)));
+  }, [projekt, anmeldungen, bestandCsvs]);
 
   const hisExportLaden = async (files: File[]) => {
     setEingabeFehler(null);
@@ -149,6 +177,9 @@ export function KlausurTeilnehmerScreen() {
             testID="klausur-beispiel"
           />
           {beispielGeladen ? <StatusText kind="info">Beispieldaten geladen.</StatusText> : null}
+          {ausProjekt ? (
+            <StatusText kind="info" testID="klausur-projekt">{ausProjekt}</StatusText>
+          ) : null}
           {anmeldungen !== null && !beispielGeladen ? (
             <StatusText kind="info">{`${anmeldungen.length} Anmeldungen eingelesen.`}</StatusText>
           ) : null}
@@ -217,7 +248,11 @@ export function KlausurTeilnehmerScreen() {
             />
             <AppButton
               title="Zugelassene herunterladen"
-              onPress={() => downloadCsv(dateinameZugelassen, anmeldungenToCsv(ergebnis.zugelassen))}
+              onPress={() => {
+                const csv = anmeldungenToCsv(ergebnis.zugelassen);
+                downloadCsv(dateinameZugelassen, csv);
+                projekt.schreibe(dateinameZugelassen, csv, 'teilnehmer');
+              }}
               testID="klausur-download"
             />
             <LabeledTextInput

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   defaultZulassungsDateiname,
@@ -19,6 +19,7 @@ import {
   StatusText,
 } from '../components';
 import { downloadCsv, readFileAsText } from '../files';
+import { useProjekt } from '../projekt';
 import { BEISPIEL_NOTENLISTE, BEISPIEL_TEILNEHMENDENEXPORT } from '../sampleData';
 import { colors, spacing } from '../theme';
 
@@ -31,6 +32,22 @@ export function VipsScreen() {
   const [notenlisteCsv, setNotenlisteCsv] = useState<string | null>(null);
   const [teilnehmerCsv, setTeilnehmerCsv] = useState<string | null>(null);
   const [beispielGeladen, setBeispielGeladen] = useState(false);
+  const [ausProjekt, setAusProjekt] = useState<string | null>(null);
+
+  // Liegt ein Projektordner vor, kommen die Eingaben von dort – solange noch
+  // nichts eigenes geladen wurde.
+  const projekt = useProjekt();
+  useEffect(() => {
+    if (notenlisteCsv !== null || teilnehmerCsv !== null) return;
+    const noten = projekt.datei('notenliste');
+    const studip = projekt.datei('studipExport');
+    if (!noten?.text && !studip?.text) return;
+    if (noten?.text) setNotenlisteCsv(noten.text);
+    if (studip?.text) setTeilnehmerCsv(studip.text);
+    setAusProjekt(
+      `Aus dem Projektordner: ${[noten?.pfad, studip?.pfad].filter(Boolean).join(', ')}`,
+    );
+  }, [projekt, notenlisteCsv, teilnehmerCsv]);
 
   // Kriterien.
   const [minPunkte, setMinPunkte] = useState<number | null>(30);
@@ -97,6 +114,7 @@ export function VipsScreen() {
             testID="vips-beispiel"
           />
           {beispielGeladen ? <StatusText kind="info">Beispieldaten geladen.</StatusText> : null}
+          {ausProjekt ? <StatusText kind="info" testID="vips-projekt">{ausProjekt}</StatusText> : null}
         </View>
       </Section>
 
@@ -169,7 +187,13 @@ export function VipsScreen() {
             />
             <AppButton
               title="CSV herunterladen"
-              onPress={() => downloadCsv(dateiname, zulassungenToCsv(ergebnis))}
+              onPress={() => {
+                const csv = zulassungenToCsv(ergebnis);
+                downloadCsv(dateiname, csv);
+                // Ergebnis auch in den Projektstand legen, damit es im
+                // ZIP-Download des Ordners enthalten ist.
+                projekt.schreibe(dateiname, csv, 'zulassungsbestand');
+              }}
               testID="vips-download"
             />
             <Text style={styles.hinweis}>

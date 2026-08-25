@@ -1,5 +1,8 @@
 # Exam Manager
 
+[![Test](https://github.com/NilsBaumgartner1994/exam-manager/actions/workflows/test.yml/badge.svg)](https://github.com/NilsBaumgartner1994/exam-manager/actions/workflows/test.yml)
+[![Deploy Web (GitHub Pages)](https://github.com/NilsBaumgartner1994/exam-manager/actions/workflows/deploy-web.yml/badge.svg)](https://github.com/NilsBaumgartner1994/exam-manager/actions/workflows/deploy-web.yml)
+
 Werkzeuge rund um die Verwaltung einer Universitätsklausur: Prüfungsanmeldungen
 einlesen, Klausurzulassungen über mehrere Jahre verwalten, Studierende
 informieren und Räume samt Sitzplätzen zuteilen.
@@ -164,7 +167,23 @@ yarn typecheck   # TypeScript-Prüfung beider Pakete
 
 ### Screens
 
-Die Startseite zeigt vier Kacheln entlang des Workflows:
+Die Startseite zeigt vier Kacheln entlang des Workflows – und darunter den
+optionalen **Projektordner**:
+
+0. **Projektordner (optional)** – Liegen alle Dateien einer Klausur in einem
+   Ordner, lässt er sich einmal auswählen; die App erkennt an Dateiname und
+   Kopfzeile, was welche Datei ist (Notenliste, Stud.IP-Export,
+   Zulassungslisten, HIS-Export, Räume, Raumschema, Belegung …) und füllt die
+   vier Schritte damit. Ergebnisse schreiben die Schritte in den Projektstand
+   zurück, der sich als **ZIP herunterladen** lässt – damit ersetzt man den
+   eigenen Ordner. Wer neu anfängt, lädt die **Projektvorlage als ZIP**
+   herunter: ein leerer Ordner mit der erwarteten Struktur und `LIESMICH.md`.
+
+   Der Ordner bleibt nur im Speicher der geöffneten Seite: Ein Neuladen leert
+   ihn, gespeichert wird bewusst nichts, und der Browser darf auch nicht in
+   den Ordner zurückschreiben – daher der Umweg über die ZIP.
+
+Und die vier Schritte selbst:
 
 1. **VIPS-Punkte auswerten** – Notenliste + Teilnehmendenexport hochladen,
    Kriterien eingeben (Min. Punkte pro Blatt, Anzahl Blätter), Ergebnis als

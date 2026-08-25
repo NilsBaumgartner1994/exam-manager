@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   Bereich,
@@ -51,6 +51,7 @@ import {
 } from '../components';
 import { downloadCsv, downloadZip, readFileAsText } from '../files';
 import { druckeAnsicht, SEITENUMBRUCH } from '../print';
+import { useProjekt } from '../projekt';
 import { useResponsiveLayout } from '../responsive';
 import { BEISPIEL_KLAUSUR_TEILNEHMER, BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMA } from '../sampleData';
 import { colors, radius, spacing } from '../theme';
@@ -290,6 +291,31 @@ export function RaumzuteilungScreen() {
 
   const { isCompact } = useResponsiveLayout();
   const raeume = zeilen.map(zeileZuRaum);
+
+  // Eingaben aus dem Projektordner, solange nichts eigenes geladen wurde.
+  const projekt = useProjekt();
+  const [ausProjekt, setAusProjekt] = useState<string | null>(null);
+  useEffect(() => {
+    if (teilnehmer.length > 0 || zeilen.length > 0) return;
+    const liste = projekt.datei('teilnehmer');
+    const raumDatei = projekt.datei('raeume');
+    const schemaDatei = projekt.datei('raumschema');
+    const belegungDatei = projekt.datei('raumbelegung');
+    if (!liste?.text && !raumDatei?.text) return;
+    try {
+      if (liste?.text) setTeilnehmer(parseZulassungsliste(liste.text));
+      if (raumDatei?.text) setZeilen(parseRaeume(raumDatei.text).map(raumZuZeile));
+      if (schemaDatei?.text) uebernehmeSchemata(parseRaumschemata(schemaDatei.text));
+      if (belegungDatei?.text) uebernehmeBelegung(parseBelegung(belegungDatei.text));
+      setAusProjekt(
+        `Aus dem Projektordner: ${[liste?.pfad, raumDatei?.pfad, schemaDatei?.pfad, belegungDatei?.pfad]
+          .filter(Boolean)
+          .join(', ')}`,
+      );
+    } catch (e) {
+      setFehler(`Projektdateien konnten nicht gelesen werden: ${String(e)}`);
+    }
+  }, [projekt, teilnehmer, zeilen]);
 
   /** Tischnummern: über alle Räume fortlaufend, in Lesereihenfolge des Rasters. */
   const nummern = useMemo(
@@ -598,6 +624,7 @@ export function RaumzuteilungScreen() {
           testID="raum-beispiel"
         />
         {teilnehmerStatus ? <StatusText kind="info">{teilnehmerStatus}</StatusText> : null}
+        {ausProjekt ? <StatusText kind="info" testID="raum-projekt">{ausProjekt}</StatusText> : null}
       </Section>
 
       <Section title="Räume">
@@ -618,7 +645,11 @@ export function RaumzuteilungScreen() {
         <AppButton
           title="Räume als CSV speichern"
           variant="secondary"
-          onPress={() => downloadCsv('raeume.csv', raeumeToCsv(raeume))}
+          onPress={() => {
+            const csv = raeumeToCsv(raeume);
+            downloadCsv('raeume.csv', csv);
+            projekt.schreibe('raeume.csv', csv, 'raeume');
+          }}
           testID="raum-speichern"
         />
       </Section>
@@ -782,15 +813,21 @@ export function RaumzuteilungScreen() {
             <AppButton
               title="Raumschema als CSV speichern"
               variant="secondary"
-              onPress={() => downloadCsv('raumschema.csv', raumschemataToCsv(schemata))}
+              onPress={() => {
+                const csv = raumschemataToCsv(schemata);
+                downloadCsv('raumschema.csv', csv);
+                projekt.schreibe('raumschema.csv', csv, 'raumschema');
+              }}
               testID="raum-schema-speichern"
             />
             <AppButton
               title="Belegung als CSV speichern"
               variant="secondary"
-              onPress={() =>
-                downloadCsv('raumbelegung.csv', belegungToCsv(belegung, angezeigteSitzplaetze, nummern))
-              }
+              onPress={() => {
+                const csv = belegungToCsv(belegung, angezeigteSitzplaetze, nummern);
+                downloadCsv('raumbelegung.csv', csv);
+                projekt.schreibe('raumbelegung.csv', csv, 'raumbelegung');
+              }}
               testID="raum-belegung-speichern"
             />
           </View>
@@ -898,7 +935,11 @@ export function RaumzuteilungScreen() {
           />
           <AppButton
             title="Sitzplan-CSV herunterladen"
-            onPress={() => downloadCsv(dateiname, sitzplaetzeToCsv(angezeigteSitzplaetze))}
+            onPress={() => {
+              const csv = sitzplaetzeToCsv(angezeigteSitzplaetze);
+              downloadCsv(dateiname, csv);
+              projekt.schreibe(dateiname, csv, 'sitzplan');
+            }}
             testID="raum-download"
           />
           <AppButton

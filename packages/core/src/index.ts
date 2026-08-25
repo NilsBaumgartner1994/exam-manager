@@ -5,6 +5,7 @@ export * from './studip';
 export * from './vips';
 export * from './zulassung';
 export * from './hisExport';
+export * from './projekt';
 export * from './raumzuteilung';
 export * from './raumschema';
 export * from './raumbelegung';

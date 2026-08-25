@@ -100,6 +100,23 @@ Konventionen des Datensatzes:
   (`python3 tools/sync_sample_data_to_app.py`) – nie von Hand editieren.
   Jeder Screen bietet „Beispieldaten laden“ an; darauf baut der Maestro-Test.
 
+## Projektordner (Startseite)
+
+- `packages/core/src/projekt.ts` erkennt die Rolle einer Datei aus Name **und**
+  Kopfzeile (`erkenneRolle`); die Kopfzeile hat Vorrang, weil Dateinamen in der
+  Praxis uneinheitlich sind (`teilnehmer.csv` ist mal Stud.IP-Export, mal
+  Teilnehmerliste). Neue Formate bekommen dort eine Regel **und** einen Test.
+- `apps/web/src/projekt.tsx` hält den Stand im Speicher (React-Kontext):
+  `datei(rolle)`/`dateienMit(rolle)` zum Lesen, `schreibe(name, text, rolle)`
+  zum Zurückschreiben von Ergebnissen, `alsZip()` für den Download. Jeder
+  Screen übernimmt Eingaben nur, solange dort noch nichts geladen ist – eine
+  Auswahl von Hand wird nie überschrieben.
+- Bewusst **kein** localStorage: Der Ordner enthält Personendaten, die nach dem
+  Schließen der Seite nicht im Browserprofil zurückbleiben sollen. Ein Neuladen
+  leert den Stand, das ist so gewollt und auf der Startseite erklärt.
+- Der Browser darf nicht in den gewählten Ordner zurückschreiben; der Weg
+  zurück auf die Platte ist immer die ZIP.
+
 ## Sitzplan im Raum (Screen 4)
 
 - `packages/core/src/raumschema.ts` hält das Raster eines Raums (Tische, Tür,

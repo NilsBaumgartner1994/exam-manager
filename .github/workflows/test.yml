@@ -1,9 +1,11 @@
-# Tests und Typecheck auf jedem Branch/PR.
+# Jest-Tests der Fachlogik und Typecheck: bei jedem Pull Request und bei jedem
+# Push – auch auf `main`, damit der Status von main jederzeit sichtbar ist
+# (Banner in der README).
 name: Test
 
 on:
   push:
-    branches-ignore: [main]
+    branches: ['**']
   pull_request:
 
 jobs:

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import {
   erstelleZip,
@@ -19,6 +19,7 @@ import {
   StatusText,
 } from '../components';
 import { downloadZip, readFileAsText } from '../files';
+import { useProjekt } from '../projekt';
 import { BEISPIEL_TEILNEHMENDENEXPORT, BEISPIEL_ZULASSUNGS_BESTAND } from '../sampleData';
 import { colors, spacing } from '../theme';
 
@@ -42,6 +43,22 @@ export function ZulassungsPdfsScreen() {
   const [laeuft, setLaeuft] = useState(false);
   const [ergebnis, setErgebnis] = useState<Ergebnis | null>(null);
   const [dateiname, setDateiname] = useState('zulassungs_pdfs.zip');
+  const [ausProjekt, setAusProjekt] = useState<string | null>(null);
+
+  // Eingaben aus dem Projektordner, solange nichts eigenes geladen wurde.
+  const projekt = useProjekt();
+  useEffect(() => {
+    if (zulassungsListen.length > 0 || teilnehmerCsv !== null) return;
+    const listen = projekt.dateienMit('zulassungsbestand').filter((datei) => !!datei.text);
+    const studip = projekt.datei('studipExport');
+    if (listen.length === 0 && !studip?.text) return;
+    if (listen.length > 0) setZulassungsListen(listen.map((datei) => datei.text ?? ''));
+    if (studip?.text) setTeilnehmerCsv(studip.text);
+    setAusProjekt(
+      `Aus dem Projektordner: ${listen.length} Zulassungslisten` +
+        (studip ? `, ${studip.pfad}` : ''),
+    );
+  }, [projekt, zulassungsListen, teilnehmerCsv]);
 
   const ladeZulassungsOrdner = async (files: File[]) => {
     try {
@@ -116,6 +133,9 @@ export function ZulassungsPdfsScreen() {
           onPress={ladeBeispieldaten}
           testID="zulassungspdfs-beispiel"
         />
+        {ausProjekt ? (
+          <StatusText kind="info" testID="pdfs-projekt">{ausProjekt}</StatusText>
+        ) : null}
         {status ? <StatusText kind={status.kind}>{status.text}</StatusText> : null}
       </Section>
 

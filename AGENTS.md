@@ -60,11 +60,22 @@ Konventionen des Datensatzes:
   App. Excel-/Datei-I/O bleibt draußen: Funktionen nehmen Strings bzw.
   Zellenmatrizen entgegen (siehe `hisExport.ts`).
 - `apps/web` – Expo-Web-App (React Native Web; eigener Hash-Router in
-  `src/Router.tsx`, bewusst ohne inneres ScrollView – die Seite scrollt nativ
-  im Browser, was auch Maestro braucht). Screens in
-  `src/screens/`, wiederverwendbare Bausteine in `src/components/`
-  (FilePickerButton, DataTable, LabeledInput, StatusText …) – neue UI zuerst
-  aus diesen Bausteinen zusammensetzen, ggf. Bausteine erweitern.
+  `src/Router.tsx`). Screens in `src/screens/`, wiederverwendbare Bausteine in
+  `src/components/` (FilePickerButton, DataTable, LabeledInput, StatusText …)
+  – neue UI zuerst aus diesen Bausteinen zusammensetzen, ggf. Bausteine
+  erweitern.
+- **Responsives Layout statt fester Breiten:** Maße kommen aus
+  `src/responsive.ts` (`useResponsiveLayout()`), das Seitenrand, Abstände,
+  Schriftgrößen, Formularbreiten und die Kachelspalten aus der Fensterbreite
+  ableitet. Neue UI bekommt keine festen Pixelbreiten – prozentuale Breiten,
+  `flexGrow`/`flexBasis` und Umbruch (`flexWrap`) verwenden; Pixelwerte nur
+  als Umbruchgrenze (`flexBasis`, `minWidth`).
+- Jeder Screen steckt über `ScreenContainer` in einem `ScrollView`, damit
+  lange Seiten auch bei begrenzter Höhe scrollbar bleiben. Im Web ist `#root`
+  weiterhin `height: auto` (siehe `App.tsx`), der ScrollView also nicht
+  höhenbegrenzt – dort scrollt nach wie vor die Seite selbst, was normales
+  Browser-Verhalten und Maestros `scrollUntilVisible` erhält. Wer das ändert
+  (feste Höhe, sticky Header), muss den Maestro-Flow neu prüfen.
 - Die App läuft vollständig lokal im Browser: Dateien per Dateiauswahl rein,
   Ergebnisse als Download raus. Kein Backend, kein Netzwerkzugriff mit
   Nutzdaten, keine Telemetrie. Diese Eigenschaft ist ein Feature – jede

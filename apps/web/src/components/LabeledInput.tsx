@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { useResponsiveLayout } from '../responsive';
 import { colors, radius, spacing } from '../theme';
 
 interface TextProps {
@@ -10,8 +11,9 @@ interface TextProps {
 }
 
 export function LabeledTextInput({ label, value, onChangeText, placeholder, testID }: TextProps) {
+  const { fieldMaxWidth } = useResponsiveLayout();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { maxWidth: fieldMaxWidth }]}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         style={styles.input}
@@ -34,8 +36,9 @@ interface NumberProps {
 
 /** Zahleneingabe; leeres Feld ergibt `null`. */
 export function LabeledNumberInput({ label, value, onChange, testID }: NumberProps) {
+  const { fieldMaxWidth } = useResponsiveLayout();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { maxWidth: fieldMaxWidth }]}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         style={styles.input}
@@ -54,7 +57,8 @@ export function LabeledNumberInput({ label, value, onChange, testID }: NumberPro
 }
 
 const styles = StyleSheet.create({
-  container: { gap: spacing.xs, maxWidth: 420 },
+  // Breite kommt vom Layout (prozentual), nicht aus einer festen Pixelzahl.
+  container: { gap: spacing.xs, width: '100%', alignSelf: 'flex-start' },
   label: { fontSize: 14, fontWeight: '600', color: colors.text },
   input: {
     borderWidth: 1,

@@ -8,7 +8,9 @@ import { VipsScreen } from './src/screens/VipsScreen';
 import { ZulassungsPdfsScreen } from './src/screens/ZulassungsPdfsScreen';
 
 // Die Seite soll im Browser nativ scrollen: Expo fixiert #root auf 100 % Höhe,
-// wir lassen den Inhalt stattdessen natürlich wachsen.
+// wir lassen den Inhalt stattdessen natürlich wachsen. Der ScrollView der
+// Screens (ScreenContainer) bleibt dadurch höhenoffen und übernimmt nur dort,
+// wo die Höhe begrenzt ist – im Browser scrollt weiterhin die Seite selbst.
 if (typeof document !== 'undefined' && !document.getElementById('exam-manager-css')) {
   const style = document.createElement('style');
   style.id = 'exam-manager-css';

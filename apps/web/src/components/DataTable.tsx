@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useResponsiveLayout } from '../responsive';
 import { colors, radius, spacing } from '../theme';
 
 export interface Column {
@@ -14,23 +15,38 @@ interface Props {
   testID?: string;
 }
 
-/** Einfache Tabelle für Ergebnislisten. */
+/**
+ * Einfache Tabelle für Ergebnislisten. Die Zellenbreite richtet sich nach dem
+ * Fenster; passt die Tabelle nicht in die Breite, scrollt sie horizontal.
+ */
 export function DataTable({ columns, rows, emptyText, testID }: Props) {
+  const { cellMinWidth } = useResponsiveLayout();
   if (rows.length === 0) {
     return emptyText ? <Text style={styles.empty}>{emptyText}</Text> : null;
   }
   return (
-    <ScrollView horizontal style={styles.scroll} testID={testID}>
-      <View>
+    <ScrollView
+      horizontal
+      nestedScrollEnabled
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      showsHorizontalScrollIndicator
+      testID={testID}
+    >
+      <View style={styles.table}>
         <View style={[styles.row, styles.headerRow]}>
           {columns.map((col) => (
-            <Text key={col.key} style={[styles.cell, styles.headerCell]}>{col.title}</Text>
+            <Text key={col.key} style={[styles.cell, { flexBasis: cellMinWidth }, styles.headerCell]}>
+              {col.title}
+            </Text>
           ))}
         </View>
         {rows.map((row, i) => (
           <View key={i} style={[styles.row, i % 2 === 1 && styles.zebra]}>
             {columns.map((col) => (
-              <Text key={col.key} style={styles.cell}>{String(row[col.key] ?? '')}</Text>
+              <Text key={col.key} style={[styles.cell, { flexBasis: cellMinWidth }]}>
+                {String(row[col.key] ?? '')}
+              </Text>
             ))}
           </View>
         ))}
@@ -41,16 +57,22 @@ export function DataTable({ columns, rows, emptyText, testID }: Props) {
 
 const styles = StyleSheet.create({
   scroll: {
+    width: '100%',
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
     backgroundColor: colors.surface,
   },
+  // Schmale Tabellen füllen die volle Breite, breite scrollen horizontal.
+  scrollContent: { minWidth: '100%' },
+  table: { flexGrow: 1, minWidth: '100%' },
   row: { flexDirection: 'row' },
   headerRow: { backgroundColor: colors.background },
   zebra: { backgroundColor: '#fafbfc' },
   cell: {
-    minWidth: 140,
+    // Gleiche Basis in jeder Zeile => Spalten bleiben untereinander bündig.
+    flexGrow: 1,
+    flexShrink: 0,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.sm + 2,
     fontSize: 14,

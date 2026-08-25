@@ -25,6 +25,7 @@ import {
   StatusText,
 } from '../components';
 import { downloadCsv, downloadZip, readFileAsText } from '../files';
+import { useResponsiveLayout } from '../responsive';
 import { BEISPIEL_KLAUSUR_TEILNEHMER, BEISPIEL_RAEUME } from '../sampleData';
 import { colors, radius, spacing } from '../theme';
 
@@ -57,7 +58,10 @@ const ANSICHTEN = [
 
 type Ansicht = (typeof ANSICHTEN)[number]['key'];
 
-/** Eine Eingabezeile des Raum-Editors. */
+/**
+ * Eine Eingabezeile des Raum-Editors. Auf breiten Fenstern stehen die Felder
+ * nebeneinander und teilen sich die Breite, auf schmalen untereinander.
+ */
 function RaumEditorZeile({
   zeile,
   onChange,
@@ -67,17 +71,20 @@ function RaumEditorZeile({
   onChange: (zeile: RaumZeile) => void;
   onRemove: () => void;
 }) {
+  const { isCompact } = useResponsiveLayout();
+  // Gestapelt wäre flexBasis die Höhe – dort bekommen die Felder volle Breite.
+  const voll = styles.raumInputVoll;
   return (
-    <View style={styles.raumZeile}>
+    <View style={[styles.raumZeile, isCompact && styles.raumZeileGestapelt]}>
       <TextInput
-        style={[styles.raumInput, styles.raumInputName]}
+        style={[styles.raumInput, isCompact ? voll : styles.raumInputName]}
         value={zeile.raum}
         onChangeText={(raum) => onChange({ ...zeile, raum })}
         placeholder="Raum-Name"
         placeholderTextColor={colors.textMuted}
       />
       <TextInput
-        style={[styles.raumInput, styles.raumInputPlaetze]}
+        style={[styles.raumInput, isCompact ? voll : styles.raumInputPlaetze]}
         value={zeile.plaetzeText}
         inputMode="numeric"
         onChangeText={(plaetzeText) => onChange({ ...zeile, plaetzeText })}
@@ -85,7 +92,7 @@ function RaumEditorZeile({
         placeholderTextColor={colors.textMuted}
       />
       <TextInput
-        style={[styles.raumInput, styles.raumInputZeit]}
+        style={[styles.raumInput, isCompact ? voll : styles.raumInputZeit]}
         value={zeile.reservierteZeit}
         onChangeText={(reservierteZeit) => onChange({ ...zeile, reservierteZeit })}
         placeholder="Reservierte Zeit"
@@ -403,6 +410,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
+  raumZeileGestapelt: { flexDirection: 'column', alignItems: 'stretch' },
   raumInput: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -413,9 +421,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     backgroundColor: colors.surface,
   },
-  raumInputName: { flexGrow: 1, minWidth: 120 },
-  raumInputPlaetze: { width: 90 },
-  raumInputZeit: { flexGrow: 3, minWidth: 220 },
+  // Keine festen Breiten: flexBasis ist nur die Umbruchgrenze, die Felder
+  // teilen sich die tatsächliche Breite über flexGrow.
+  raumInputName: { flexGrow: 2, flexShrink: 1, flexBasis: 120, minWidth: 0 },
+  raumInputPlaetze: { flexGrow: 1, flexShrink: 1, flexBasis: 80, minWidth: 0 },
+  raumInputZeit: { flexGrow: 3, flexShrink: 1, flexBasis: 180, minWidth: 0 },
+  raumInputVoll: { width: '100%' },
   raumTabellen: { gap: spacing.md },
   raumTabelle: { gap: spacing.xs },
   raumUeberschrift: { fontSize: 15, fontWeight: '600', color: colors.text },

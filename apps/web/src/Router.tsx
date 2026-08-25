@@ -1,12 +1,13 @@
 /**
  * Schlanker Hash-Router (#/Vips …) statt react-navigation:
- * Die Seite scrollt nativ im Browser (kein inneres ScrollView-Div) – wichtig
- * für normales Browser-Verhalten und für Maestro-Scrolling. Der Hash macht
- * Screens verlinkbar und übersteht einen Reload (auch auf GitHub Pages).
+ * Der Hash macht Screens verlinkbar und übersteht einen Reload (auch auf
+ * GitHub Pages). Die Kopfzeile ist responsiv – ihr Seitenrand folgt dem
+ * Seitenrand der Screens, und auf schmalen Fenstern bricht sie um.
  */
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RootStackParamList } from './navigation';
+import { useResponsiveLayout } from './responsive';
 import { colors, spacing } from './theme';
 
 export type Route = keyof RootStackParamList;
@@ -34,6 +35,7 @@ interface ScreenDef {
 
 export function Router({ screens }: { screens: Record<Route, ScreenDef> }) {
   const [route, setRoute] = useState<Route>(routeFromHash);
+  const layout = useResponsiveLayout();
 
   useEffect(() => {
     const onHashChange = () => setRoute(routeFromHash());
@@ -54,7 +56,7 @@ export function Router({ screens }: { screens: Record<Route, ScreenDef> }) {
     <NavContext.Provider value={{ route, navigate }}>
       <View style={styles.page}>
         {route !== 'Home' ? (
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingHorizontal: layout.gutter }]}>
             <Pressable
               accessibilityRole="button"
               onPress={() => navigate('Home')}
@@ -63,7 +65,9 @@ export function Router({ screens }: { screens: Record<Route, ScreenDef> }) {
             >
               <Text style={styles.backText}>← Zurück</Text>
             </Pressable>
-            <Text style={styles.headerTitle}>{titel}</Text>
+            <Text style={[styles.headerTitle, layout.isCompact && styles.headerTitleCompact]}>
+              {titel}
+            </Text>
           </View>
         ) : null}
         {component()}
@@ -73,12 +77,16 @@ export function Router({ screens }: { screens: Record<Route, ScreenDef> }) {
 }
 
 const styles = StyleSheet.create({
-  page: { minHeight: '100vh' as unknown as number, backgroundColor: colors.background },
+  page: {
+    minHeight: '100vh' as unknown as number,
+    width: '100%',
+    backgroundColor: colors.background,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: spacing.md,
-    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm + 2,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
@@ -87,5 +95,6 @@ const styles = StyleSheet.create({
   back: { paddingVertical: spacing.xs, paddingRight: spacing.sm },
   backPressed: { opacity: 0.6 },
   backText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: colors.text, flexShrink: 1 },
+  headerTitleCompact: { fontSize: 14 },
 });

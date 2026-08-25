@@ -1,0 +1,80 @@
+# Kompletter Durchlauf: alle vier Screens mit den eingebauten Beispieldaten.
+# Erwartete Zahlen stammen aus dem anonymisierten Beispiel-Datensatz
+# (siehe README "Beispieldaten"): 6 neue Zulassungen, 9 mit Zulassung,
+# 7 von 8 Angemeldeten zugelassen, 7 Sitzplätze in 2 Räumen.
+url: http://localhost:8081
+---
+# ---------- Startseite ----------
+- launchApp
+# Erster Aufruf: Metro bundelt on demand – großzügig warten
+- extendedWaitUntil:
+    visible: 'Exam Manager'
+    timeout: 60000
+- assertVisible: '1. VIPS-Punkte auswerten'
+
+# ---------- Screen 1: VIPS-Punkte auswerten ----------
+- tapOn: '1. VIPS-Punkte auswerten'
+- assertVisible: 'Beispieldaten laden'
+- tapOn: 'Beispieldaten laden'
+- assertVisible: 'Beispieldaten geladen.'
+- scrollUntilVisible:
+    element: 'Auswerten'
+- tapOn: 'Auswerten'
+- scrollUntilVisible:
+    element: '6 Studierende haben die Zulassung neu erworben.'
+- assertVisible: '6 Studierende haben die Zulassung neu erworben.'
+- scrollUntilVisible:
+    element: 'Schrödinger'   # Umlaute überleben die UTF-8-Kette
+- scrollUntilVisible:
+    element: 'CSV herunterladen'
+
+# ---------- Screen 2: Zulassungs-PDFs ----------
+- launchApp
+- tapOn: '2. Zulassungs-PDFs generieren'
+- tapOn: 'Beispieldaten laden'
+- assertVisible: 'Beispieldaten geladen.'
+- scrollUntilVisible:
+    element: 'PDFs erzeugen'
+- tapOn: 'PDFs erzeugen'
+- extendedWaitUntil:
+    visible: '9 Zulassungs-PDFs erzeugt.'
+    timeout: 20000
+- scrollUntilVisible:
+    element: 'ZIP herunterladen'
+
+# ---------- Screen 3: Klausur-Anmeldungen prüfen ----------
+- launchApp
+- tapOn: '3. Klausur-Anmeldungen prüfen'
+- tapOn: 'Beispieldaten laden'
+- extendedWaitUntil:
+    visible: 'Beispieldaten geladen.'
+    timeout: 10000
+- scrollUntilVisible:
+    element: 'Zulassungen prüfen'
+- tapOn: 'Zulassungen prüfen'
+- scrollUntilVisible:
+    element: '7 von 8 Angemeldeten sind zugelassen.'
+- assertVisible: '7 von 8 Angemeldeten sind zugelassen.'
+- scrollUntilVisible:
+    element: 'Crick'         # die eine Person ohne Zulassung
+- assertVisible: 'Nicht zugelassen: Crick, Francis (1000006)'
+
+# ---------- Screen 4: Raumzuteilung & Sitzplan ----------
+- launchApp
+- tapOn: '4. Raumzuteilung & Sitzplan'
+- tapOn: 'Beispieldaten laden'
+- assertVisible: 'Beispieldaten geladen.'
+- scrollUntilVisible:
+    element: 'Zuteilung erstellen'
+- tapOn: 'Zuteilung erstellen'
+- scrollUntilVisible:
+    element: '7 Sitzplätze in 2 Räumen vergeben.'
+- assertVisible: '7 Sitzplätze in 2 Räumen vergeben.'
+- scrollUntilVisible:
+    element: 'Aushang'
+- tapOn: 'Dozent'
+- tapOn: 'Tutor'
+- tapOn: 'Räume'
+- tapOn: 'Aushang'
+- scrollUntilVisible:
+    element: 'Sitzplan-CSV herunterladen'

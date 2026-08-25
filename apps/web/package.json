@@ -1,0 +1,27 @@
+{
+  "name": "@exam-manager/web",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "private": true,
+  "scripts": {
+    "start": "expo start",
+    "start:web": "expo start --web",
+    "export:web": "expo export --platform web",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@exam-manager/core": "0.1.0",
+    "expo": "~57.0.16",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-web": "^0.21.0",
+    "read-excel-file": "^5.8.6"
+  },
+  "devDependencies": {
+    "@expo/metro-runtime": "~6.1.2",
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  }
+}

@@ -1,0 +1,31 @@
+# OS
+.DS_Store
+
+_private/
+*.local.csv
+*.local.xlsx
+
+# Generierte Artefakte
+allowedStudents.csv
+notAllowedStudents.csv
+mitZulassungOhneMail.csv
+**/studipKlausurzulassungPdfs/
+**/pdfs/
+
+# Node / TypeScript (kommt in Schritt 2)
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.env
+.env.local
+
+# Expo
+.expo/
+expo-env.d.ts
+web-build/
+
+# Maestro
+.maestro/tests/
+~/.maestro

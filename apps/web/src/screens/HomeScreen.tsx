@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { gehoertInsProjekt, ROLLEN_TITEL } from '@exam-manager/core';
+import { DateiRolle, PROJEKT_SCHEMA, ROLLEN_TITEL } from '@exam-manager/core';
 import {
   AppButton,
   DataTable,
   FilePickerButton,
+  ProjektDownload,
   ScreenContainer,
   Section,
   StatusText,
@@ -32,15 +33,6 @@ export function HomeScreen() {
     }
   };
 
-  const standHerunterladen = async () => {
-    setStatus(null);
-    try {
-      downloadZip(`${projekt.ordner ?? 'klausur-projekt'}.zip`, await projekt.alsZip());
-    } catch (fehler) {
-      setStatus({ kind: 'error', text: `ZIP konnte nicht erzeugt werden: ${String(fehler)}` });
-    }
-  };
-
   const vorlageHerunterladen = async () => {
     setStatus(null);
     try {
@@ -51,8 +43,17 @@ export function HomeScreen() {
   };
 
   const erkannt = projekt.dateien.filter((datei) => datei.rolle !== 'unbekannt');
-  // Nur diese Dateien hält der Projektordner dauerhaft – und nur sie landen im ZIP.
-  const bestand = projekt.dateien.filter((datei) => gehoertInsProjekt(datei.rolle));
+  // Markdown im Ordner ist erklärender Text (LIESMICH.md) – keine Datei, die
+  // jemand am falschen Platz abgelegt hat. Beide werden mitgeführt, aber nur
+  // die zweite Sorte ist einen Hinweis wert.
+  const istHinweis = (pfad: string) => pfad.toLowerCase().endsWith('.md');
+  const rolleTitel = (datei: { pfad: string; rolle: DateiRolle }) =>
+    datei.rolle === 'unbekannt' && istHinweis(datei.pfad)
+      ? 'Hinweistext (bleibt erhalten)'
+      : ROLLEN_TITEL[datei.rolle];
+  const nichtZugeordnet = projekt.dateien.filter(
+    (datei) => datei.rolle === 'unbekannt' && !istHinweis(datei.pfad),
+  ).length;
 
   return (
     <ScreenContainer
@@ -74,15 +75,31 @@ export function HomeScreen() {
 
       <Section title="Projektordner (optional)" testID="home-projekt">
         <Text style={styles.hinweis}>
-          Der Projektordner hält das, was über eine einzelne Klausur hinaus gilt: die
-          Zulassungslisten der vergangenen Jahre in <Text style={styles.pfad}>Zulassungen/</Text>{' '}
-          (<Text style={styles.pfad}>*_zulassungen.csv</Text>) und die leeren Raumraster in{' '}
-          <Text style={styles.pfad}>Raeume/</Text> – ohne Studierende, damit sich dieselben Räume
-          für jeden Sitzplan wiederverwenden lassen. Einmal auswählen, dann holen sich die Schritte
-          diese Dateien von selbst. Alles Klausurbezogene (HIS-Export, Notenliste, Teilnehmende,
-          Belegung, Sitzplan) wird im jeweiligen Schritt hoch- und wieder heruntergeladen und nicht
-          im Ordner abgelegt. Ohne Ordner funktioniert weiterhin jeder Schritt einzeln.
+          Der Projektordner hält alle Dateien einer Klausur an einem Ort. Einmal auswählen, dann
+          holen sich die Schritte ihre Eingaben von selbst und legen ihre Ergebnisse wieder darin
+          ab. Ohne Ordner funktioniert weiterhin jeder Schritt einzeln.
         </Text>
+        <Text style={styles.hinweis}>
+          Entscheidend ist der <Text style={styles.pfad}>Ordner</Text>: Gelesen wird eine Datei nur,
+          wenn sie am vorgesehenen Platz mit der passenden Endung liegt. Alles andere zeigt die
+          Tabelle als „nicht zugeordnet“ – es bleibt unangetastet erhalten, wird aber von keinem
+          Schritt verwendet.
+        </Text>
+
+        <DataTable
+          columns={[
+            { key: 'ordner', title: 'Ordner' },
+            { key: 'dateien', title: 'Dateien' },
+            { key: 'zweck', title: 'Was hineingehört' },
+          ]}
+          rows={PROJEKT_SCHEMA.map((regel) => ({
+            ordner: `${regel.ordner}/`,
+            dateien: `${regel.nameEnthaelt ? `*${regel.nameEnthaelt}*` : '*'}${regel.endungen.join(', *')}`,
+            zweck: regel.zweck,
+          }))}
+          testID="home-schema"
+        />
+
         <FilePickerButton
           label="Projektordner auswählen"
           directory
@@ -93,8 +110,8 @@ export function HomeScreen() {
         {projekt.ordner !== null || projekt.dateien.length > 0 ? (
           <StatusText kind="success" testID="home-projekt-status">
             {`Ordner „${projekt.ordner ?? '—'}“: ${projekt.dateien.length} Dateien gelesen, ${erkannt.length} davon zugeordnet.` +
-              (projekt.uebersprungen > 0
-                ? ` ${projekt.uebersprungen} Dateien übersprungen (kein CSV/Excel).`
+              (nichtZugeordnet > 0
+                ? ` ${nichtZugeordnet} liegen nicht im erwarteten Ordner und werden nicht verwendet.`
                 : '')}
           </StatusText>
         ) : null}
@@ -107,19 +124,13 @@ export function HomeScreen() {
             ]}
             rows={projekt.dateien.map((datei) => ({
               pfad: datei.pfad,
-              rolle: ROLLEN_TITEL[datei.rolle],
+              rolle: rolleTitel(datei),
             }))}
             testID="home-projekt-dateien"
           />
         ) : null}
 
         <View style={styles.buttonZeile}>
-          <AppButton
-            title="Projektordner als ZIP herunterladen"
-            onPress={standHerunterladen}
-            disabled={bestand.length === 0}
-            testID="home-stand-zip"
-          />
           <AppButton
             title="Projektvorlage als ZIP"
             variant="secondary"
@@ -136,6 +147,8 @@ export function HomeScreen() {
           ) : null}
         </View>
 
+        <ProjektDownload testID="home-stand-zip" />
+
         {status ? <StatusText kind={status.kind}>{status.text}</StatusText> : null}
 
         <Text style={styles.hinweis}>
@@ -145,10 +158,8 @@ export function HomeScreen() {
         </Text>
         <Text style={styles.hinweis}>
           Der Browser darf nicht in den Ordner zurückschreiben – deshalb der Umweg über die ZIP:
-          herunterladen, entpacken und den eigenen Ordner damit ersetzen. Enthalten sind nur die
-          Zulassungslisten und Raumraster, also der dauerhafte Bestand; klausurbezogene Ergebnisse
-          lädt man im jeweiligen Schritt herunter. Die Vorlage-ZIP enthält einen leeren Ordner mit
-          der erwarteten Struktur (siehe LIESMICH.md darin).
+          herunterladen, entpacken und den eigenen Ordner damit ersetzen. Die Vorlage-ZIP enthält
+          einen leeren Ordner mit genau dieser Struktur (siehe LIESMICH.md darin).
         </Text>
       </Section>
 

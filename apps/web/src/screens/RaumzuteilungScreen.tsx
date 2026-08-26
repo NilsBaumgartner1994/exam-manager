@@ -44,6 +44,7 @@ import {
   LabeledNumberInput,
   LabeledTextInput,
   PaletteElement,
+  ProjektDownload,
   Raumplan,
   ScreenContainer,
   Section,
@@ -951,6 +952,13 @@ export function RaumzuteilungScreen() {
           />
         </Section>
       ) : null}
+
+      <Section title="Projekt">
+        <ProjektDownload
+          hinweis="Enthält Räume und Raumschema in Raeume/ sowie Sitzplan und Belegung in 4_Raumzuteilung_Export/."
+          testID="raum-projekt-download"
+        />
+      </Section>
     </ScreenContainer>
   );
 }

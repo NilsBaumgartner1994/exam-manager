@@ -14,6 +14,7 @@ import {
   DataTable,
   FilePickerButton,
   LabeledTextInput,
+  ProjektDownload,
   ScreenContainer,
   Section,
   StatusText,
@@ -27,6 +28,8 @@ import { colors, spacing } from '../theme';
 interface Ergebnis {
   zulassungen: Zulassung[];
   zip: Uint8Array;
+  /** Wie viele PDFs vorher im Projektordner lagen und ersetzt wurden. */
+  ersetzt: number;
 }
 
 /**
@@ -99,7 +102,12 @@ export function ZulassungsPdfsScreen() {
         dateien.set(`${zulassung.matrikelnummer}.pdf`, await zulassungsPdf(zulassung));
       }
       const zip = await erstelleZip(dateien);
-      setErgebnis({ zulassungen, zip });
+      // Der PDF-Ordner des Projekts wird komplett ersetzt: Ein PDF aus einem
+      // früheren Lauf gehört zu einem Stand, den es nicht mehr gibt – wer die
+      // Zulassung verloren hat, behielte sonst sein altes Schreiben.
+      const ersetzt = projekt.dateienMit('zulassungsPdf').length;
+      projekt.ersetze('zulassungsPdf', dateien);
+      setErgebnis({ zulassungen, zip, ersetzt });
       setStatus(null);
     } catch (fehler) {
       setStatus({ kind: 'error', text: fehler instanceof Error ? fehler.message : String(fehler) });
@@ -137,6 +145,12 @@ export function ZulassungsPdfsScreen() {
           <StatusText kind="info" testID="pdfs-projekt">{ausProjekt}</StatusText>
         ) : null}
         {status ? <StatusText kind={status.kind}>{status.text}</StatusText> : null}
+        <Text style={styles.hinweis}>
+          Aus dem Projektordner kommen die Zulassungslisten aus Zulassungen/ (inklusive der in
+          Schritt 1 abgelegten) und der Stud.IP-Export aus
+          0_Input_Kurs_Teilnehmer_Studip_Liste/. Ohne Projektordner lassen sich beide hier von Hand
+          auswählen.
+        </Text>
       </Section>
 
       <AppButton
@@ -150,6 +164,12 @@ export function ZulassungsPdfsScreen() {
         <Section title="Ergebnis">
           <StatusText kind="success" testID="zulassungspdfs-ergebnis">
             {`${ergebnis.zulassungen.length} Zulassungs-PDFs erzeugt.`}
+          </StatusText>
+          <StatusText kind="info" testID="zulassungspdfs-projekt-ordner">
+            {`Im Projekt liegen sie in 2_Zulassungs_PDFs_Export/` +
+              (ergebnis.ersetzt > 0
+                ? ` – ${ergebnis.ersetzt} PDFs aus einem früheren Lauf wurden dabei entfernt.`
+                : '.')}
           </StatusText>
           <DataTable
             columns={[
@@ -189,6 +209,13 @@ export function ZulassungsPdfsScreen() {
           </Text>
         </Section>
       ) : null}
+
+      <Section title="Projekt">
+        <ProjektDownload
+          hinweis="Enthält die neu erzeugten Zulassungs-PDFs in 2_Zulassungs_PDFs_Export/."
+          testID="pdfs-projekt-download"
+        />
+      </Section>
     </ScreenContainer>
   );
 }

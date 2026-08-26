@@ -26,6 +26,9 @@ Der Beispieldatensatz wird nicht von Hand gepflegt, sondern erzeugt:
 python3 tools/generate_sample_data.py
 ```
 
+`tools/build_sample_project.py` baut daraus `Beispielprojekt/` – den
+Beispiel-Projektordner der Web-App.
+
 Das Skript schreibt nur die **Eingangsdaten** (HIS-Export, VIPS-Notenliste,
 Stud.IP-Export, alte Zulassungsliste, Raumliste, Raumschema). Alle abgeleiteten Dateien
 entstehen, indem die Pipeline darüber läuft – die Befehlsfolge steht in der
@@ -46,7 +49,8 @@ Konventionen des Datensatzes:
 - CSV: Trennzeichen `;`, UTF-8, Zeilenende `\n`. Die VIPS-Notenliste hat als
   einzige Datei ein BOM – das entspricht dem echten Export und ist Absicht.
 - Der Zulassungsbestand in `Zulassungen/` wird über den Dateinamen erkannt:
-  nur `*zulassungen*.csv` zählt als Bestand.
+  nur `*zulassungen*.csv` zählt als Bestand. Im Projektordner der App gilt das
+  zusätzlich zum Ordner selbst (siehe „Projektordner“).
 - Dateinamen ohne Leerzeichen und Umlaute.
 - Dokumentation und Skript-Ausgaben auf Deutsch, Code-Bezeichner Englisch oder
   Deutsch wie im umgebenden Code.
@@ -102,32 +106,45 @@ Konventionen des Datensatzes:
 
 ## Projektordner (Startseite)
 
-- `packages/core/src/projekt.ts` erkennt die Rolle einer Datei aus Name **und**
-  Kopfzeile (`erkenneRolle`); die Kopfzeile hat Vorrang, weil Dateinamen in der
-  Praxis uneinheitlich sind (`teilnehmer.csv` ist mal Stud.IP-Export, mal
-  Teilnehmerliste). Neue Formate bekommen dort eine Regel **und** einen Test.
-- Der Ordner hat genau zwei Unterordner, weil nur zwei Dinge über eine
-  einzelne Klausur hinaus gelten: `Zulassungen/` mit den `*_zulassungen.csv`
-  der vergangenen Jahre und `Raeume/` mit den leeren Raumrastern
-  (`raumschema.csv`, `raeume.csv`) – ohne platzierte Studierende, damit sie
-  sich für jeden Sitzplan wiederverwenden lassen. Welche Rolle wo landet, steht
-  in `PROJEKT_ORDNER`; `gehoertInsProjekt(rolle)` beantwortet, ob eine Datei
-  aufbewahrt wird. Klausurbezogene Dateien (HIS-Export, Notenliste,
-  Teilnehmende, Belegung, Sitzplan) bleiben nur im Speicher: Sie werden im
-  Schritt hochgeladen und dort heruntergeladen, nicht im Ordner abgelegt. Wer
-  eine Rolle dauerhaft aufbewahren will, ergänzt `PROJEKT_ORDNER` **und** die
-  Projektvorlage.
+- `packages/core/src/projekt.ts` beschreibt den Ordner als Schema
+  (`PROJEKT_SCHEMA`): je Regel ein Ordner, die zulässigen Endungen, optional
+  ein Namensbestandteil und die Rollen, die dort vorkommen. Daraus leiten sich
+  `PROJEKT_ORDNER` (Rolle → Ordner), `erkenneRolle`, `projektPfad` und die
+  Projektvorlage ab – **eine Quelle**, kein zweiter Ort, an dem Ordnernamen
+  stehen. Ein neues Format bekommt dort eine Regel **und** einen Test.
+- **Der Ordner entscheidet, nicht der Dateiname.** `erkenneRolle` gibt
+  `unbekannt` zurück, sobald eine Datei außerhalb ihres Ordners liegt oder die
+  Endung nicht passt – eine Notenliste im Hauptordner wird nicht ausgewertet.
+  Das ist Absicht: In der Praxis heißen Exporte uneinheitlich, und die falsche
+  Datei stillschweigend auszuwerten ist schlimmer, als eine sichtbar zu
+  ignorieren. Die Kopfzeile entscheidet nur noch dort, wo ein Ordner mehrere
+  Rollen aufnimmt (`Raeume/`: Raumliste oder Raumschema).
+- Der Aufbau folgt den Schritten der App: `0_Input_…` für alles, was von außen
+  kommt (Prüfungsamt, Stud.IP, VIPS), nummerierte Export-Ordner für die
+  Ergebnisse der Schritte. `Zulassungen/` und `Raeume/` bleiben unnummeriert,
+  weil sie über eine einzelne Klausur hinaus gelten; die Raumraster liegen
+  dort blanko, damit sie sich jedes Jahr wiederverwenden lassen.
 - `apps/web/src/projekt.tsx` hält den Stand im Speicher (React-Kontext):
-  `datei(rolle)`/`dateienMit(rolle)` zum Lesen, `schreibe(name, text, rolle)`
-  zum Zurückschreiben von Ergebnissen, `alsZip()` für den Download – im ZIP
-  landet nur, was `gehoertInsProjekt()` bejaht. Jeder Screen übernimmt Eingaben
-  nur, solange dort noch nichts geladen ist – eine Auswahl von Hand wird nie
-  überschrieben.
+  `datei(rolle)`/`dateienMit(rolle)` zum Lesen, `schreibe(name, inhalt, rolle)`
+  zum Zurückschreiben von Ergebnissen (der Zielordner kommt aus dem Schema),
+  `ersetze(rolle, dateien)` zum Leeren-und-neu-Füllen eines Ordners (die
+  Zulassungs-PDFs: alte Stände dürfen nicht stehenbleiben) und `alsZip()` für
+  den Download. Gelesen und mitgeführt wird **jede** Datei des Ordners, auch
+  eine nicht zugeordnete: Die ZIP ersetzt den Ordner auf der Platte und darf
+  nichts verlieren. Jeder Screen übernimmt Eingaben nur, solange dort noch
+  nichts geladen ist – eine Auswahl von Hand wird nie überschrieben.
+- Der Download-Knopf steht als `ProjektDownload` in `src/components/` und
+  gehört auf **jeden** Screen; ein neuer Screen bekommt ihn mit.
 - Bewusst **kein** localStorage: Der Ordner enthält Personendaten, die nach dem
   Schließen der Seite nicht im Browserprofil zurückbleiben sollen. Ein Neuladen
   leert den Stand, das ist so gewollt und auf der Startseite erklärt.
 - Der Browser darf nicht in den gewählten Ordner zurückschreiben; der Weg
   zurück auf die Platte ist immer die ZIP.
+- `Beispielprojekt/` im Repo ist ein gefüllter Projektordner zum Ausprobieren.
+  Er wird nicht von Hand gepflegt, sondern erzeugt:
+  `python3 tools/build_sample_project.py`. Wer das Schema ändert, ändert dort
+  die Zielpfade mit – `packages/core/test/projekt.test.ts` prüft, dass jede
+  Datei im Beispielprojekt von `erkenneRolle` wiedergefunden wird.
 
 ## Sitzplan im Raum (Screen 4)
 
@@ -215,9 +232,9 @@ pdf-lib in `packages/core/src/pdf.ts`, weil sie ohne Browser laufen müssen.
 ## Datensatz oder Formate ändern
 
 Reihenfolge: `python3 tools/generate_sample_data.py` → Pipeline aus der README
-laufen lassen → `python3 tools/sync_sample_data_to_app.py` → `yarn test` (und
-bei geänderten Zahlen die Tests, README und `.maestro/durchlauf.yaml`
-anpassen).
+laufen lassen → `python3 tools/build_sample_project.py` →
+`python3 tools/sync_sample_data_to_app.py` → `yarn test` (und bei geänderten
+Zahlen die Tests, README und `.maestro/durchlauf.yaml` anpassen).
 
 ## Bekannte Eigenheiten
 

@@ -14,12 +14,14 @@ import {
   FilePickerButton,
   LabeledNumberInput,
   LabeledTextInput,
+  ProjektDownload,
   ScreenContainer,
   Section,
   StatusText,
 } from '../components';
 import { downloadCsv, readFileAsText } from '../files';
 import { useProjekt } from '../projekt';
+import { useNavigation } from '../Router';
 import { BEISPIEL_NOTENLISTE, BEISPIEL_TEILNEHMENDENEXPORT } from '../sampleData';
 import { colors, spacing } from '../theme';
 
@@ -58,6 +60,8 @@ export function VipsScreen() {
   const [ergebnis, setErgebnis] = useState<Zulassung[] | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [dateiname, setDateiname] = useState('');
+  const [abgelegt, setAbgelegt] = useState<string | null>(null);
+  const { navigate } = useNavigation();
 
   const beispielLaden = () => {
     setNotenlisteCsv(BEISPIEL_NOTENLISTE);
@@ -115,6 +119,12 @@ export function VipsScreen() {
           />
           {beispielGeladen ? <StatusText kind="info">Beispieldaten geladen.</StatusText> : null}
           {ausProjekt ? <StatusText kind="info" testID="vips-projekt">{ausProjekt}</StatusText> : null}
+          <Text style={styles.hinweis}>
+            Aus dem Projektordner kommen die Notenliste aus{' '}
+            <Text style={styles.pfad}>0_Input_Vips_Notenliste/</Text> und der Stud.IP-Export aus{' '}
+            <Text style={styles.pfad}>0_Input_Kurs_Teilnehmer_Studip_Liste/</Text>. Nur Dateien in
+            diesen Ordnern werden gelesen.
+          </Text>
         </View>
       </Section>
 
@@ -177,7 +187,7 @@ export function VipsScreen() {
       ) : null}
 
       {ergebnis !== null ? (
-        <Section title="Download">
+        <Section title="Ergebnis sichern">
           <View style={styles.spalte}>
             <LabeledTextInput
               label="Dateiname"
@@ -187,27 +197,55 @@ export function VipsScreen() {
             />
             <AppButton
               title="CSV herunterladen"
-              onPress={() => {
-                const csv = zulassungenToCsv(ergebnis);
-                downloadCsv(dateiname, csv);
-                // Ergebnis auch in den Projektstand legen, damit es im
-                // ZIP-Download des Ordners enthalten ist.
-                projekt.schreibe(dateiname, csv, 'zulassungsbestand');
-              }}
+              onPress={() => downloadCsv(dateiname, zulassungenToCsv(ergebnis))}
               testID="vips-download"
             />
+            <AppButton
+              title="Zugelassene Studierende in den Zulassungen-Ordner ablegen"
+              onPress={() => {
+                const csv = zulassungenToCsv(ergebnis);
+                // In den Projektstand (Zulassungen/) und zusätzlich als
+                // Download: Der Browser darf nicht auf die Platte schreiben,
+                // der Ordner wird über die Projekt-ZIP ersetzt.
+                projekt.schreibe(dateiname, csv, 'zulassungsbestand');
+                downloadCsv(dateiname, csv);
+                setAbgelegt(`Zulassungen/${dateiname}`);
+              }}
+              testID="vips-ablegen"
+            />
+            {abgelegt !== null ? (
+              <StatusText kind="success" testID="vips-abgelegt">
+                {`Im Projekt abgelegt als ${abgelegt} – und als Datei heruntergeladen. Zum Speichern auf der Platte unten das aktualisierte Projekt herunterladen.`}
+              </StatusText>
+            ) : null}
             <Text style={styles.hinweis}>
-              Hinweis: Diese Datei gehört als neue Jahresliste in den Ordner Zulassungen/ des
-              Projekts, damit spätere Schritte sie berücksichtigen.
+              Diese Datei ist die neue Jahresliste im Ordner{' '}
+              <Text style={styles.pfad}>Zulassungen/</Text> – die folgenden Schritte lesen sie von
+              dort.
             </Text>
           </View>
         </Section>
       ) : null}
+
+      <Section title="Weiter">
+        <View style={styles.spalte}>
+          <AppButton
+            title="Weiter zu 2. Zulassungs-PDFs generieren"
+            onPress={() => navigate('ZulassungsPdfs')}
+            testID="vips-weiter"
+          />
+          <ProjektDownload
+            hinweis="Enthält die hier abgelegte Zulassungsliste."
+            testID="vips-projekt-download"
+          />
+        </View>
+      </Section>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   spalte: { gap: spacing.md },
-  hinweis: { fontSize: 13, color: colors.textMuted },
+  hinweis: { fontSize: 13, color: colors.textMuted, lineHeight: 19 },
+  pfad: { fontWeight: '600', color: colors.text },
 });

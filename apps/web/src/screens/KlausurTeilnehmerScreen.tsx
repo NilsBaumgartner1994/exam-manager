@@ -14,6 +14,7 @@ import {
   DataTable,
   FilePickerButton,
   LabeledTextInput,
+  ProjektDownload,
   ScreenContainer,
   Section,
   StatusText,
@@ -180,6 +181,10 @@ export function KlausurTeilnehmerScreen() {
           {ausProjekt ? (
             <StatusText kind="info" testID="klausur-projekt">{ausProjekt}</StatusText>
           ) : null}
+          <Text style={styles.hinweis}>
+            Aus dem Projektordner kommen die Anmeldungen aus 0_Input_Klausuranmeldungen/ (Excel)
+            und die Zulassungslisten aus Zulassungen/.
+          </Text>
           {anmeldungen !== null && !beispielGeladen ? (
             <StatusText kind="info">{`${anmeldungen.length} Anmeldungen eingelesen.`}</StatusText>
           ) : null}
@@ -263,23 +268,32 @@ export function KlausurTeilnehmerScreen() {
             />
             <AppButton
               title="Nicht-Zugelassene herunterladen"
-              onPress={() =>
-                downloadCsv(dateinameNichtZugelassen, anmeldungenToCsv(ergebnis.nichtZugelassen))
-              }
+              onPress={() => {
+                const csv = anmeldungenToCsv(ergebnis.nichtZugelassen);
+                downloadCsv(dateinameNichtZugelassen, csv);
+                projekt.schreibe(dateinameNichtZugelassen, csv, 'teilnehmer');
+              }}
               testID="klausur-download-nicht-zugelassen"
             />
             <Text style={styles.hinweis}>
               Hinweis: Die Datei mit den Zugelassenen ist die Eingabe für Schritt 4 (Raumzuteilung)
-              und den Klausurdruck.
+              und den Klausurdruck. Im Projekt liegt sie in 3_Klausur_Teilnehmende_Export/.
             </Text>
           </View>
         </Section>
       ) : null}
+
+      <Section title="Projekt">
+        <ProjektDownload
+          hinweis="Enthält die Liste der Zugelassenen in 3_Klausur_Teilnehmende_Export/."
+          testID="klausur-projekt-download"
+        />
+      </Section>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   spalte: { gap: spacing.md },
-  hinweis: { fontSize: 13, color: colors.textMuted },
+  hinweis: { fontSize: 13, color: colors.textMuted, lineHeight: 19 },
 });

@@ -1,11 +1,14 @@
 /**
  * Projektordner: alle Dateien einer Klausur an einem Ort.
  *
- * Wer den Ordner in der App auswählt, muss in den einzelnen Schritten nichts
- * mehr einzeln hochladen – die App erkennt an Dateiname und Kopfzeile, was
- * welche Datei ist. Der Kopfzeilen-Test geht vor: Dateinamen sind in der
- * Praxis uneinheitlich (`teilnehmer.csv` ist mal ein Stud.IP-Export, mal eine
- * Teilnehmerliste), die Kopfzeilen der Exporte dagegen eindeutig.
+ * Der Ordner hat ein festes Schema (`PROJEKT_SCHEMA`): Jede Rolle hat genau
+ * einen Ordner, und **nur** was dort mit der passenden Endung liegt, wird
+ * eingelesen. Eine Notenliste im Hauptordner oder ein Stud.IP-Export in
+ * `Zulassungen/` gilt bewusst als „nicht zugeordnet“ – lieber eine Datei
+ * sichtbar ignorieren als die falsche Datei stillschweigend auswerten.
+ *
+ * Die Kopfzeile entscheidet nur noch dort, wo ein Ordner mehrere Rollen
+ * aufnimmt (`Raeume/` hält Raumliste und Raumschema).
  */
 
 export type DateiRolle =
@@ -13,7 +16,7 @@ export type DateiRolle =
   | 'notenliste'
   /** Stud.IP-Teilnehmendenexport der Veranstaltung. */
   | 'studipExport'
-  /** Zulassungsliste eines Jahres (Bestand, `*zulassungen*.csv`). */
+  /** Zulassungsliste eines Jahres (Bestand, `*_zulassungen.csv`). */
   | 'zulassungsbestand'
   /** Anmeldungen des Prüfungsamts (HIS-Export, Excel). */
   | 'hisExport'
@@ -27,6 +30,8 @@ export type DateiRolle =
   | 'teilnehmer'
   /** Sitzplan aus Schritt 4. */
   | 'sitzplan'
+  /** Erzeugte Zulassungs-PDFs aus Schritt 2 (je Matrikelnummer eines). */
+  | 'zulassungsPdf'
   | 'unbekannt';
 
 /** Menschenlesbare Bezeichnung – für Anzeige und Statusmeldungen. */
@@ -34,14 +39,96 @@ export const ROLLEN_TITEL: Record<DateiRolle, string> = {
   notenliste: 'VIPS-Notenliste',
   studipExport: 'Stud.IP-Teilnehmendenexport',
   zulassungsbestand: 'Zulassungsliste',
-  hisExport: 'HIS-Export (Anmeldungen)',
+  hisExport: 'Klausuranmeldungen (HIS-Export)',
   raeume: 'Raumliste',
   raumschema: 'Raumschema',
   raumbelegung: 'Raumbelegung',
   teilnehmer: 'Klausur-Teilnehmende',
   sitzplan: 'Sitzplan',
+  zulassungsPdf: 'Zulassungs-PDF',
   unbekannt: 'nicht zugeordnet',
 };
+
+/** Eine Regel des Ordnerschemas: welcher Ordner nimmt was auf. */
+export interface OrdnerRegel {
+  /** Ordner innerhalb des Projekts, ohne Schrägstriche. */
+  ordner: string;
+  /** Zulässige Endungen (klein geschrieben, mit Punkt). */
+  endungen: string[];
+  /** Muss im Dateinamen vorkommen (klein geschrieben); leer = beliebig. */
+  nameEnthaelt?: string;
+  /**
+   * Rollen dieses Ordners. Bei mehreren entscheidet die Kopfzeile, die erste
+   * ist der Rückfall.
+   */
+  rollen: DateiRolle[];
+  /** Wofür der Ordner da ist – für LIESMICH und Anzeige in der App. */
+  zweck: string;
+}
+
+/**
+ * Das Schema des Projektordners. Die Nummern folgen den Schritten der App:
+ * `0_Input_…` sind die Dateien, die von außen kommen (Prüfungsamt, Stud.IP,
+ * VIPS), die nummerierten Export-Ordner nehmen die Ergebnisse der Schritte
+ * auf. `Zulassungen/` und `Raeume/` sind unnummeriert, weil sie über eine
+ * einzelne Klausur hinaus gelten.
+ */
+export const PROJEKT_SCHEMA: OrdnerRegel[] = [
+  {
+    ordner: '0_Input_Klausuranmeldungen',
+    endungen: ['.xlsx', '.xls'],
+    rollen: ['hisExport'],
+    zweck: 'Anmeldungen zur Klausur, wie sie das Prüfungsamt schickt (Excel).',
+  },
+  {
+    ordner: '0_Input_Kurs_Teilnehmer_Studip_Liste',
+    endungen: ['.csv'],
+    rollen: ['studipExport'],
+    zweck: 'Teilnehmendenexport der Veranstaltung aus Stud.IP.',
+  },
+  {
+    ordner: '0_Input_Vips_Notenliste',
+    endungen: ['.csv'],
+    rollen: ['notenliste'],
+    zweck: 'Notenliste aus VIPS mit den Punkten der Aufgabenblätter.',
+  },
+  {
+    ordner: 'Zulassungen',
+    endungen: ['.csv'],
+    nameEnthaelt: 'zulassungen',
+    rollen: ['zulassungsbestand'],
+    zweck: 'Je Jahr eine Liste der Zugelassenen, z. B. pv2025_zulassungen.csv.',
+  },
+  {
+    ordner: 'Raeume',
+    endungen: ['.csv'],
+    rollen: ['raeume', 'raumschema'],
+    zweck: 'Räume und ihre leeren Raster – ohne Studierende, jedes Jahr wiederverwendbar.',
+  },
+  {
+    ordner: '2_Zulassungs_PDFs_Export',
+    endungen: ['.pdf'],
+    rollen: ['zulassungsPdf'],
+    zweck: 'Erzeugte Zulassungs-PDFs, je Matrikelnummer eines (Schritt 2).',
+  },
+  {
+    ordner: '3_Klausur_Teilnehmende_Export',
+    endungen: ['.csv'],
+    rollen: ['teilnehmer'],
+    zweck: 'Angemeldete mit und ohne Zulassung (Schritt 3).',
+  },
+  {
+    ordner: '4_Raumzuteilung_Export',
+    endungen: ['.csv'],
+    rollen: ['sitzplan', 'raumbelegung'],
+    zweck: 'Sitzplan und Raumbelegung dieser Klausur (Schritt 4).',
+  },
+];
+
+/** Rolle → Ordner, aus dem Schema abgeleitet. */
+export const PROJEKT_ORDNER: Partial<Record<DateiRolle, string>> = Object.fromEntries(
+  PROJEKT_SCHEMA.flatMap((regel) => regel.rollen.map((rolle) => [rolle, regel.ordner])),
+) as Partial<Record<DateiRolle, string>>;
 
 function basisname(pfad: string): string {
   return pfad.split('/').pop() ?? pfad;
@@ -54,92 +141,93 @@ export function verzeichnis(pfad: string): string {
   return teile.join('/');
 }
 
-/**
- * Rolle einer Datei bestimmen. `kopf` ist die erste Zeile der Datei (bei
- * Textdateien) – damit lassen sich die Exporte sicher unterscheiden.
- */
-export function erkenneRolle(pfad: string, kopf?: string): DateiRolle {
-  const name = basisname(pfad).toLowerCase();
-
-  // Binärformate: Der Excel-Export des Prüfungsamts ist die einzige Tabelle.
-  if (name.endsWith('.xlsx') || name.endsWith('.xls')) return 'hisExport';
-
-  const kopfzeile = (kopf ?? '').replace(/^﻿/, '').trim();
-  if (kopfzeile !== '') {
-    const klein = kopfzeile.toLowerCase();
-    if (klein.includes('"status"') || (klein.includes('status;') && klein.includes('anrede'))) {
-      return 'studipExport';
-    }
-    if (klein.includes('aufgabenblatt') || klein.startsWith('nachname;vorname;kennung')) {
-      return 'notenliste';
-    }
-    if (klein.startsWith('raum;zeile;spalte')) return 'raumbelegung';
-    if (klein.startsWith('raum;plätze') || klein.startsWith('raum;plaetze')) return 'raeume';
-    // Raumschema beginnt mit `Raum;<Name>` – Name statt Spaltenüberschriften.
-    if (klein.startsWith('raum;')) return 'raumschema';
-    if (klein.startsWith('anfang_nachname;sitzplatznummer')) return 'sitzplan';
-  }
-
-  // Dateiname als Rückfallebene (Konvention des Repos).
-  if (name.includes('zulassungen')) return 'zulassungsbestand';
-  if (name.includes('raumschema')) return 'raumschema';
-  if (name.includes('raumbelegung')) return 'raumbelegung';
-  if (name.includes('raeume') || name.includes('räume')) return 'raeume';
-  if (name.includes('notenliste')) return 'notenliste';
-  if (name.includes('teilnehmendenexport') || name.includes('studip')) return 'studipExport';
-  if (name.includes('sitzplan') || name.includes('zuordnung')) return 'sitzplan';
-  if (name.includes('allowedstudents') || name.includes('teilnehmer') || name === 'result.csv') {
-    return 'teilnehmer';
-  }
-  return 'unbekannt';
+/** Regel des Ordners, in dem der Pfad liegt (undefined = kein Schema-Ordner). */
+export function regelFuerPfad(pfad: string): OrdnerRegel | undefined {
+  const ordner = verzeichnis(pfad).toLowerCase();
+  return PROJEKT_SCHEMA.find((regel) => regel.ordner.toLowerCase() === ordner);
 }
 
 /**
- * Ordner des Projekts. Aufbewahrt wird nur, was über eine Klausur hinaus
- * gebraucht wird: der Zulassungsbestand der vergangenen Jahre und die leeren
- * Raumraster, die sich für jeden Sitzplan wiederverwenden lassen.
- *
- * Alles andere (HIS-Export, Notenliste, Teilnehmendenliste, Belegung,
- * Sitzplan) gehört zu genau einer Klausur: Es wird im Schritt hochgeladen und
- * dort wieder heruntergeladen, aber nicht im Projektordner abgelegt.
+ * Rolle unter mehreren Kandidaten an der Kopfzeile festmachen. Greift nur in
+ * Ordnern, die mehr als eine Rolle aufnehmen.
  */
-export const PROJEKT_ORDNER: Partial<Record<DateiRolle, string>> = {
-  zulassungsbestand: 'Zulassungen',
-  raeume: 'Raeume',
-  raumschema: 'Raeume',
-};
+function rolleAusKopf(kopf: string | undefined, kandidaten: DateiRolle[]): DateiRolle {
+  const kopfzeile = (kopf ?? '').replace(/^﻿/, '').trim().toLowerCase();
+  const passt = (rolle: DateiRolle) => kandidaten.includes(rolle);
 
-/** Gehört eine Datei dieser Rolle in den Projektordner (und damit ins ZIP)? */
+  if (kopfzeile !== '') {
+    if (passt('raumbelegung') && kopfzeile.startsWith('raum;zeile;spalte')) return 'raumbelegung';
+    if (
+      passt('raeume') &&
+      (kopfzeile.startsWith('raum;plätze') || kopfzeile.startsWith('raum;plaetze'))
+    ) {
+      return 'raeume';
+    }
+    // Raumschema beginnt mit `Raum;<Name>` – Name statt Spaltenüberschriften.
+    if (passt('raumschema') && kopfzeile.startsWith('raum;')) return 'raumschema';
+    if (passt('sitzplan') && kopfzeile.startsWith('anfang_nachname;sitzplatznummer')) {
+      return 'sitzplan';
+    }
+  }
+  return kandidaten[0];
+}
+
+/**
+ * Rolle einer Datei bestimmen. `pfad` ist der Pfad **innerhalb** des
+ * Projektordners, `kopf` die erste Zeile (bei Textdateien).
+ *
+ * Entscheidend ist der Ordner: Was nicht im vorgesehenen Ordner liegt oder
+ * die falsche Endung hat, ist `unbekannt` und wird von den Schritten nicht
+ * angefasst.
+ */
+export function erkenneRolle(pfad: string, kopf?: string): DateiRolle {
+  const regel = regelFuerPfad(pfad);
+  if (!regel) return 'unbekannt';
+
+  const name = basisname(pfad).toLowerCase();
+  if (!regel.endungen.some((endung) => name.endsWith(endung))) return 'unbekannt';
+  if (regel.nameEnthaelt && !name.includes(regel.nameEnthaelt)) return 'unbekannt';
+
+  return regel.rollen.length === 1 ? regel.rollen[0] : rolleAusKopf(kopf, regel.rollen);
+}
+
+/** Gehört eine Datei dieser Rolle in den Projektordner? */
 export function gehoertInsProjekt(rolle: DateiRolle): boolean {
   return PROJEKT_ORDNER[rolle] !== undefined;
 }
 
+/** Pfad, unter dem ein Ergebnis dieser Rolle im Projekt abgelegt wird. */
+export function projektPfad(rolle: DateiRolle, dateiname: string): string {
+  const ordner = PROJEKT_ORDNER[rolle];
+  return ordner === undefined ? dateiname : `${ordner}/${dateiname}`;
+}
+
 const LIESMICH = `# Klausur-Projektordner
 
-Diesen Ordner in der Startseite des Exam Managers auswählen – die App erkennt
-die Dateien an Name und Kopfzeile und füllt die Schritte damit. Alles bleibt
-dabei auf dem eigenen Rechner.
+Diesen Ordner in der Startseite des Exam Managers auswählen – die App liest
+die Dateien aus den unten stehenden Ordnern und füllt die Schritte damit.
+Alles bleibt dabei auf dem eigenen Rechner.
 
-Der Ordner hält nur das, was über eine einzelne Klausur hinaus gilt:
+**Der Ordner entscheidet.** Eine Datei wird nur gelesen, wenn sie im
+vorgesehenen Ordner mit der passenden Endung liegt; alles andere zeigt die App
+als „nicht zugeordnet“ an und rührt es nicht an.
 
-| Ordner | Datei | Was drinsteht |
+| Ordner | Dateien | Was hineingehört |
 |---|---|---|
-| Zulassungen/ | *_zulassungen.csv | je Jahr eine Liste der Zugelassenen; der Dateiname muss "zulassungen" enthalten (z. B. \`pv2025_zulassungen.csv\`) |
-| Raeume/ | raumschema.csv | leeres Raster der Räume (Tische, Tür, Wand, Pult) – ohne Studierende, für jeden Sitzplan wiederverwendbar |
-| Raeume/ | raeume.csv | Räume mit Plätzen und reservierter Zeit |
+${PROJEKT_SCHEMA.map(
+  (regel) =>
+    `| ${regel.ordner}/ | ${regel.nameEnthaelt ? `*${regel.nameEnthaelt}*` : '*'}${regel.endungen.join(', *')} | ${regel.zweck} |`,
+).join('\n')}
 
-Alles andere gehört zu genau einer Klausur und wird nicht hier abgelegt:
-Notenliste und Stud.IP-Export, der HIS-Export des Prüfungsamts (\`check.xlsx\`),
-die Liste der Klausur-Teilnehmenden, die Raumbelegung und der Sitzplan. Diese
-Dateien lädt man im jeweiligen Schritt hoch und das Ergebnis dort wieder
-herunter.
+Die Export-Ordner füllt die App: Was ein Schritt erzeugt, landet dort im
+Projektstand und ist in der ZIP enthalten, die sich auf jedem Screen über
+„Aktualisiertes Projekt herunterladen“ speichern lässt.
 
 ## Bearbeiteten Stand sichern
 
-Auf der Startseite lässt sich der Projektordner als ZIP herunterladen – mit
-den Zulassungslisten und Raumrastern, so wie sie nach dem Durchlauf aussehen.
-Dessen Inhalt ersetzt dann diesen Ordner; die App schreibt nichts von selbst
-auf die Festplatte.
+Der Browser darf nicht in den gewählten Ordner zurückschreiben. Der Weg zurück
+auf die Platte ist immer die ZIP: herunterladen, entpacken und den eigenen
+Ordner damit ersetzen.
 
 ## Keine echten Daten ins Repository
 
@@ -147,15 +235,30 @@ Dieser Ordner enthält Personendaten. Er gehört nicht in ein öffentliches
 Repository.
 `;
 
+/** Kurze LIESMICH-Datei je Ordner, damit die Struktur auch leer erklärt ist. */
+function ordnerHinweis(regel: OrdnerRegel): string {
+  const muster = `${regel.nameEnthaelt ? `*${regel.nameEnthaelt}*` : '*'}${regel.endungen.join(', *')}`;
+  return `# ${regel.ordner}\n\n${regel.zweck}\n\nErkannt werden hier: \`${muster}\`\n`;
+}
+
 /**
  * Leere Projektvorlage: Pfad → Inhalt. Die CSV-Dateien enthalten nur ihre
- * Kopfzeile, damit Format und Trennzeichen von Anfang an stimmen.
+ * Kopfzeile, damit Format und Trennzeichen von Anfang an stimmen; jeder Ordner
+ * bekommt eine LIESMICH.md, damit er auch leer in der ZIP existiert.
  */
 export function projektVorlage(): Map<string, string> {
-  return new Map<string, string>([
-    ['LIESMICH.md', LIESMICH],
-    ['Zulassungen/veranstaltung_jahr_zulassungen.csv', 'Nachname;Vorname;Matrikelnummer;E-Mail\n'],
-    ['Raeume/raeume.csv', 'Raum;Plätze;ReservierteZeit\n'],
-    ['Raeume/raumschema.csv', 'Raum;Beispielraum\nP;.;.;.\n.;T;.;T\n.;T;.;T\nD;.;.;.\n'],
-  ]);
+  const vorlage = new Map<string, string>([['LIESMICH.md', LIESMICH]]);
+  for (const regel of PROJEKT_SCHEMA) {
+    vorlage.set(`${regel.ordner}/LIESMICH.md`, ordnerHinweis(regel));
+  }
+  vorlage.set(
+    'Zulassungen/veranstaltung_jahr_zulassungen.csv',
+    'Nachname;Vorname;Matrikelnummer;E-Mail\n',
+  );
+  vorlage.set('Raeume/raeume.csv', 'Raum;Plätze;ReservierteZeit\n');
+  vorlage.set(
+    'Raeume/raumschema.csv',
+    'Raum;Beispielraum\nP;.;.;.\n.;T;.;T\n.;T;.;T\nD;.;.;.\n',
+  );
+  return vorlage;
 }

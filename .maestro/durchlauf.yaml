@@ -27,6 +27,15 @@ url: http://localhost:8081
     element: 'Schrödinger'   # Umlaute überleben die UTF-8-Kette
 - scrollUntilVisible:
     element: 'CSV herunterladen'
+- scrollUntilVisible:
+    element: 'Zugelassene Studierende in den Zulassungen-Ordner ablegen'
+- scrollUntilVisible:
+    element: 'Aktualisiertes Projekt herunterladen'
+# Der Weiter-Knopf führt auf Screen 2 – ab hier läuft der Flow dort weiter.
+- scrollUntilVisible:
+    element: 'Weiter zu 2. Zulassungs-PDFs generieren'
+- tapOn: 'Weiter zu 2. Zulassungs-PDFs generieren'
+- assertVisible: '2. Zulassungs-PDFs generieren'
 
 # ---------- Screen 2: Zulassungs-PDFs ----------
 - launchApp

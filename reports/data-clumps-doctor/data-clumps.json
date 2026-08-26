@@ -1,6 +1,6 @@
 {
   "report_version": "^0.1.103",
-  "report_timestamp": "2026-08-26T20:33:08.139Z",
+  "report_timestamp": "2026-08-26T21:00:20.715Z",
   "target_language": "typescript",
   "report_summary": {
     "additional": {
@@ -28,18 +28,18 @@
         }
       },
       "timer_information": {
-        "ast_generation_time_ms": 621,
-        "detection_time_ms": 12,
+        "ast_generation_time_ms": 659,
+        "detection_time_ms": 13,
         "machine_information": {
           "os": "Linux",
           "os_release": "6.17.0-1022-azure",
           "os_platform": "linux",
           "os_arch": "x64",
-          "os_uptime": 181.98,
-          "os_memory_free": 15035310080,
-          "os_memory_total": 16766414848,
+          "os_uptime": 299.51,
+          "os_memory_free": 15047852032,
+          "os_memory_total": 16770748416,
           "os_cpu_cores": 4,
-          "os_cpu_model": "AMD EPYC 9V74 80-Core Processor",
+          "os_cpu_model": "AMD EPYC 7763 64-Core Processor",
           "os_cpu_speed": 0
         }
       }
@@ -55,10 +55,10 @@
   "project_info": {
     "project_url": "https://github.com/NilsBaumgartner1994/exam-manager",
     "project_name": "exam-manager",
-    "project_version": "d62116a44bc81a33d61cb83399dc85c433bb3e2e",
-    "project_commit_hash": "d62116a44bc81a33d61cb83399dc85c433bb3e2e",
+    "project_version": "c81f9b527ff8ff0031c1568227f4abe0f227f18e",
+    "project_commit_hash": "c81f9b527ff8ff0031c1568227f4abe0f227f18e",
     "project_tag": null,
-    "project_commit_date": "1787776347",
+    "project_commit_date": "1787777980",
     "additional": {
       "relative_path_to_source_folder_in_project": ""
     },
@@ -1193,9 +1193,9 @@
             }
           },
           "position": {
-            "startLine": 8,
+            "startLine": 9,
             "startColumn": 3,
-            "endLine": 8,
+            "endLine": 9,
             "endColumn": 17
           }
         },
@@ -1218,9 +1218,9 @@
             }
           },
           "position": {
-            "startLine": 10,
+            "startLine": 11,
             "startColumn": 3,
-            "endLine": 10,
+            "endLine": 11,
             "endColumn": 23
           }
         },
@@ -1243,9 +1243,9 @@
             }
           },
           "position": {
-            "startLine": 13,
+            "startLine": 14,
             "startColumn": 3,
-            "endLine": 13,
+            "endLine": 14,
             "endColumn": 19
           }
         }
@@ -1283,9 +1283,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 8,
+              "startLine": 9,
               "startColumn": 3,
-              "endLine": 8,
+              "endLine": 9,
               "endColumn": 17
             }
           },
@@ -1308,9 +1308,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 10,
+              "startLine": 11,
               "startColumn": 3,
-              "endLine": 10,
+              "endLine": 11,
               "endColumn": 23
             }
           },
@@ -1333,9 +1333,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 13,
+              "startLine": 14,
               "startColumn": 3,
-              "endLine": 13,
+              "endLine": 14,
               "endColumn": 19
             }
           },

@@ -1,6 +1,6 @@
 {
   "report_version": "^0.1.103",
-  "report_timestamp": "2026-08-26T11:56:19.402Z",
+  "report_timestamp": "2026-08-26T12:08:28.834Z",
   "target_language": "typescript",
   "report_summary": {
     "additional": {
@@ -8,9 +8,9 @@
         "invertedFieldToClasses": {
           "median": 1.5,
           "maximum": 14,
-          "average": 1.4264705882352942,
-          "amountSavedValuesForKeys": 194,
-          "amountKeys": 6
+          "average": 1.4285714285714286,
+          "amountSavedValuesForKeys": 200,
+          "amountKeys": 7
         },
         "invertedParameterToMethods": {
           "median": 2,
@@ -22,24 +22,24 @@
         "invertedParameterToClasses": {
           "median": 1.5,
           "maximum": 14,
-          "average": 1.4264705882352942,
-          "amountSavedValuesForKeys": 194,
-          "amountKeys": 6
+          "average": 1.4285714285714286,
+          "amountSavedValuesForKeys": 200,
+          "amountKeys": 7
         }
       },
       "timer_information": {
-        "ast_generation_time_ms": 614,
+        "ast_generation_time_ms": 610,
         "detection_time_ms": 11,
         "machine_information": {
           "os": "Linux",
           "os_release": "6.17.0-1022-azure",
           "os_platform": "linux",
           "os_arch": "x64",
-          "os_uptime": 66.04,
-          "os_memory_free": 14907936768,
-          "os_memory_total": 16766410752,
+          "os_uptime": 60.65,
+          "os_memory_free": 14892478464,
+          "os_memory_total": 16766414848,
           "os_cpu_cores": 4,
-          "os_cpu_model": "AMD EPYC 7763 64-Core Processor",
+          "os_cpu_model": "AMD EPYC 9V74 80-Core Processor",
           "os_cpu_speed": 0
         }
       }
@@ -55,17 +55,17 @@
   "project_info": {
     "project_url": "https://github.com/NilsBaumgartner1994/exam-manager",
     "project_name": "exam-manager",
-    "project_version": "7f97b654105ddce3ef193aac568a9f0ed3ad8d20",
-    "project_commit_hash": "7f97b654105ddce3ef193aac568a9f0ed3ad8d20",
+    "project_version": "87955bcc27bdda45c3f2b5e87ca88d7049a7f578",
+    "project_commit_hash": "87955bcc27bdda45c3f2b5e87ca88d7049a7f578",
     "project_tag": null,
-    "project_commit_date": "1787745282",
+    "project_commit_date": "1787746030",
     "additional": {
       "relative_path_to_source_folder_in_project": ""
     },
     "number_of_files": 29,
     "number_of_classes_or_interfaces": 63,
     "number_of_methods": 49,
-    "number_of_data_fields": 194,
+    "number_of_data_fields": 200,
     "number_of_method_parameters": 62
   },
   "detector": {
@@ -126,9 +126,9 @@
             }
           },
           "position": {
-            "startLine": 80,
+            "startLine": 87,
             "startColumn": 25,
-            "endLine": 80,
+            "endLine": 87,
             "endColumn": 38
           }
         },
@@ -151,9 +151,9 @@
             }
           },
           "position": {
-            "startLine": 80,
+            "startLine": 87,
             "startColumn": 40,
-            "endLine": 80,
+            "endLine": 87,
             "endColumn": 54
           }
         },
@@ -176,9 +176,9 @@
             }
           },
           "position": {
-            "startLine": 80,
+            "startLine": 87,
             "startColumn": 56,
-            "endLine": 80,
+            "endLine": 87,
             "endColumn": 68
           }
         }
@@ -313,9 +313,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 24,
+              "startLine": 30,
               "startColumn": 3,
-              "endLine": 24,
+              "endLine": 30,
               "endColumn": 16
             }
           },
@@ -338,9 +338,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 25,
+              "startLine": 31,
               "startColumn": 3,
-              "endLine": 25,
+              "endLine": 31,
               "endColumn": 17
             }
           },
@@ -363,9 +363,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 26,
+              "startLine": 32,
               "startColumn": 3,
-              "endLine": 26,
+              "endLine": 32,
               "endColumn": 18
             }
           },
@@ -507,9 +507,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 80,
+              "startLine": 87,
               "startColumn": 25,
-              "endLine": 80,
+              "endLine": 87,
               "endColumn": 38
             }
           },
@@ -532,9 +532,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 80,
+              "startLine": 87,
               "startColumn": 40,
-              "endLine": 80,
+              "endLine": 87,
               "endColumn": 54
             }
           },
@@ -557,9 +557,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 80,
+              "startLine": 87,
               "startColumn": 56,
-              "endLine": 80,
+              "endLine": 87,
               "endColumn": 68
             }
           },
@@ -604,9 +604,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 24,
+              "startLine": 30,
               "startColumn": 3,
-              "endLine": 24,
+              "endLine": 30,
               "endColumn": 16
             }
           },
@@ -629,9 +629,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 25,
+              "startLine": 31,
               "startColumn": 3,
-              "endLine": 25,
+              "endLine": 31,
               "endColumn": 17
             }
           },
@@ -654,9 +654,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 26,
+              "startLine": 32,
               "startColumn": 3,
-              "endLine": 26,
+              "endLine": 32,
               "endColumn": 18
             }
           },
@@ -673,9 +673,9 @@
         "cluster_type": 3
       }
     },
-    "fields_to_fields_data_clump-apps/web/src/components/Raumplan.tsx-apps/web/src/components/Raumplan.tsx/interface/Props-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-schemabelegungnummernpersonenausgewaehltbearbeitentestID": {
+    "fields_to_fields_data_clump-apps/web/src/components/Raumplan.tsx-apps/web/src/components/Raumplan.tsx/interface/Props-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-schemaschluesselbelegungnummernpersonenausgewaehltbearbeitentestID": {
       "type": "data_clump",
-      "key": "fields_to_fields_data_clump-apps/web/src/components/Raumplan.tsx-apps/web/src/components/Raumplan.tsx/interface/Props-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-schemabelegungnummernpersonenausgewaehltbearbeitentestID",
+      "key": "fields_to_fields_data_clump-apps/web/src/components/Raumplan.tsx-apps/web/src/components/Raumplan.tsx/interface/Props-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-schemaschluesselbelegungnummernpersonenausgewaehltbearbeitentestID",
       "probability": 1,
       "from_file_path": "apps/web/src/components/Raumplan.tsx",
       "from_class_or_interface_key": "apps/web/src/components/Raumplan.tsx/interface/Props",
@@ -714,6 +714,31 @@
             "endColumn": 22
           }
         },
+        "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/schluessel": {
+          "key": "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/schluessel",
+          "name": "schluessel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/schluessel",
+            "name": "schluessel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 519,
+              "startColumn": 3,
+              "endLine": 519,
+              "endColumn": 23
+            }
+          },
+          "position": {
+            "startLine": 48,
+            "startColumn": 3,
+            "endLine": 48,
+            "endColumn": 23
+          }
+        },
         "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/belegung": {
           "key": "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/belegung",
           "name": "belegung",
@@ -726,16 +751,16 @@
             "type": "Platzbelegung[]",
             "modifiers": [],
             "position": {
-              "startLine": 520,
+              "startLine": 528,
               "startColumn": 3,
-              "endLine": 520,
+              "endLine": 528,
               "endColumn": 30
             }
           },
           "position": {
-            "startLine": 45,
+            "startLine": 52,
             "startColumn": 3,
-            "endLine": 45,
+            "endLine": 52,
             "endColumn": 29
           }
         },
@@ -751,16 +776,16 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 521,
+              "startLine": 529,
               "startColumn": 3,
-              "endLine": 521,
+              "endLine": 529,
               "endColumn": 33
             }
           },
           "position": {
-            "startLine": 47,
+            "startLine": 54,
             "startColumn": 3,
-            "endLine": 47,
+            "endLine": 54,
             "endColumn": 32
           }
         },
@@ -776,16 +801,16 @@
             "type": "Map<string, Sitzplatz>",
             "modifiers": [],
             "position": {
-              "startLine": 522,
+              "startLine": 530,
               "startColumn": 3,
-              "endLine": 522,
+              "endLine": 530,
               "endColumn": 37
             }
           },
           "position": {
-            "startLine": 49,
+            "startLine": 56,
             "startColumn": 3,
-            "endLine": 49,
+            "endLine": 56,
             "endColumn": 36
           }
         },
@@ -801,16 +826,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 523,
+              "startLine": 531,
               "startColumn": 3,
-              "endLine": 523,
+              "endLine": 531,
               "endColumn": 31
             }
           },
           "position": {
-            "startLine": 51,
+            "startLine": 58,
             "startColumn": 3,
-            "endLine": 51,
+            "endLine": 58,
             "endColumn": 31
           }
         },
@@ -826,16 +851,16 @@
             "type": "boolean",
             "modifiers": [],
             "position": {
-              "startLine": 515,
+              "startLine": 523,
               "startColumn": 3,
-              "endLine": 515,
+              "endLine": 523,
               "endColumn": 23
             }
           },
           "position": {
-            "startLine": 70,
+            "startLine": 77,
             "startColumn": 3,
-            "endLine": 70,
+            "endLine": 77,
             "endColumn": 24
           }
         },
@@ -851,16 +876,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 526,
+              "startLine": 534,
               "startColumn": 3,
-              "endLine": 526,
+              "endLine": 534,
               "endColumn": 19
             }
           },
           "position": {
-            "startLine": 91,
+            "startLine": 98,
             "startColumn": 3,
-            "endLine": 91,
+            "endLine": 98,
             "endColumn": 19
           }
         }
@@ -870,9 +895,9 @@
         "cluster_type": 3
       }
     },
-    "fields_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-apps/web/src/components/Raumplan.tsx/interface/Props-schemabearbeitenbelegungnummernpersonenausgewaehlttestID": {
+    "fields_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-apps/web/src/components/Raumplan.tsx/interface/Props-schemaschluesselbearbeitenbelegungnummernpersonenausgewaehlttestID": {
       "type": "data_clump",
-      "key": "fields_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-apps/web/src/components/Raumplan.tsx/interface/Props-schemabearbeitenbelegungnummernpersonenausgewaehlttestID",
+      "key": "fields_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-apps/web/src/components/Raumplan.tsx/interface/Props-schemaschluesselbearbeitenbelegungnummernpersonenausgewaehlttestID",
       "probability": 1,
       "from_file_path": "apps/web/src/components/RaumplanEditor.tsx",
       "from_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps",
@@ -911,6 +936,31 @@
             "endColumn": 22
           }
         },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/schluessel": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/schluessel",
+          "name": "schluessel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/schluessel",
+            "name": "schluessel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 48,
+              "startColumn": 3,
+              "endLine": 48,
+              "endColumn": 23
+            }
+          },
+          "position": {
+            "startLine": 519,
+            "startColumn": 3,
+            "endLine": 519,
+            "endColumn": 23
+          }
+        },
         "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/bearbeiten": {
           "key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/bearbeiten",
           "name": "bearbeiten",
@@ -923,16 +973,16 @@
             "type": "boolean",
             "modifiers": [],
             "position": {
-              "startLine": 70,
+              "startLine": 77,
               "startColumn": 3,
-              "endLine": 70,
+              "endLine": 77,
               "endColumn": 24
             }
           },
           "position": {
-            "startLine": 515,
+            "startLine": 523,
             "startColumn": 3,
-            "endLine": 515,
+            "endLine": 523,
             "endColumn": 23
           }
         },
@@ -948,16 +998,16 @@
             "type": "Platzbelegung[]",
             "modifiers": [],
             "position": {
-              "startLine": 45,
+              "startLine": 52,
               "startColumn": 3,
-              "endLine": 45,
+              "endLine": 52,
               "endColumn": 29
             }
           },
           "position": {
-            "startLine": 520,
+            "startLine": 528,
             "startColumn": 3,
-            "endLine": 520,
+            "endLine": 528,
             "endColumn": 30
           }
         },
@@ -973,16 +1023,16 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 47,
+              "startLine": 54,
               "startColumn": 3,
-              "endLine": 47,
+              "endLine": 54,
               "endColumn": 32
             }
           },
           "position": {
-            "startLine": 521,
+            "startLine": 529,
             "startColumn": 3,
-            "endLine": 521,
+            "endLine": 529,
             "endColumn": 33
           }
         },
@@ -998,16 +1048,16 @@
             "type": "Map<string, Sitzplatz>",
             "modifiers": [],
             "position": {
-              "startLine": 49,
+              "startLine": 56,
               "startColumn": 3,
-              "endLine": 49,
+              "endLine": 56,
               "endColumn": 36
             }
           },
           "position": {
-            "startLine": 522,
+            "startLine": 530,
             "startColumn": 3,
-            "endLine": 522,
+            "endLine": 530,
             "endColumn": 37
           }
         },
@@ -1023,16 +1073,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 51,
+              "startLine": 58,
               "startColumn": 3,
-              "endLine": 51,
+              "endLine": 58,
               "endColumn": 31
             }
           },
           "position": {
-            "startLine": 523,
+            "startLine": 531,
             "startColumn": 3,
-            "endLine": 523,
+            "endLine": 531,
             "endColumn": 31
           }
         },
@@ -1048,16 +1098,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 91,
+              "startLine": 98,
               "startColumn": 3,
-              "endLine": 91,
+              "endLine": 98,
               "endColumn": 19
             }
           },
           "position": {
-            "startLine": 526,
+            "startLine": 534,
             "startColumn": 3,
-            "endLine": 526,
+            "endLine": 534,
             "endColumn": 19
           }
         }
@@ -1386,9 +1436,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 59,
+              "startLine": 83,
               "startColumn": 3,
-              "endLine": 59,
+              "endLine": 83,
               "endColumn": 20
             }
           },
@@ -1411,9 +1461,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 60,
+              "startLine": 84,
               "startColumn": 3,
-              "endLine": 60,
+              "endLine": 84,
               "endColumn": 19
             }
           },
@@ -1436,9 +1486,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 57,
+              "startLine": 81,
               "startColumn": 3,
-              "endLine": 57,
+              "endLine": 81,
               "endColumn": 26
             }
           },
@@ -1774,9 +1824,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 59,
+              "startLine": 83,
               "startColumn": 3,
-              "endLine": 59,
+              "endLine": 83,
               "endColumn": 20
             }
           },
@@ -1799,9 +1849,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 60,
+              "startLine": 84,
               "startColumn": 3,
-              "endLine": 60,
+              "endLine": 84,
               "endColumn": 19
             }
           },
@@ -1824,9 +1874,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 57,
+              "startLine": 81,
               "startColumn": 3,
-              "endLine": 57,
+              "endLine": 81,
               "endColumn": 26
             }
           },
@@ -2072,9 +2122,9 @@
             }
           },
           "position": {
-            "startLine": 57,
+            "startLine": 81,
             "startColumn": 3,
-            "endLine": 57,
+            "endLine": 81,
             "endColumn": 26
           }
         },
@@ -2097,9 +2147,9 @@
             }
           },
           "position": {
-            "startLine": 59,
+            "startLine": 83,
             "startColumn": 3,
-            "endLine": 59,
+            "endLine": 83,
             "endColumn": 20
           }
         },
@@ -2122,9 +2172,9 @@
             }
           },
           "position": {
-            "startLine": 60,
+            "startLine": 84,
             "startColumn": 3,
-            "endLine": 60,
+            "endLine": 84,
             "endColumn": 19
           }
         }
@@ -2169,9 +2219,9 @@
             }
           },
           "position": {
-            "startLine": 57,
+            "startLine": 81,
             "startColumn": 3,
-            "endLine": 57,
+            "endLine": 81,
             "endColumn": 26
           }
         },
@@ -2194,9 +2244,9 @@
             }
           },
           "position": {
-            "startLine": 59,
+            "startLine": 83,
             "startColumn": 3,
-            "endLine": 59,
+            "endLine": 83,
             "endColumn": 20
           }
         },
@@ -2219,9 +2269,9 @@
             }
           },
           "position": {
-            "startLine": 60,
+            "startLine": 84,
             "startColumn": 3,
-            "endLine": 60,
+            "endLine": 84,
             "endColumn": 19
           }
         }
@@ -2266,9 +2316,9 @@
             }
           },
           "position": {
-            "startLine": 57,
+            "startLine": 81,
             "startColumn": 3,
-            "endLine": 57,
+            "endLine": 81,
             "endColumn": 26
           }
         },
@@ -2291,9 +2341,9 @@
             }
           },
           "position": {
-            "startLine": 59,
+            "startLine": 83,
             "startColumn": 3,
-            "endLine": 59,
+            "endLine": 83,
             "endColumn": 20
           }
         },
@@ -2316,9 +2366,9 @@
             }
           },
           "position": {
-            "startLine": 60,
+            "startLine": 84,
             "startColumn": 3,
-            "endLine": 60,
+            "endLine": 84,
             "endColumn": 19
           }
         },
@@ -2341,9 +2391,9 @@
             }
           },
           "position": {
-            "startLine": 62,
+            "startLine": 86,
             "startColumn": 3,
-            "endLine": 62,
+            "endLine": 86,
             "endColumn": 17
           }
         }
@@ -2388,9 +2438,9 @@
             }
           },
           "position": {
-            "startLine": 57,
+            "startLine": 81,
             "startColumn": 3,
-            "endLine": 57,
+            "endLine": 81,
             "endColumn": 26
           }
         },
@@ -2413,9 +2463,9 @@
             }
           },
           "position": {
-            "startLine": 59,
+            "startLine": 83,
             "startColumn": 3,
-            "endLine": 59,
+            "endLine": 83,
             "endColumn": 20
           }
         },
@@ -2438,9 +2488,9 @@
             }
           },
           "position": {
-            "startLine": 60,
+            "startLine": 84,
             "startColumn": 3,
-            "endLine": 60,
+            "endLine": 84,
             "endColumn": 19
           }
         },
@@ -2463,9 +2513,9 @@
             }
           },
           "position": {
-            "startLine": 62,
+            "startLine": 86,
             "startColumn": 3,
-            "endLine": 62,
+            "endLine": 86,
             "endColumn": 17
           }
         }
@@ -2697,9 +2747,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 60,
+              "startLine": 84,
               "startColumn": 3,
-              "endLine": 60,
+              "endLine": 84,
               "endColumn": 19
             }
           },
@@ -2722,9 +2772,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 59,
+              "startLine": 83,
               "startColumn": 3,
-              "endLine": 59,
+              "endLine": 83,
               "endColumn": 20
             }
           },
@@ -2747,9 +2797,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 62,
+              "startLine": 86,
               "startColumn": 3,
-              "endLine": 62,
+              "endLine": 86,
               "endColumn": 17
             }
           },
@@ -2772,9 +2822,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 57,
+              "startLine": 81,
               "startColumn": 3,
-              "endLine": 57,
+              "endLine": 81,
               "endColumn": 26
             }
           },
@@ -3135,9 +3185,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 59,
+              "startLine": 83,
               "startColumn": 3,
-              "endLine": 59,
+              "endLine": 83,
               "endColumn": 20
             }
           },
@@ -3160,9 +3210,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 60,
+              "startLine": 84,
               "startColumn": 3,
-              "endLine": 60,
+              "endLine": 84,
               "endColumn": 19
             }
           },
@@ -3185,9 +3235,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 57,
+              "startLine": 81,
               "startColumn": 3,
-              "endLine": 57,
+              "endLine": 81,
               "endColumn": 26
             }
           },
@@ -3210,9 +3260,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 62,
+              "startLine": 86,
               "startColumn": 3,
-              "endLine": 62,
+              "endLine": 86,
               "endColumn": 17
             }
           },

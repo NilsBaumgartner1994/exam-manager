@@ -36,9 +36,12 @@ import { colors, radius, spacing } from '../theme';
  * - `aufziehen` – ziehen zieht einen Bereich auf und legt etwas darüber
  *   (Textfeld),
  * - `malen` – ziehen setzt das gewählte Element in jede überstrichene Zelle,
- * - `schieben` – ziehen bewegt den Ausschnitt (die Hand), ohne etwas zu ändern.
+ * - `schieben` – ziehen bewegt den Ausschnitt (die Hand), ohne etwas zu ändern,
+ * - `zeiger` – ändert nichts: Tippen meldet die Zelle (Infos), Ziehen schiebt
+ *   den Ausschnitt. Das ist die Voreinstellung, damit ein Klick nie
+ *   versehentlich etwas überschreibt.
  */
-export type PlanWerkzeug = 'auswahl' | 'aufziehen' | 'malen' | 'schieben';
+export type PlanWerkzeug = 'auswahl' | 'aufziehen' | 'malen' | 'schieben' | 'zeiger';
 
 interface Props {
   schema: Raumschema;
@@ -449,8 +452,9 @@ export function Raumplan({
       if (!beweglich) onZellePress?.(zelle.zeile, zelle.spalte);
       return;
     }
-    // Die Hand ändert nichts: Sie schiebt nur den Ausschnitt.
-    if (werkzeug === 'schieben') return;
+    // Hand und Zeiger ändern nichts: Die Hand schiebt nur den Ausschnitt, der
+    // Zeiger meldet die Zelle erst beim Loslassen (siehe `gesteEnde`).
+    if (werkzeug === 'schieben' || werkzeug === 'zeiger') return;
     // In der Auswahl gedrückt: gedrückt halten und ziehen verschiebt den
     // ganzen Block – wie ein Kasten in einer Tabellenkalkulation.
     if (werkzeug === 'auswahl' && auswahl && imBereich(auswahl, zelle.zeile, zelle.spalte)) {
@@ -630,9 +634,15 @@ export function Raumplan({
   };
 
   /** Schiebt ein einzelner Finger? Nur, wo er nichts zu zeichnen hat. */
-  const einFingerSchiebt = () => !bearbeiten || werkzeug === 'schieben';
+  const einFingerSchiebt = () =>
+    !bearbeiten || werkzeug === 'schieben' || werkzeug === 'zeiger';
+
+  /** Meldet ein Tippen die Zelle? Im Sitzplan und mit dem Zeiger. */
+  const tippenMeldetZelle = () => !bearbeiten || werkzeug === 'zeiger';
 
   const gesteStart = (ereignis: globalThis.PointerEvent) => {
+    // In einem Textfeld will man tippen und markieren, nicht schieben.
+    if (istEingabefeld(ereignis.target)) return;
     const zeiger = zeigerRef.current;
     zeiger.set(ereignis.pointerId, { x: ereignis.clientX, y: ereignis.clientY });
     if (zeiger.size === 2) {
@@ -715,7 +725,7 @@ export function Raumplan({
     if (geste?.art !== 'schieben') return;
     // Ein Tippen wirkt erst beim Loslassen – so öffnet ein Wischen über den
     // Plan keinen Platz, sondern schiebt den Ausschnitt.
-    if (geste.bewegt || bearbeiten) return;
+    if (geste.bewegt || !tippenMeldetZelle()) return;
     const position = zelleBeiPunkt(ereignis.clientX, ereignis.clientY);
     if (!position) return;
     const zelle = kanonisch(position);
@@ -866,6 +876,12 @@ export function Raumplan({
               masse={masse}
               bearbeiten={!!bearbeiten}
               markiert={!!auswahl && imBereich(auswahl, beschriftung.zeile, beschriftung.spalte)}
+              zeiger={werkzeug === 'zeiger'}
+              frischAufgezogen={
+                werkzeug === 'aufziehen' &&
+                !!auswahl &&
+                imBereich(auswahl, beschriftung.zeile, beschriftung.spalte)
+              }
               onAuswahl={onAuswahl}
               onText={onBeschriftungText}
               testID={testID ? `${testID}-text-${beschriftung.zeile}-${beschriftung.spalte}` : undefined}
@@ -920,6 +936,8 @@ function Textfeld({
   masse,
   bearbeiten,
   markiert,
+  zeiger,
+  frischAufgezogen,
   onAuswahl,
   onText,
   testID,
@@ -929,10 +947,46 @@ function Textfeld({
   masse: Rastermasse;
   bearbeiten: boolean;
   markiert: boolean;
+  /** Der Zeiger ist am Werk: Ein Klick gehört dem Blatt, nicht dem Feld. */
+  zeiger: boolean;
+  /** Mit dem Textwerkzeug gerade aufgezogen – dann gleich hinein. */
+  frischAufgezogen: boolean;
   onAuswahl?: (bereich: Bereich) => void;
   onText?: (zeile: number, spalte: number, text: string) => void;
   testID?: string;
 }) {
+  const feldRef = useRef<View>(null);
+  /** Wird gerade im Feld selbst geschrieben (nach einem Doppelklick). */
+  const [schreibt, setzeSchreibt] = useState(false);
+  const schreiben = bearbeiten && !!onText && (schreibt || frischAufgezogen);
+
+  // Wie in einer Tabellenkalkulation: **Doppelt** klicken öffnet den Text zum
+  // Schreiben. Ein einzelner Klick tut das nicht mehr – der gehört dem
+  // Werkzeug (Zeiger: Infos im Blatt, Auswählen: markieren). Vorher lag über
+  // jedem Feld ein Eingabefeld, und ein Klick daneben landete im Text.
+  useEffect(() => {
+    const knoten = feldRef.current as unknown as HTMLElement | null;
+    if (!knoten || !bearbeiten || !onText) return;
+    const doppelt = () => setzeSchreibt(true);
+    knoten.addEventListener('dblclick', doppelt);
+    return () => knoten.removeEventListener('dblclick', doppelt);
+  }, [bearbeiten, onText]);
+
+  // Wer das Werkzeug wechselt oder woanders hinklickt, schreibt nicht weiter.
+  useEffect(() => {
+    if (!bearbeiten || !markiert) setzeSchreibt(false);
+  }, [bearbeiten, markiert]);
+
+  // Der Cursor steht am Ende, nicht vor dem ersten Zeichen: Wer ein Feld
+  // öffnet, will meist etwas anhängen – und tippte sonst mitten in den Text.
+  const eingabeRef = useRef<TextInput>(null);
+  useEffect(() => {
+    if (!schreiben) return;
+    const knoten = eingabeRef.current as unknown as HTMLTextAreaElement | null;
+    const ende = knoten?.value?.length ?? 0;
+    knoten?.setSelectionRange?.(ende, ende);
+  }, [schreiben]);
+
   const schritt = masse.groesse + masse.abstand;
   const schrittZeile = masse.zellHoehe + masse.abstand;
   const rahmen = {
@@ -946,6 +1000,7 @@ function Textfeld({
 
   return (
     <View
+      ref={feldRef}
       style={[
         styles.textfeld,
         rahmen,
@@ -954,15 +1009,17 @@ function Textfeld({
         markiert && styles.textfeldMarkiert,
       ]}
       pointerEvents={bearbeiten ? 'auto' : 'none'}
-      onPointerDown={() => onAuswahl?.(beschriftung)}
+      // Mit dem Zeiger meldet erst das Loslassen die Zelle darunter – das Feld
+      // markiert dann nichts, sonst spränge die Auswahl beim bloßen Nachsehen.
+      onPointerDown={zeiger ? undefined : () => onAuswahl?.(beschriftung)}
       testID={testID}
     >
-      {bearbeiten && onText ? (
+      {schreiben && onText ? (
         <TextInput
+          ref={eingabeRef}
           style={[styles.textfeldEingabe, schrift, mitTextauswahl]}
-          // Ein frisch aufgezogenes Feld ist ausgewählt: Dann gleich hinein,
-          // damit man losschreiben kann, ohne noch einmal zu klicken.
-          autoFocus={markiert}
+          autoFocus
+          onBlur={() => setzeSchreibt(false)}
           value={beschriftung.text}
           onChangeText={(text) => onText(beschriftung.zeile, beschriftung.spalte, text)}
           placeholder="Text …"
@@ -1146,6 +1203,16 @@ const Zelle = memo(function Zelle({
     </View>
   );
 });
+
+/**
+ * Liegt der Zeiger in einem Eingabefeld? Dort gehört das Ziehen der
+ * Textauswahl und nicht dem Ausschnitt.
+ */
+function istEingabefeld(ziel: EventTarget | null): boolean {
+  const element = ziel as HTMLElement | null;
+  const art = element?.tagName;
+  return art === 'INPUT' || art === 'TEXTAREA' || !!element?.isContentEditable;
+}
 
 /** Browser-Gesten (Scrollen, Textauswahl) während des Zeichnens abschalten. */
 const ohneBrowserGeste = {

@@ -6,9 +6,12 @@ import {
   bereichAendern,
   bereichAus,
   bereichName,
+  Beschriftung,
+  beschriftungBei,
   mitGroesse,
   PlanAnzeige,
   Platzbelegung,
+  platzSchluessel,
   Raumschema,
   setzeBeschriftungsText,
   setzeZelle,
@@ -22,6 +25,8 @@ import {
 import { useResponsiveLayout } from '../responsive';
 import { colors, spacing } from '../theme';
 import { AppButton } from './AppButton';
+import { BlattModal } from './BlattModal';
+import { LabeledTextInput } from './LabeledInput';
 import { PaletteElement } from './PaletteElement';
 import {
   PLAN_ANSICHT_EDITOR,
@@ -30,18 +35,19 @@ import {
   ZELLE_FREI_MIN,
   type Ansichtsmodus,
   type PlanAnsicht,
+  type PlanWerkzeug,
 } from './Raumplan';
 
 /**
- * Werkzeug im Bearbeiten-Modus: auswählen/verschieben, den Ausschnitt schieben
- * (die Hand), ein Element malen oder ein Textfeld über verbundenen Zellen
- * aufziehen.
+ * Werkzeug im Bearbeiten-Modus: nachsehen (der Zeiger), auswählen/verschieben,
+ * den Ausschnitt schieben (die Hand), ein Element malen oder ein Textfeld über
+ * verbundenen Zellen aufziehen.
  */
-export type Werkzeug = 'auswahl' | 'hand' | 'text' | ZellTyp;
+export type Werkzeug = 'zeiger' | 'auswahl' | 'hand' | 'text' | ZellTyp;
 
 /** Werkzeuge, die am Raster nichts ändern. */
-function aendertNichts(werkzeug: Werkzeug): werkzeug is 'auswahl' | 'hand' {
-  return werkzeug === 'auswahl' || werkzeug === 'hand';
+function aendertNichts(werkzeug: Werkzeug): werkzeug is 'zeiger' | 'auswahl' | 'hand' {
+  return werkzeug === 'zeiger' || werkzeug === 'auswahl' || werkzeug === 'hand';
 }
 
 /**
@@ -55,6 +61,7 @@ function aendertNichts(werkzeug: Werkzeug): werkzeug is 'auswahl' | 'hand' {
  * Tisch für alles andere (Ablage, Materialtisch).
  */
 export const PALETTE: { werkzeug: Werkzeug; titel: string; untertitel: string }[] = [
+  { werkzeug: 'zeiger', titel: '↖ Zeiger', untertitel: 'antippen zeigt Infos' },
   { werkzeug: 'auswahl', titel: 'Auswählen', untertitel: 'markieren & verschieben' },
   { werkzeug: 'hand', titel: 'Verschieben', untertitel: 'Ausschnitt ziehen' },
   { werkzeug: 'tisch', titel: 'Sitzplatz', untertitel: 'Tisch für Studierende · T' },
@@ -160,6 +167,8 @@ export interface RaumplanEditor {
   groesseAendern: (raum: string, dZeilen: number, dSpalten: number) => void;
   zellenVerbinden: () => void;
   zellenTrennen: () => void;
+  /** Ein Textfeld über eine einzelne Zelle legen – aus dem Info-Blatt heraus. */
+  textfeldAnlegen: (raum: string, zeile: number, spalte: number) => void;
   paletteZiehen: (x: number, y: number) => void;
   paletteAblegen: (werkzeug: Werkzeug) => (x: number, y: number) => void;
 }
@@ -197,7 +206,10 @@ export function useRaumplanEditor({
   zustand,
   setzeZustand,
 }: RaumplanAnbindung): RaumplanEditor {
-  const [werkzeug, setzeWerkzeug] = useState<Werkzeug>('tisch');
+  // Voreingestellt ist der Zeiger: Ein Klick in den Plan zeigt, was dort ist,
+  // und ändert nichts. Wer zeichnen will, wählt vorher ein Element – das ist
+  // die Reihenfolge, die man von einer Tabellenkalkulation kennt.
+  const [werkzeug, setzeWerkzeug] = useState<Werkzeug>('zeiger');
   const [auswahl, setzeAuswahl] = useState<{ raum: string; bereich: Bereich } | null>(null);
   const [zielZelle, setzeZielZelle] = useState<{ raum: string; zeile: number; spalte: number } | null>(null);
   const [drehungen, setzeDrehungen] = useState<Record<string, number>>({});
@@ -361,7 +373,9 @@ export function useRaumplanEditor({
     bereichAufziehen: (raum, neuerBereich) => {
       const alteAuswahl = auswahl && auswahl.raum === raum ? auswahl.bereich : neuerBereich;
       const schema = schemata.current.find((s) => s.raum === raum);
-      if (!schema || werkzeug === 'hand') return;
+      // „Auswählen“ zieht sehr wohl auf (der Griff füllt mit dem Element der
+      // Auswahl); Hand und Zeiger fassen das Raster nie an.
+      if (!schema || werkzeug === 'hand' || werkzeug === 'zeiger') return;
       merkeStand();
       if (werkzeug === 'text') {
         // Mit dem Textwerkzeug wird aufgezogen, was verbunden werden soll.
@@ -416,6 +430,13 @@ export function useRaumplanEditor({
       if (!auswahl) return;
       merkeStand();
       aendere(auswahl.raum, (schema) => trenneZellen(schema, auswahl.bereich));
+    },
+
+    textfeldAnlegen: (raum, zeile, spalte) => {
+      merkeStand();
+      const bereich = bereichAus({ zeile, spalte }, { zeile, spalte });
+      aendere(raum, (schema) => verbindeZellen(schema, bereich));
+      setzeAuswahl({ raum, bereich });
     },
 
     paletteZiehen: (x, y) => setzeZielZelle(zelleUnterPunkt(x, y)),
@@ -476,12 +497,20 @@ export function RaumPalette({ editor, testID }: { editor: RaumplanEditor; testID
       {zeigeHilfe ? (
         <>
           <Text style={styles.hinweis}>
+            Voreingestellt ist der <Text style={styles.betont}>Zeiger</Text>: Ein Klick in den Plan
+            zeigt in einem Blatt, was an dieser Stelle ist – Art der Zelle, Sitzplatznummer, wer
+            dort sitzt – und ändert nichts. Dort steht auch der Text dieser Stelle zum
+            Hineinschreiben. Erst wer ein Element wählt, zeichnet damit.
+          </Text>
+          <Text style={styles.hinweis}>
             Auf eine Zelle ziehen setzt das Element dort. Antippen wählt es aus, dann im Plan über
             Zellen ziehen – praktisch für eine ganze Wand. Mit „Auswählen“ ziehst du über mehrere
             Zellen, ohne etwas zu ändern; gedrückt halten in der Auswahl und ziehen verschiebt den
-            ganzen Block, der blaue Griff an der unteren Ecke zieht ihn auf. Ein Sitzplatz ist ein
-            Tisch, an dem jemand geprüft wird (nur die werden nummeriert und belegt); das Pult ist
-            der einfache Tisch für alles andere. Rückgängig geht mit Strg/⌘ + Z.
+            ganzen Block, der blaue Griff an der unteren Ecke zieht ihn auf. In ein Textfeld
+            schreibt man wie in einer Tabellenkalkulation per <Text style={styles.betont}>Doppelklick</Text>
+            {' '}– oder eben im Blatt des Zeigers. Ein Sitzplatz ist ein Tisch, an dem jemand
+            geprüft wird (nur die werden nummeriert und belegt); das Pult ist der einfache Tisch
+            für alles andere. Rückgängig geht mit Strg/⌘ + Z.
           </Text>
           <Text style={styles.hinweis}>
             Im Plan bewegst du dich mit zwei Fingern: schieben und zugleich auf- und zuziehen zum
@@ -554,6 +583,25 @@ export function PlanLeiste({ editor }: { editor: RaumplanEditor }) {
   );
 }
 
+/** Was das gewählte Werkzeug im Plan bedeutet. */
+function planWerkzeug(werkzeug: Werkzeug): PlanWerkzeug {
+  if (werkzeug === 'zeiger') return 'zeiger';
+  if (werkzeug === 'auswahl') return 'auswahl';
+  if (werkzeug === 'hand') return 'schieben';
+  if (werkzeug === 'text') return 'aufziehen';
+  return 'malen';
+}
+
+/** Die Namen der Zellarten im Klartext – im Blatt steht kein Kürzel. */
+const ART_NAMEN: Record<ZellTyp, string> = {
+  leer: 'Frei',
+  tisch: 'Sitzplatz',
+  reserve: 'Reserve (bleibt in diesem Raum immer frei)',
+  pult: 'Pult (Tisch ohne Sitzplatz)',
+  wand: 'Wand',
+  tuer: 'Tür',
+};
+
 /** Leere Vorgaben – als Konstanten, damit `React.memo` in den Zellen greift. */
 const OHNE_BELEGUNG: Platzbelegung[] = [];
 const OHNE_NUMMERN = new Map<string, number>();
@@ -610,6 +658,13 @@ export function RaumplanKarte({
   const drehungen = editor.drehungen[schema.raum] ?? 0;
   const auswahl = editor.auswahlIn(schema.raum);
   const { isCompact } = useResponsiveLayout();
+  /**
+   * Die Zelle, über die das Info-Blatt gerade Auskunft gibt. Der Zeiger ist das
+   * neutrale Werkzeug: Ein Klick zeigt, was an dieser Stelle ist, und ändert
+   * nichts. Der Stand gehört zu dieser Karte – zwei Durchgänge desselben Raums
+   * stehen nebeneinander und meinen verschiedene Belegungen.
+   */
+  const [infoZelle, setzeInfoZelle] = useState<{ zeile: number; spalte: number } | null>(null);
   return (
     <View style={styles.planBlock}>
       <Text style={styles.raumUeberschrift}>
@@ -670,7 +725,11 @@ export function RaumplanKarte({
         ausgewaehlt={ausgewaehlt}
         onZellePress={
           bearbeiten
-            ? (zeile, spalte) => editor.zellePress(schema.raum, zeile, spalte)
+            ? (zeile, spalte) => {
+                // Der Zeiger ändert nichts – er schlägt nach.
+                if (editor.werkzeug === 'zeiger') setzeInfoZelle({ zeile, spalte });
+                else editor.zellePress(schema.raum, zeile, spalte);
+              }
             : onZellePress
         }
         ansicht={editor.ansicht}
@@ -680,15 +739,7 @@ export function RaumplanKarte({
         beweglich
         onZoomGeste={editor.zoomSetzen}
         bearbeiten={bearbeiten}
-        werkzeug={
-          editor.werkzeug === 'auswahl'
-            ? 'auswahl'
-            : editor.werkzeug === 'hand'
-              ? 'schieben'
-              : editor.werkzeug === 'text'
-                ? 'aufziehen'
-                : 'malen'
-        }
+        werkzeug={planWerkzeug(editor.werkzeug)}
         auswahl={auswahl}
         onAuswahl={(bereich) => editor.setzeAuswahl({ raum: schema.raum, bereich })}
         onAufziehen={(bereich) => editor.bereichAufziehen(schema.raum, bereich)}
@@ -700,7 +751,127 @@ export function RaumplanKarte({
         onZugEnde={editor.zugBeendet}
         testID={testID ?? `raum-plan-${schema.raum}`}
       />
+      <ZellInfoBlatt
+        editor={editor}
+        schema={schema}
+        schluessel={schluessel}
+        titel={titel ?? schema.raum}
+        drehungen={drehungen}
+        belegung={belegung}
+        nummern={nummern}
+        personen={personen}
+        zelle={infoZelle}
+        onSchliessen={() => setzeInfoZelle(null)}
+      />
     </View>
+  );
+}
+
+/**
+ * Was an einer Stelle des Plans ist – und das Feld, in das der Text dieser
+ * Stelle geschrieben wird.
+ *
+ * Das Blatt ist die Antwort auf „was ist das hier?“: Art der Zelle,
+ * Sitzplatznummer, wer dort sitzt, welcher Text darüber liegt. Geändert wird
+ * darin nur der Text – alles andere ändert man mit einem Element aus der
+ * Palette, damit ein Nachschlagen nie aus Versehen den Raum umbaut.
+ */
+function ZellInfoBlatt({
+  editor,
+  schema,
+  schluessel,
+  titel,
+  drehungen,
+  belegung,
+  nummern,
+  personen,
+  zelle,
+  onSchliessen,
+}: {
+  editor: RaumplanEditor;
+  schema: Raumschema;
+  schluessel?: string;
+  titel: string;
+  drehungen: number;
+  belegung: Platzbelegung[];
+  nummern: Map<string, number>;
+  personen: Map<string, Sitzplatz>;
+  zelle: { zeile: number; spalte: number } | null;
+  onSchliessen: () => void;
+}) {
+  if (!zelle) return null;
+  const { zeile, spalte } = zelle;
+  const art: ZellTyp = schema.zellen[zeile]?.[spalte] ?? 'leer';
+  const adresse = bereichName(
+    anzeigeBereich(bereichAus({ zeile, spalte }, { zeile, spalte }), schema, drehungen),
+  );
+  const platz = belegung.find((p) => p.zeile === zeile && p.spalte === spalte);
+  const nummer = nummern.get(platzSchluessel(schluessel ?? schema.raum, zeile, spalte));
+  const person = platz?.matrikelnummer ? personen.get(platz.matrikelnummer) : undefined;
+  const beschriftung: Beschriftung | undefined = beschriftungBei(schema, zeile, spalte);
+
+  return (
+    <BlattModal
+      offen
+      titel={`${titel} · ${adresse}`}
+      untertitel={ART_NAMEN[art]}
+      onSchliessen={onSchliessen}
+      testID="raum-info-blatt"
+    >
+      <View style={styles.infoBlock}>
+        {art === 'tisch' ? (
+          <Text style={styles.hinweis}>
+            {nummer !== undefined
+              ? `Sitzplatznummer ${nummer} – sie gehört zum Tisch, nicht zur Person.`
+              : 'Noch keine Sitzplatznummer – die vergibt Schritt 4 beim Verteilen.'}
+          </Text>
+        ) : null}
+        {art === 'tisch' ? (
+          <Text style={styles.hinweis}>
+            {person
+              ? `Hier sitzt ${person.vorname} ${person.nachname} (${person.matrikelnummer})${
+                  platz?.vorgabe ? ' – fest gesetzt' : ''
+                }.`
+              : platz?.reserviert
+                ? 'Für diese Klausur freigehalten (steht in der Belegung, nicht im Raster).'
+                : 'Frei.'}
+          </Text>
+        ) : null}
+        {beschriftung ? (
+          <>
+            <Text style={styles.hinweis}>
+              {`Text über ${bereichName(anzeigeBereich(beschriftung, schema, drehungen))} – er legt sich über den Plan, die Zelle darunter bleibt, was sie ist.`}
+            </Text>
+            <LabeledTextInput
+              label="Text"
+              value={beschriftung.text}
+              onChangeText={(text) =>
+                editor.beschriftungSchreiben(schema.raum, beschriftung.zeile, beschriftung.spalte, text)
+              }
+              placeholder="z. B. Tafel, Haupteingang, Aufsicht"
+              testID="raum-info-text"
+            />
+          </>
+        ) : (
+          <>
+            <Text style={styles.hinweis}>
+              Hier liegt kein Text. „Text anlegen“ legt eines über diese Zelle – über mehrere
+              Felder ziehst du es mit dem Werkzeug „Text“ auf.
+            </Text>
+            <AppButton
+              title="Text anlegen"
+              variant="secondary"
+              onPress={() => editor.textfeldAnlegen(schema.raum, zeile, spalte)}
+              testID="raum-info-text-anlegen"
+            />
+          </>
+        )}
+        <Text style={styles.hinweis}>
+          Ändern lässt sich die Zelle mit einem Element aus der Palette: antippen und im Plan
+          darauf tippen oder das Element direkt hierher ziehen.
+        </Text>
+      </View>
+    </BlattModal>
   );
 }
 
@@ -748,4 +919,6 @@ const styles = StyleSheet.create({
   palettenTitel: { fontSize: 14, fontWeight: '700', color: colors.text },
   plaene: { flexGrow: 1, flexShrink: 1, minWidth: 0, gap: spacing.md },
   hinweis: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
+  infoBlock: { gap: spacing.sm },
+  betont: { fontWeight: '600', color: colors.text },
 });

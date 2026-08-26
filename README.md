@@ -323,9 +323,17 @@ Und die vier Schritte selbst:
      dazu getrennt „Aushang als PDF“ (eine Seite je Raum),
      „Dozentenliste als PDF“ (nach Sitzplatz) und „Tutorenliste als PDF“ (nach
      Nachname). Gezeichnet wird dasselbe Raster wie am Bildschirm.
-   - **Raum bearbeiten** – links liegt die Palette (Auswählen, Verschieben,
-     Sitzplatz, Reserve, Pult, Wand, Tür, Text, Radierer); auf einem schmalen
-     Bildschirm steht sie unter dem Plan. Ein Element auf eine Zelle **ziehen**
+   - **Zeiger (voreingestellt)** – das neutrale Werkzeug: Ein Klick in den Plan
+     öffnet ein Blatt mit dem, was an dieser Stelle ist – Art der Zelle,
+     Sitzplatznummer, wer dort sitzt, welcher Text darüber liegt – und ändert
+     nichts. Dort steht auch der **Text dieser Stelle zum Hineinschreiben**
+     („Text anlegen“, wenn noch keiner da ist). Gezeichnet wird erst, wenn man
+     ein Element aus der Palette wählt; ein Ziehen mit dem Zeiger schiebt den
+     Ausschnitt.
+   - **Raum bearbeiten** – links liegt die Palette (Zeiger, Auswählen,
+     Verschieben, Sitzplatz, Reserve, Pult, Wand, Tür, Text, Radierer); auf
+     einem schmalen Bildschirm steht sie unter dem Plan. Ein Element auf eine
+     Zelle **ziehen**
      setzt es dort; **antippen** wählt es aus und man malt damit im Plan (über
      Zellen ziehen zeichnet z. B. eine ganze Wand). Mit **Auswählen** zieht
      man über mehrere Zellen, ohne etwas zu verändern – markiert wird nur –,
@@ -358,6 +366,10 @@ Und die vier Schritte selbst:
      ersetzen: So lässt sich auch eine Tür, ein Pult oder eine ganze
      Tischreihe beschriften – die Zellen darunter bleiben, was sie sind. Weg
      ist ein Feld mit **Zellen trennen** oder dem Radierer.
+     **Hineingeschrieben** wird wie in einer Tabellenkalkulation per
+     **Doppelklick** auf das Feld – oder im Blatt des Zeigers. Ein einzelner
+     Klick schreibt nicht: Er gehört dem Werkzeug, damit man nicht aus
+     Versehen im Text landet.
    - **Raster sehen** – jedes Feld hat eine dünne Linie, oben stehen die
      Spalten als `A`, `B`, `C` … und links die Zeilen als `1`, `2`, `3` – wie
      in einer Tabellenkalkulation. Die Überschrift nennt die Rastergröße und

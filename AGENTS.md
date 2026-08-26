@@ -197,6 +197,18 @@ Konventionen des Datensatzes:
   Knopfreihe; gezeichnet wird nur der gewählte. Fünf Pläne nebeneinander –
   darunter ein Hörsaal mit 44 × 32 Feldern – sind weder zu überblicken noch
   flüssig zu rendern. Gespeichert werden weiterhin alle Räume.
+- **Das neutrale Werkzeug ist die Voreinstellung.** Der `zeiger` ändert
+  nichts: Ein Klick öffnet das `ZellInfoBlatt` (Art der Zelle,
+  Sitzplatznummer, wer dort sitzt, der Text darüber), ein Ziehen schiebt den
+  Ausschnitt. So schreibt der erste Klick in einen Plan nie versehentlich
+  einen Tisch. Zeichnen tut nur, wer vorher ein Element wählt – die
+  Reihenfolge einer Tabellenkalkulation. `aendertNichts()` sammelt die
+  Werkzeuge, die das Raster nicht anfassen (`zeiger`, `auswahl`, `hand`);
+  `planWerkzeug()` bildet sie auf `PlanWerkzeug` ab.
+- **Das Info-Blatt ändert nur den Text.** Es ist die Antwort auf „was ist das
+  hier?“ und zugleich der Weg, den Text einer Stelle zu schreiben
+  (`textfeldAnlegen` legt eines über eine einzelne Zelle). Alles andere ändert
+  ein Element aus der Palette – ein Nachschlagen soll den Raum nicht umbauen.
 - Damit beide dasselbe tun, liegt das Bearbeiten in Bausteinen und nicht in
   einem der Screens: `components/RaumListe.tsx` (die Raumliste als Formular)
   und `components/RaumplanEditor.tsx` (`useRaumplanEditor` mit Werkzeug,
@@ -295,6 +307,12 @@ Konventionen des Datensatzes:
   Deshalb ist das Feld beim Bearbeiten nur halb deckend und zeigt sonst allein
   seinen Text auf heller Unterlage. Weg ist es mit `trenneZellen` oder dem
   Radierer – nur `fuelleBereich(..., 'leer')` nimmt Textfelder mit.
+- **Geschrieben wird erst auf Ansage:** Über einem Textfeld liegt nicht
+  ständig ein Eingabefeld – sonst landet jeder Klick daneben im Text. Hinein
+  kommt man wie in einer Tabellenkalkulation per **Doppelklick** (`schreibt`
+  im `Textfeld`, der Cursor steht dann am Ende) oder über das Blatt des
+  Zeigers. Frisch aufgezogen (Werkzeug „Text“, Feld noch markiert) ist es
+  gleich offen – wer eines aufzieht, will hineinschreiben.
 - **Adressen wie in Excel:** `spaltenName` (A, B, …, AA), `zeilenName` (ab 1),
   `bereichName` (`B3:E7`). Die Köpfe beschriften die *gedrehte* Ansicht; was
   über dem Raster liegt (Auswahl, Textfelder), rechnet `anzeigeBereich` mit

@@ -285,14 +285,17 @@ export function RaeumeScreen() {
           Sitzplätze), darunter steht sein Plan. Gespeichert werden trotzdem immer alle Räume.
         </Text>
         <Text style={styles.hinweis}>
-          Ein Element aus der Palette auf eine Zelle ziehen setzt es dort; antippen wählt es aus und
-          man malt damit im Plan. Mit „Auswählen“ ziehst du erst einen Bereich auf – das ändert
-          nichts, es markiert nur – und verschiebst ihn dann, indem du in der Auswahl gedrückt
-          hältst und ziehst. Am blauen Griff an der unteren Ecke ziehst du sie über mehrere Felder
-          auf und füllst sie dabei. Mit „Text“ (oder „Zellen verbinden“)
+          Voreingestellt ist der <Text style={styles.pfad}>Zeiger</Text>: Ein Klick in den Plan
+          zeigt, was an dieser Stelle ist, und ändert nichts – im Blatt steht auch der Text dieser
+          Stelle zum Hineinschreiben. Ein Element aus der Palette auf eine Zelle ziehen setzt es
+          dort; antippen wählt es aus und man malt damit im Plan. Mit „Auswählen“ ziehst du erst
+          einen Bereich auf – das ändert nichts, es markiert nur – und verschiebst ihn dann, indem
+          du in der Auswahl gedrückt hältst und ziehst. Am blauen Griff an der unteren Ecke ziehst
+          du sie über mehrere Felder auf und füllst sie dabei. Mit „Text“ (oder „Zellen verbinden“)
           entsteht über den ausgewählten Feldern ein Feld zum Reinschreiben – es legt sich über den
-          Plan, ohne ihn zu ersetzen, beschriftet also auch Tür, Pult oder eine Tischreihe. Jeder
-          Schritt lässt sich rückgängig machen (Strg/⌘ + Z).
+          Plan, ohne ihn zu ersetzen, beschriftet also auch Tür, Pult oder eine Tischreihe;
+          hineingeschrieben wird per Doppelklick oder im Blatt des Zeigers. Jeder Schritt lässt
+          sich rückgängig machen (Strg/⌘ + Z).
         </Text>
         <Text style={styles.hinweis}>
           Ein <Text style={styles.pfad}>Reserve</Text>-Tisch bleibt in diesem Raum dauerhaft frei

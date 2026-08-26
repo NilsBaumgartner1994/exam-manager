@@ -168,6 +168,24 @@ rocket-meals). Für seitenweise Ausgabe `{...SEITENUMBRUCH}` an den View
 hängen. Personenbezogene PDFs (Zulassung, Sitzplatz) entstehen weiterhin mit
 pdf-lib in `packages/core/src/pdf.ts`, weil sie ohne Browser laufen müssen.
 
+## Automatische Prüfungen
+
+- `.github/workflows/test.yml` – Jest und Typecheck bei jedem Push und jedem
+  Pull Request (auch auf `main`, damit das Banner in der README den Stand von
+  main zeigt).
+- `.github/workflows/deploy-web.yml` – Push auf `main`: Tests, Typecheck,
+  Web-Export, GitHub Pages.
+- `.github/workflows/data-clumps.yml` – Push auf `main`: Data-Clumps-Analyse
+  mit dem data-clumps-doctor. Report und Badge liegen unter
+  `reports/data-clumps-doctor/` und werden vom Workflow zurück nach `main`
+  committet; das Badge in der README zeigt auf die Datei im Repo. Badge und
+  Issue werden nur erneuert, wenn sich die Data Clumps geändert haben
+  (`only-update-if-changes`), sonst gäbe es bei jedem Push ein neues Issue.
+  Ein Push mit dem `GITHUB_TOKEN` startet keine weiteren Workflows – der
+  Report-Commit löst also keine Schleife aus.
+- Wer die Dateien unter `reports/` von Hand ändert, wird beim nächsten Lauf
+  überschrieben; sie sind Ausgabe, keine Quelle.
+
 ## Änderungen prüfen
 
 - `yarn test` – Jest-Tests der Fachlogik. Sie laufen gegen die Beispieldaten

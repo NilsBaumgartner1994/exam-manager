@@ -1,0 +1,2379 @@
+{
+  "report_version": "^0.1.103",
+  "report_timestamp": "2026-08-26T05:38:12.967Z",
+  "target_language": "typescript",
+  "report_summary": {
+    "additional": {
+      "invertedIndexSoftwareProjectStatistics": {
+        "invertedFieldToClasses": {
+          "median": 1.5,
+          "maximum": 11,
+          "average": 1.4313725490196079,
+          "amountSavedValuesForKeys": 146,
+          "amountKeys": 6
+        },
+        "invertedParameterToMethods": {
+          "median": 1.5,
+          "maximum": 3,
+          "average": 1.5833333333333333,
+          "amountSavedValuesForKeys": 19,
+          "amountKeys": 3
+        },
+        "invertedParameterToClasses": {
+          "median": 1.5,
+          "maximum": 11,
+          "average": 1.4313725490196079,
+          "amountSavedValuesForKeys": 146,
+          "amountKeys": 6
+        }
+      },
+      "timer_information": {
+        "ast_generation_time_ms": 5017,
+        "detection_time_ms": 9,
+        "machine_information": {
+          "os": "Linux",
+          "os_release": "6.18.44-fc-v21",
+          "os_platform": "linux",
+          "os_arch": "x64",
+          "os_uptime": 269.97,
+          "os_memory_free": 15845576704,
+          "os_memory_total": 16856150016,
+          "os_cpu_cores": 4,
+          "os_cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+          "os_cpu_speed": 0
+        }
+      }
+    },
+    "amount_classes_or_interfaces_with_data_clumps": 7,
+    "amount_files_with_data_clumps": 3,
+    "amount_methods_with_data_clumps": 0,
+    "fields_to_fields_data_clump": 22,
+    "parameters_to_fields_data_clump": 0,
+    "parameters_to_parameters_data_clump": 0,
+    "amount_data_clumps": 22
+  },
+  "project_info": {
+    "project_url": "https://github.com/NilsBaumgartner1994/exam-manager",
+    "project_name": "exam-manager",
+    "project_version": "8d056b38ba2907bcf80a26e9672acf67ff25d1a4",
+    "project_commit_hash": "8d056b38ba2907bcf80a26e9672acf67ff25d1a4",
+    "project_tag": null,
+    "project_commit_date": "1787699583",
+    "additional": {
+      "relative_path_to_source_folder_in_project": ""
+    },
+    "number_of_files": 25,
+    "number_of_classes_or_interfaces": 48,
+    "number_of_methods": 19,
+    "number_of_data_fields": 146,
+    "number_of_method_parameters": 19
+  },
+  "detector": {
+    "name": "data-clumps-doctor",
+    "url": "https://github.com/NilsBaumgartner1994/data-clumps-doctor",
+    "version": "0.1.102",
+    "options": {
+      "fastDetection": true,
+      "pathsExcludedFromParsing": [],
+      "pathsIgnoredInDetectionComparison": [
+        "**/sampleData.ts"
+      ],
+      "similarityModifierOfVariablesWithUnknownType": 0,
+      "minimumSimilarityForDataClumps": 0.5,
+      "fieldsOfClassesWithUnknownHierarchyProbabilityModifier": 0,
+      "sharedFieldsToFieldsAmountMinimum": 3,
+      "analyseFieldsInClassesOrInterfacesInheritedFromSuperClassesOrInterfaces": false,
+      "sharedParametersToParametersAmountMinimum": 3,
+      "sharedParametersToFieldsAmountMinimum": 3,
+      "methodsOfClassesOrInterfacesWithUnknownHierarchyProbabilityModifier": 0,
+      "analyseDataClumpsClusterTypes": true,
+      "ignoredVariableNames": []
+    }
+  },
+  "data_clumps": {
+    "fields_to_fields_data_clump-apps/web/src/components/ScreenContainer.tsx-apps/web/src/components/ScreenContainer.tsx/interface/Props-apps/web/src/components/Section.tsx/interface/Props-titlechildrentestID": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-apps/web/src/components/ScreenContainer.tsx-apps/web/src/components/ScreenContainer.tsx/interface/Props-apps/web/src/components/Section.tsx/interface/Props-titlechildrentestID",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/ScreenContainer.tsx",
+      "from_class_or_interface_key": "apps/web/src/components/ScreenContainer.tsx/interface/Props",
+      "from_class_or_interface_name": "Props",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "apps/web/src/components/Section.tsx",
+      "to_class_or_interface_key": "apps/web/src/components/Section.tsx/interface/Props",
+      "to_class_or_interface_name": "Props",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/ScreenContainer.tsx/interface/Props/memberField/title": {
+          "key": "apps/web/src/components/ScreenContainer.tsx/interface/Props/memberField/title",
+          "name": "title",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/Section.tsx/interface/Props/memberField/title",
+            "name": "title",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 7,
+              "startColumn": 3,
+              "endLine": 7,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 7,
+            "startColumn": 3,
+            "endLine": 7,
+            "endColumn": 17
+          }
+        },
+        "apps/web/src/components/ScreenContainer.tsx/interface/Props/memberField/children": {
+          "key": "apps/web/src/components/ScreenContainer.tsx/interface/Props/memberField/children",
+          "name": "children",
+          "type": "React.ReactNode",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/Section.tsx/interface/Props/memberField/children",
+            "name": "children",
+            "type": "React.ReactNode",
+            "modifiers": [],
+            "position": {
+              "startLine": 8,
+              "startColumn": 3,
+              "endLine": 8,
+              "endColumn": 23
+            }
+          },
+          "position": {
+            "startLine": 9,
+            "startColumn": 3,
+            "endLine": 9,
+            "endColumn": 23
+          }
+        },
+        "apps/web/src/components/ScreenContainer.tsx/interface/Props/memberField/testID": {
+          "key": "apps/web/src/components/ScreenContainer.tsx/interface/Props/memberField/testID",
+          "name": "testID",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/Section.tsx/interface/Props/memberField/testID",
+            "name": "testID",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 9,
+              "startColumn": 3,
+              "endLine": 9,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 10,
+            "startColumn": 3,
+            "endLine": 10,
+            "endColumn": 19
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 2
+      }
+    },
+    "fields_to_fields_data_clump-apps/web/src/components/Section.tsx-apps/web/src/components/Section.tsx/interface/Props-apps/web/src/components/ScreenContainer.tsx/interface/Props-titlechildrentestID": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-apps/web/src/components/Section.tsx-apps/web/src/components/Section.tsx/interface/Props-apps/web/src/components/ScreenContainer.tsx/interface/Props-titlechildrentestID",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/Section.tsx",
+      "from_class_or_interface_key": "apps/web/src/components/Section.tsx/interface/Props",
+      "from_class_or_interface_name": "Props",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "apps/web/src/components/ScreenContainer.tsx",
+      "to_class_or_interface_key": "apps/web/src/components/ScreenContainer.tsx/interface/Props",
+      "to_class_or_interface_name": "Props",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/Section.tsx/interface/Props/memberField/title": {
+          "key": "apps/web/src/components/Section.tsx/interface/Props/memberField/title",
+          "name": "title",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/ScreenContainer.tsx/interface/Props/memberField/title",
+            "name": "title",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 7,
+              "startColumn": 3,
+              "endLine": 7,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 7,
+            "startColumn": 3,
+            "endLine": 7,
+            "endColumn": 17
+          }
+        },
+        "apps/web/src/components/Section.tsx/interface/Props/memberField/children": {
+          "key": "apps/web/src/components/Section.tsx/interface/Props/memberField/children",
+          "name": "children",
+          "type": "React.ReactNode",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/ScreenContainer.tsx/interface/Props/memberField/children",
+            "name": "children",
+            "type": "React.ReactNode",
+            "modifiers": [],
+            "position": {
+              "startLine": 9,
+              "startColumn": 3,
+              "endLine": 9,
+              "endColumn": 23
+            }
+          },
+          "position": {
+            "startLine": 8,
+            "startColumn": 3,
+            "endLine": 8,
+            "endColumn": 23
+          }
+        },
+        "apps/web/src/components/Section.tsx/interface/Props/memberField/testID": {
+          "key": "apps/web/src/components/Section.tsx/interface/Props/memberField/testID",
+          "name": "testID",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/ScreenContainer.tsx/interface/Props/memberField/testID",
+            "name": "testID",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 10,
+              "startColumn": 3,
+              "endLine": 10,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 9,
+            "startColumn": 3,
+            "endLine": 9,
+            "endColumn": 19
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 2
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Anmeldung-packages/core/src/types.ts/interface/NotenlistenEintrag-nachnamevornamematrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Anmeldung-packages/core/src/types.ts/interface/NotenlistenEintrag-nachnamevornamematrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/Anmeldung",
+      "from_class_or_interface_name": "Anmeldung",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/NotenlistenEintrag",
+      "to_class_or_interface_name": "NotenlistenEintrag",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/Anmeldung/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 23,
+              "startColumn": 3,
+              "endLine": 23,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 40,
+            "startColumn": 3,
+            "endLine": 40,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/Anmeldung/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 24,
+              "startColumn": 3,
+              "endLine": 24,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 41,
+            "startColumn": 3,
+            "endLine": 41,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/Anmeldung/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 26,
+              "startColumn": 3,
+              "endLine": 26,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 42,
+            "startColumn": 3,
+            "endLine": 42,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Anmeldung-packages/core/src/types.ts/interface/Sitzplatz-nachnamevornamematrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Anmeldung-packages/core/src/types.ts/interface/Sitzplatz-nachnamevornamematrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/Anmeldung",
+      "from_class_or_interface_name": "Anmeldung",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/Sitzplatz",
+      "to_class_or_interface_name": "Sitzplatz",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/Anmeldung/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 59,
+              "startColumn": 3,
+              "endLine": 59,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 40,
+            "startColumn": 3,
+            "endLine": 40,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/Anmeldung/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 60,
+              "startColumn": 3,
+              "endLine": 60,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 41,
+            "startColumn": 3,
+            "endLine": 41,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/Anmeldung/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 57,
+              "startColumn": 3,
+              "endLine": 57,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 42,
+            "startColumn": 3,
+            "endLine": 42,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Anmeldung-packages/core/src/types.ts/interface/StudipTeilnehmer-nachnamevornamematrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Anmeldung-packages/core/src/types.ts/interface/StudipTeilnehmer-nachnamevornamematrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/Anmeldung",
+      "from_class_or_interface_name": "Anmeldung",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/StudipTeilnehmer",
+      "to_class_or_interface_name": "StudipTeilnehmer",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/Anmeldung/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 15,
+              "startColumn": 3,
+              "endLine": 15,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 40,
+            "startColumn": 3,
+            "endLine": 40,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/Anmeldung/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 14,
+              "startColumn": 3,
+              "endLine": 14,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 41,
+            "startColumn": 3,
+            "endLine": 41,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/Anmeldung/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 18,
+              "startColumn": 3,
+              "endLine": 18,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 42,
+            "startColumn": 3,
+            "endLine": 42,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Anmeldung-packages/core/src/types.ts/interface/Zulassung-nachnamevornamematrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Anmeldung-packages/core/src/types.ts/interface/Zulassung-nachnamevornamematrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/Anmeldung",
+      "from_class_or_interface_name": "Anmeldung",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/Zulassung",
+      "to_class_or_interface_name": "Zulassung",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/Anmeldung/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 5,
+              "startColumn": 3,
+              "endLine": 5,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 40,
+            "startColumn": 3,
+            "endLine": 40,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/Anmeldung/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 6,
+              "startColumn": 3,
+              "endLine": 6,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 41,
+            "startColumn": 3,
+            "endLine": 41,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/Anmeldung/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 7,
+              "startColumn": 3,
+              "endLine": 7,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 42,
+            "startColumn": 3,
+            "endLine": 42,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/NotenlistenEintrag-packages/core/src/types.ts/interface/Anmeldung-nachnamevornamematrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/NotenlistenEintrag-packages/core/src/types.ts/interface/Anmeldung-nachnamevornamematrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/NotenlistenEintrag",
+      "from_class_or_interface_name": "NotenlistenEintrag",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/Anmeldung",
+      "to_class_or_interface_name": "Anmeldung",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 40,
+              "startColumn": 3,
+              "endLine": 40,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 23,
+            "startColumn": 3,
+            "endLine": 23,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 41,
+              "startColumn": 3,
+              "endLine": 41,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 24,
+            "startColumn": 3,
+            "endLine": 24,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 42,
+              "startColumn": 3,
+              "endLine": 42,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 26,
+            "startColumn": 3,
+            "endLine": 26,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/NotenlistenEintrag-packages/core/src/types.ts/interface/Sitzplatz-nachnamevornamematrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/NotenlistenEintrag-packages/core/src/types.ts/interface/Sitzplatz-nachnamevornamematrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/NotenlistenEintrag",
+      "from_class_or_interface_name": "NotenlistenEintrag",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/Sitzplatz",
+      "to_class_or_interface_name": "Sitzplatz",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 59,
+              "startColumn": 3,
+              "endLine": 59,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 23,
+            "startColumn": 3,
+            "endLine": 23,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 60,
+              "startColumn": 3,
+              "endLine": 60,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 24,
+            "startColumn": 3,
+            "endLine": 24,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 57,
+              "startColumn": 3,
+              "endLine": 57,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 26,
+            "startColumn": 3,
+            "endLine": 26,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/NotenlistenEintrag-packages/core/src/types.ts/interface/StudipTeilnehmer-nachnamevornamematrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/NotenlistenEintrag-packages/core/src/types.ts/interface/StudipTeilnehmer-nachnamevornamematrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/NotenlistenEintrag",
+      "from_class_or_interface_name": "NotenlistenEintrag",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/StudipTeilnehmer",
+      "to_class_or_interface_name": "StudipTeilnehmer",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 15,
+              "startColumn": 3,
+              "endLine": 15,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 23,
+            "startColumn": 3,
+            "endLine": 23,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 14,
+              "startColumn": 3,
+              "endLine": 14,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 24,
+            "startColumn": 3,
+            "endLine": 24,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 18,
+              "startColumn": 3,
+              "endLine": 18,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 26,
+            "startColumn": 3,
+            "endLine": 26,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/NotenlistenEintrag-packages/core/src/types.ts/interface/Zulassung-nachnamevornamematrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/NotenlistenEintrag-packages/core/src/types.ts/interface/Zulassung-nachnamevornamematrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/NotenlistenEintrag",
+      "from_class_or_interface_name": "NotenlistenEintrag",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/Zulassung",
+      "to_class_or_interface_name": "Zulassung",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 5,
+              "startColumn": 3,
+              "endLine": 5,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 23,
+            "startColumn": 3,
+            "endLine": 23,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 6,
+              "startColumn": 3,
+              "endLine": 6,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 24,
+            "startColumn": 3,
+            "endLine": 24,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 7,
+              "startColumn": 3,
+              "endLine": 7,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 26,
+            "startColumn": 3,
+            "endLine": 26,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Sitzplatz-packages/core/src/types.ts/interface/Anmeldung-matrikelnummernachnamevorname": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Sitzplatz-packages/core/src/types.ts/interface/Anmeldung-matrikelnummernachnamevorname",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/Sitzplatz",
+      "from_class_or_interface_name": "Sitzplatz",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/Anmeldung",
+      "to_class_or_interface_name": "Anmeldung",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 42,
+              "startColumn": 3,
+              "endLine": 42,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 57,
+            "startColumn": 3,
+            "endLine": 57,
+            "endColumn": 26
+          }
+        },
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 40,
+              "startColumn": 3,
+              "endLine": 40,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 59,
+            "startColumn": 3,
+            "endLine": 59,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 41,
+              "startColumn": 3,
+              "endLine": 41,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 60,
+            "startColumn": 3,
+            "endLine": 60,
+            "endColumn": 19
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Sitzplatz-packages/core/src/types.ts/interface/NotenlistenEintrag-matrikelnummernachnamevorname": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Sitzplatz-packages/core/src/types.ts/interface/NotenlistenEintrag-matrikelnummernachnamevorname",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/Sitzplatz",
+      "from_class_or_interface_name": "Sitzplatz",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/NotenlistenEintrag",
+      "to_class_or_interface_name": "NotenlistenEintrag",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 26,
+              "startColumn": 3,
+              "endLine": 26,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 57,
+            "startColumn": 3,
+            "endLine": 57,
+            "endColumn": 26
+          }
+        },
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 23,
+              "startColumn": 3,
+              "endLine": 23,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 59,
+            "startColumn": 3,
+            "endLine": 59,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 24,
+              "startColumn": 3,
+              "endLine": 24,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 60,
+            "startColumn": 3,
+            "endLine": 60,
+            "endColumn": 19
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Sitzplatz-packages/core/src/types.ts/interface/StudipTeilnehmer-matrikelnummernachnamevornameemail": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Sitzplatz-packages/core/src/types.ts/interface/StudipTeilnehmer-matrikelnummernachnamevornameemail",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/Sitzplatz",
+      "from_class_or_interface_name": "Sitzplatz",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/StudipTeilnehmer",
+      "to_class_or_interface_name": "StudipTeilnehmer",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 18,
+              "startColumn": 3,
+              "endLine": 18,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 57,
+            "startColumn": 3,
+            "endLine": 57,
+            "endColumn": 26
+          }
+        },
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 15,
+              "startColumn": 3,
+              "endLine": 15,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 59,
+            "startColumn": 3,
+            "endLine": 59,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 14,
+              "startColumn": 3,
+              "endLine": 14,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 60,
+            "startColumn": 3,
+            "endLine": 60,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/email": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/email",
+          "name": "email",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/email",
+            "name": "email",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 17,
+              "startColumn": 3,
+              "endLine": 17,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 62,
+            "startColumn": 3,
+            "endLine": 62,
+            "endColumn": 17
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Sitzplatz-packages/core/src/types.ts/interface/Zulassung-matrikelnummernachnamevornameemail": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Sitzplatz-packages/core/src/types.ts/interface/Zulassung-matrikelnummernachnamevornameemail",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/Sitzplatz",
+      "from_class_or_interface_name": "Sitzplatz",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/Zulassung",
+      "to_class_or_interface_name": "Zulassung",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 7,
+              "startColumn": 3,
+              "endLine": 7,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 57,
+            "startColumn": 3,
+            "endLine": 57,
+            "endColumn": 26
+          }
+        },
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 5,
+              "startColumn": 3,
+              "endLine": 5,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 59,
+            "startColumn": 3,
+            "endLine": 59,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 6,
+              "startColumn": 3,
+              "endLine": 6,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 60,
+            "startColumn": 3,
+            "endLine": 60,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/Sitzplatz/memberField/email": {
+          "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/email",
+          "name": "email",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/email",
+            "name": "email",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 8,
+              "startColumn": 3,
+              "endLine": 8,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 62,
+            "startColumn": 3,
+            "endLine": 62,
+            "endColumn": 17
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/StudipTeilnehmer-packages/core/src/types.ts/interface/Anmeldung-vornamenachnamematrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/StudipTeilnehmer-packages/core/src/types.ts/interface/Anmeldung-vornamenachnamematrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/StudipTeilnehmer",
+      "from_class_or_interface_name": "StudipTeilnehmer",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/Anmeldung",
+      "to_class_or_interface_name": "Anmeldung",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 41,
+              "startColumn": 3,
+              "endLine": 41,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 14,
+            "startColumn": 3,
+            "endLine": 14,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 40,
+              "startColumn": 3,
+              "endLine": 40,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 15,
+            "startColumn": 3,
+            "endLine": 15,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 42,
+              "startColumn": 3,
+              "endLine": 42,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 18,
+            "startColumn": 3,
+            "endLine": 18,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/StudipTeilnehmer-packages/core/src/types.ts/interface/NotenlistenEintrag-vornamenachnamematrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/StudipTeilnehmer-packages/core/src/types.ts/interface/NotenlistenEintrag-vornamenachnamematrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/StudipTeilnehmer",
+      "from_class_or_interface_name": "StudipTeilnehmer",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/NotenlistenEintrag",
+      "to_class_or_interface_name": "NotenlistenEintrag",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 24,
+              "startColumn": 3,
+              "endLine": 24,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 14,
+            "startColumn": 3,
+            "endLine": 14,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 23,
+              "startColumn": 3,
+              "endLine": 23,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 15,
+            "startColumn": 3,
+            "endLine": 15,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 26,
+              "startColumn": 3,
+              "endLine": 26,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 18,
+            "startColumn": 3,
+            "endLine": 18,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/StudipTeilnehmer-packages/core/src/types.ts/interface/Sitzplatz-vornamenachnameemailmatrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/StudipTeilnehmer-packages/core/src/types.ts/interface/Sitzplatz-vornamenachnameemailmatrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/StudipTeilnehmer",
+      "from_class_or_interface_name": "StudipTeilnehmer",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/Sitzplatz",
+      "to_class_or_interface_name": "Sitzplatz",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 60,
+              "startColumn": 3,
+              "endLine": 60,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 14,
+            "startColumn": 3,
+            "endLine": 14,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 59,
+              "startColumn": 3,
+              "endLine": 59,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 15,
+            "startColumn": 3,
+            "endLine": 15,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/email": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/email",
+          "name": "email",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/email",
+            "name": "email",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 62,
+              "startColumn": 3,
+              "endLine": 62,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 17,
+            "startColumn": 3,
+            "endLine": 17,
+            "endColumn": 17
+          }
+        },
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 57,
+              "startColumn": 3,
+              "endLine": 57,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 18,
+            "startColumn": 3,
+            "endLine": 18,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/StudipTeilnehmer-packages/core/src/types.ts/interface/Zulassung-vornamenachnameemailmatrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/StudipTeilnehmer-packages/core/src/types.ts/interface/Zulassung-vornamenachnameemailmatrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/StudipTeilnehmer",
+      "from_class_or_interface_name": "StudipTeilnehmer",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/Zulassung",
+      "to_class_or_interface_name": "Zulassung",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 6,
+              "startColumn": 3,
+              "endLine": 6,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 14,
+            "startColumn": 3,
+            "endLine": 14,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 5,
+              "startColumn": 3,
+              "endLine": 5,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 15,
+            "startColumn": 3,
+            "endLine": 15,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/email": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/email",
+          "name": "email",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/email",
+            "name": "email",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 8,
+              "startColumn": 3,
+              "endLine": 8,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 17,
+            "startColumn": 3,
+            "endLine": 17,
+            "endColumn": 17
+          }
+        },
+        "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Zulassung/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 7,
+              "startColumn": 3,
+              "endLine": 7,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 18,
+            "startColumn": 3,
+            "endLine": 18,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Zulassung-packages/core/src/types.ts/interface/Anmeldung-nachnamevornamematrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Zulassung-packages/core/src/types.ts/interface/Anmeldung-nachnamevornamematrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/Zulassung",
+      "from_class_or_interface_name": "Zulassung",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/Anmeldung",
+      "to_class_or_interface_name": "Anmeldung",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/Zulassung/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 40,
+              "startColumn": 3,
+              "endLine": 40,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 5,
+            "startColumn": 3,
+            "endLine": 5,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/Zulassung/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 41,
+              "startColumn": 3,
+              "endLine": 41,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 6,
+            "startColumn": 3,
+            "endLine": 6,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/Zulassung/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Anmeldung/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 42,
+              "startColumn": 3,
+              "endLine": 42,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 7,
+            "startColumn": 3,
+            "endLine": 7,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Zulassung-packages/core/src/types.ts/interface/NotenlistenEintrag-nachnamevornamematrikelnummer": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Zulassung-packages/core/src/types.ts/interface/NotenlistenEintrag-nachnamevornamematrikelnummer",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/Zulassung",
+      "from_class_or_interface_name": "Zulassung",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/NotenlistenEintrag",
+      "to_class_or_interface_name": "NotenlistenEintrag",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/Zulassung/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 23,
+              "startColumn": 3,
+              "endLine": 23,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 5,
+            "startColumn": 3,
+            "endLine": 5,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/Zulassung/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 24,
+              "startColumn": 3,
+              "endLine": 24,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 6,
+            "startColumn": 3,
+            "endLine": 6,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/Zulassung/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/NotenlistenEintrag/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 26,
+              "startColumn": 3,
+              "endLine": 26,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 7,
+            "startColumn": 3,
+            "endLine": 7,
+            "endColumn": 26
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Zulassung-packages/core/src/types.ts/interface/Sitzplatz-nachnamevornamematrikelnummeremail": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Zulassung-packages/core/src/types.ts/interface/Sitzplatz-nachnamevornamematrikelnummeremail",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/Zulassung",
+      "from_class_or_interface_name": "Zulassung",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/Sitzplatz",
+      "to_class_or_interface_name": "Sitzplatz",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/Zulassung/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 59,
+              "startColumn": 3,
+              "endLine": 59,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 5,
+            "startColumn": 3,
+            "endLine": 5,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/Zulassung/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 60,
+              "startColumn": 3,
+              "endLine": 60,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 6,
+            "startColumn": 3,
+            "endLine": 6,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/Zulassung/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 57,
+              "startColumn": 3,
+              "endLine": 57,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 7,
+            "startColumn": 3,
+            "endLine": 7,
+            "endColumn": 26
+          }
+        },
+        "packages/core/src/types.ts/interface/Zulassung/memberField/email": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/email",
+          "name": "email",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/Sitzplatz/memberField/email",
+            "name": "email",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 62,
+              "startColumn": 3,
+              "endLine": 62,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 8,
+            "startColumn": 3,
+            "endLine": 8,
+            "endColumn": 17
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Zulassung-packages/core/src/types.ts/interface/StudipTeilnehmer-nachnamevornamematrikelnummeremail": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Zulassung-packages/core/src/types.ts/interface/StudipTeilnehmer-nachnamevornamematrikelnummeremail",
+      "probability": 1,
+      "from_file_path": "packages/core/src/types.ts",
+      "from_class_or_interface_key": "packages/core/src/types.ts/interface/Zulassung",
+      "from_class_or_interface_name": "Zulassung",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/types.ts",
+      "to_class_or_interface_key": "packages/core/src/types.ts/interface/StudipTeilnehmer",
+      "to_class_or_interface_name": "StudipTeilnehmer",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/types.ts/interface/Zulassung/memberField/nachname": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/nachname",
+          "name": "nachname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/nachname",
+            "name": "nachname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 15,
+              "startColumn": 3,
+              "endLine": 15,
+              "endColumn": 20
+            }
+          },
+          "position": {
+            "startLine": 5,
+            "startColumn": 3,
+            "endLine": 5,
+            "endColumn": 20
+          }
+        },
+        "packages/core/src/types.ts/interface/Zulassung/memberField/vorname": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/vorname",
+          "name": "vorname",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/vorname",
+            "name": "vorname",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 14,
+              "startColumn": 3,
+              "endLine": 14,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 6,
+            "startColumn": 3,
+            "endLine": 6,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/types.ts/interface/Zulassung/memberField/matrikelnummer": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/matrikelnummer",
+          "name": "matrikelnummer",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/matrikelnummer",
+            "name": "matrikelnummer",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 18,
+              "startColumn": 3,
+              "endLine": 18,
+              "endColumn": 26
+            }
+          },
+          "position": {
+            "startLine": 7,
+            "startColumn": 3,
+            "endLine": 7,
+            "endColumn": 26
+          }
+        },
+        "packages/core/src/types.ts/interface/Zulassung/memberField/email": {
+          "key": "packages/core/src/types.ts/interface/Zulassung/memberField/email",
+          "name": "email",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/types.ts/interface/StudipTeilnehmer/memberField/email",
+            "name": "email",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 17,
+              "startColumn": 3,
+              "endLine": 17,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 8,
+            "startColumn": 3,
+            "endLine": 8,
+            "endColumn": 17
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 3
+      }
+    }
+  }
+}

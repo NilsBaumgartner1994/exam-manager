@@ -2,6 +2,7 @@
 
 [![Test](https://github.com/NilsBaumgartner1994/exam-manager/actions/workflows/test.yml/badge.svg)](https://github.com/NilsBaumgartner1994/exam-manager/actions/workflows/test.yml)
 [![Deploy Web (GitHub Pages)](https://github.com/NilsBaumgartner1994/exam-manager/actions/workflows/deploy-web.yml/badge.svg)](https://github.com/NilsBaumgartner1994/exam-manager/actions/workflows/deploy-web.yml)
+[![Data Clumps](reports/data-clumps-doctor/badges/data-clumps.svg)](https://github.com/NilsBaumgartner1994/exam-manager/actions/workflows/data-clumps.yml)
 
 Werkzeuge rund um die Verwaltung einer Universitätsklausur: Prüfungsanmeldungen
 einlesen, Klausurzulassungen über mehrere Jahre verwalten, Studierende
@@ -249,6 +250,47 @@ apps/web        Expo-Web-App (React Native Web) mit den vier Screens
 
 Die Trennung ist Absicht: `packages/core` hat keine UI-Abhängigkeiten und kann
 später unverändert in einen Node-Server eingebunden werden.
+
+### Automatische Prüfungen (GitHub Actions)
+
+| Workflow | Wann | Was |
+|---|---|---|
+| `test.yml` | jeder Push, jeder Pull Request | Jest-Tests der Fachlogik und Typecheck beider Pakete |
+| `deploy-web.yml` | Push auf `main` | Tests, Typecheck, Web-Export und Veröffentlichung auf GitHub Pages |
+| `data-clumps.yml` | Push auf `main`, manuell | Data-Clumps-Analyse; Report und Badge landen unter `reports/` |
+
+Die drei Banner oben in dieser Datei zeigen den Stand: zweimal der Zustand des
+Workflows, einmal die Anzahl der gefundenen Data Clumps.
+
+### Data Clumps (`reports/`)
+
+[Data Clumps](https://de.wikipedia.org/wiki/Data_Clump) sind Gruppen von
+Feldern oder Parametern, die immer wieder gemeinsam auftauchen und eher ein
+eigenes Objekt sein sollten. Der Workflow `data-clumps.yml` prüft das nach
+jedem Push auf `main` mit dem
+[data-clumps-doctor](https://github.com/NilsBaumgartner1994/data-clumps-doctor)
+und schreibt das Ergebnis zurück ins Repository:
+
+```
+reports/data-clumps-doctor/data-clumps.json    vollständiger Report
+reports/data-clumps-doctor/badges/data-clumps.svg   Badge für diese README
+```
+
+Ändert sich das Ergebnis, legt der Workflow zusätzlich ein Issue mit den
+größten Fundstellen an (und schließt das vorherige). Der aktuelle Stand: 22
+Data Clumps, davon 20 in `packages/core/src/types.ts` – dort teilen sich
+`Zulassung`, `Anmeldung`, `Sitzplatz` und Co. dieselben Personenfelder.
+
+Lokal ausführen:
+
+```bash
+git clone https://github.com/NilsBaumgartner1994/data-clumps-doctor /tmp/dcd
+cd /tmp/dcd && yarn install && yarn build && cd -
+node /tmp/dcd/build/ignoreCoverage/cli.js \
+  --source_type typescript --commit_selection current \
+  --output reports/data-clumps-doctor/data-clumps.json \
+  --path_to_project "$PWD" --relative_path_to_source_folder_in_project .
+```
 
 ### Deployment (GitHub Pages)
 

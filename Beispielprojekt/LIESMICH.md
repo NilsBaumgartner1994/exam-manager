@@ -14,7 +14,7 @@ als „nicht zugeordnet“ an und rührt es nicht an.
 | 0_Input_Kurs_Teilnehmer_Studip_Liste/ | *.csv | Teilnehmendenexport der Veranstaltung aus Stud.IP |
 | 0_Input_Vips_Notenliste/ | *.csv | Notenliste aus VIPS mit den Punkten der Aufgabenblätter |
 | Zulassungen/ | *zulassungen*.csv | je Jahr eine Liste der Zugelassenen |
-| Raeume/ | *.csv | Räume und ihre leeren Raster, jedes Jahr wiederverwendbar |
+| Raeume/ | *.csv | Raumliste und je Raum ein leeres Raster, jedes Jahr wiederverwendbar |
 | 2_Zulassungs_PDFs_Export/ | *.pdf | erzeugte Zulassungs-PDFs (Schritt 2) |
 | 3_Klausur_Teilnehmende_Export/ | *.csv | Angemeldete mit und ohne Zulassung (Schritt 3) |
 | 4_Raumzuteilung_Export/ | *.csv | Sitzplan und Raumbelegung (Schritt 4) |

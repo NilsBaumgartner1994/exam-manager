@@ -17,6 +17,7 @@ E-Mails sind <vorname>@test.de.
 
 import csv
 import os
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -183,51 +184,162 @@ def his_export(path_xlsx, path_csv):
     write_rows(path_csv, [[p["nachname"], p["vorname"], p["matrikel"]] for p in ANGEMELDET])
 
 
-# Raeume der Beispielklausur: Name, Spalten x Zeilen des Rasters und die
-# Breite eines Tischblocks zwischen zwei Gaengen. Die Groessen entsprechen
-# echten Hoersaal-Zuschnitten (ein grosser Hoersaal, ein mittlerer, drei
-# gleich geschnittene Seminarraeume) – gross genug, um die Ansicht der App
-# unter realistischen Bedingungen zu pruefen.
+# Raeume der Beispielklausur: Name und Pruefungsgruppe (Einlasszeit). Die
+# Raster stehen darunter in RAUMRASTER – je Raum eines, so wie es in der App
+# gezeichnet wird.
 RAEUME = [
-    {"raum": "01/E01", "spalten": 47, "zeilen": 34, "block": 6, "gruppe": 1},
-    {"raum": "66/E33", "spalten": 19, "zeilen": 31, "block": 4, "gruppe": 1},
-    {"raum": "94/E01", "spalten": 9, "zeilen": 26, "block": 3, "gruppe": 2},
-    {"raum": "94/E03", "spalten": 9, "zeilen": 26, "block": 3, "gruppe": 2},
-    {"raum": "94/E06", "spalten": 9, "zeilen": 26, "block": 3, "gruppe": 2},
+    {"raum": "01/E01", "gruppe": 1},
+    {"raum": "66/E33", "gruppe": 1},
+    {"raum": "94/E01", "gruppe": 2},
+    {"raum": "94/E03", "gruppe": 2},
+    {"raum": "94/E06", "gruppe": 2},
 ]
+
+# Die Raster stammen aus den echten Hoersaal-Plaenen der Klausur: T = Sitzplatz
+# (dort wird geprueft), P = Tischflaeche ohne Sitzplatz (in den Hoersaelen sitzt
+# nur jede dritte Person, dazwischen bleibt Tisch frei), W = Wand, D = Tuer,
+# . = frei. Zeilen `Text;...` beschriften verbundene Zellen.
+RAUMRASTER = {
+    "01/E01": """\
+W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;P;P;P;P;P;P;P;P;P;P;P;P;P;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+P;P;P;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;T;P;P
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+P;P;P;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;T;P;P
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+P;P;P;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;T;P;P
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+.;P;P;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;T;P;.
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+.;P;P;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;T;P;.
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+.;P;P;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;T;P;.
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+.;P;P;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;T;P;.
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+.;P;P;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;T;P;.
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+.;.;P;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;T;.;.
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+.;.;P;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;T;.;.
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+.;.;P;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;T;.;.
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+.;.;.;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;.;.;.
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+.;.;.;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;.;.;.
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+.;.;.;T;P;P;T;P;P;T;.;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;P;P;T;.;.;T;P;P;T;P;P;T;P;P;.;.;.
+.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.
+W;W;W;W;W;W;W;W;W;W;D;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;D;D;W;W;W;W;W;W;W;W;W;W;W;W
+""",
+    "66/E33": """\
+W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W
+W;.;.;.;.;.;P;P;P;P;P;P;P;P;.;.;.;.;W
+W;.;.;.;.;.;P;P;P;P;P;P;P;P;.;.;.;.;W
+W;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;W
+W;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;W
+W;.;.;P;T;P;T;P;T;P;T;P;T;P;T;P;T;.;W
+W;.;.;P;P;P;P;P;P;P;P;P;P;P;P;P;P;.;W
+W;.;T;P;T;P;T;P;T;P;T;P;T;P;T;P;T;.;W
+W;.;P;P;P;P;P;P;P;P;P;P;P;P;P;P;P;.;W
+W;.;T;P;T;P;T;P;T;P;T;P;T;P;T;P;T;.;W
+W;.;P;P;P;P;P;P;P;P;P;P;P;P;P;P;P;.;W
+W;.;T;P;T;P;T;P;T;P;T;P;T;P;T;P;T;.;W
+W;.;P;P;P;P;P;P;P;P;P;P;P;P;P;P;P;.;W
+W;.;T;P;T;P;T;P;T;P;T;P;T;P;T;P;T;.;W
+W;.;P;P;P;P;P;P;P;P;P;P;P;P;P;P;P;.;W
+W;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;W
+W;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;W
+W;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;W
+W;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;W
+W;.;.;W;.;.;T;P;T;P;T;P;T;P;T;P;T;.;W
+W;.;.;W;.;.;P;P;P;P;P;P;P;P;P;P;P;.;W
+W;.;.;W;.;.;T;P;T;P;T;P;T;P;T;P;T;.;W
+W;.;.;W;.;.;P;P;P;P;P;P;P;P;P;P;P;.;W
+W;.;.;W;.;.;T;P;T;P;T;P;T;P;T;P;T;.;W
+W;.;.;W;.;.;.;P;P;P;P;P;P;P;P;P;P;.;W
+W;.;.;W;.;.;.;P;T;P;T;P;T;P;T;P;T;.;W
+W;.;.;W;.;.;.;P;P;P;P;P;P;P;P;P;P;.;W
+W;.;.;W;.;.;.;P;T;P;T;P;T;P;T;P;T;.;W
+W;.;.;W;.;.;.;.;.;.;.;.;.;.;.;.;.;.;W
+W;.;.;W;.;.;.;.;.;.;.;.;.;.;.;.;.;.;W
+W;D;D;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W;W
+""",
+    "94/E01": """\
+W;W;W;W;W;W;W;W;W
+W;.;.;.;.;.;.;.;W
+W;P;P;.;.;.;.;.;D
+W;.;.;.;.;.;.;.;W
+W;T;T;T;.;.;.;.;W
+W;.;.;.;.;T;T;.;W
+W;T;T;T;.;.;.;.;W
+W;.;.;.;.;.;.;.;W
+W;T;T;T;.;T;T;.;W
+W;.;.;.;.;.;.;.;W
+W;T;T;T;.;T;T;.;W
+W;.;.;.;.;.;.;.;W
+W;T;T;T;.;T;T;.;W
+W;.;.;.;.;.;.;.;W
+W;T;T;T;.;T;T;.;W
+W;.;.;.;.;.;.;.;W
+W;W;W;W;W;W;W;W;W
+Text;1;3;1;5;Klausur SWE – Raum 94/E01
+""",
+    "94/E03": """\
+W;W;W;W;W;W;W;W;W
+W;.;.;.;.;.;.;.;W
+D;.;.;.;.;.;P;P;W
+W;.;.;.;.;.;.;.;W
+W;.;.;.;.;T;T;T;W
+W;T;T;.;.;.;.;.;W
+W;.;.;.;.;T;T;T;W
+W;.;.;.;.;.;.;.;W
+W;T;T;.;.;T;T;T;W
+W;.;.;.;.;.;.;.;W
+W;T;T;.;.;T;T;T;W
+W;.;.;.;.;.;.;.;W
+W;T;T;.;.;T;T;T;W
+W;.;.;.;.;.;.;.;W
+W;T;T;.;.;T;T;T;W
+W;.;.;.;.;.;.;.;W
+W;W;W;W;W;W;W;W;W
+""",
+    "94/E06": """\
+W;W;W;W;W;W;W;W;W
+W;.;.;.;.;.;.;.;W
+W;P;P;.;.;.;.;.;D
+W;.;.;.;.;.;.;.;W
+W;T;.;.;.;T;T;T;W
+W;.;.;.;.;.;.;.;W
+W;T;T;.;.;T;T;T;W
+W;.;.;.;.;.;.;.;W
+W;T;T;.;.;T;T;T;W
+W;.;.;.;.;.;.;.;W
+W;T;T;.;.;T;T;T;W
+W;.;.;.;.;.;.;.;W
+W;T;T;.;.;T;T;T;W
+W;.;.;.;.;.;.;.;W
+W;T;T;.;.;T;T;T;W
+W;.;.;.;.;.;.;.;W
+W;W;W;W;W;W;W;W;W
+""",
+}
 
 
 def raster(raum):
-    """Raster eines Raumes: T=Tisch, D=Tuer, W=Wand, P=Pult, .=frei.
-
-    Aufbau wie in einem Hoersaal: vorne Wand und Pult, dahinter Tischreihen in
-    Bloecken mit Gaengen dazwischen, hinten zwei Tueren und die Rueckwand.
-    """
-    breite, hoehe, block = raum["spalten"], raum["zeilen"], raum["block"]
-
-    # Spaltenmuster einer Sitzreihe: Rand, dann Bloecke mit je einem Gang.
-    reihe = ["."] * breite
-    for spalte in range(1, breite - 1):
-        if (spalte - 1) % (block + 1) != block:
-            reihe[spalte] = "T"
-
-    pult = ["."] * breite
-    pult[1] = "P"
-    tueren = ["."] * breite
-    tueren[1] = "D"
-    tueren[breite - 2] = "D"
-
-    rows = [["W"] * breite, pult, ["."] * breite]
-    # Alle acht Reihen ein Quergang, damit die Sitzbloecke erreichbar bleiben.
-    for i in range(max(0, hoehe - 6)):
-        rows.append(["."] * breite if i > 0 and i % 8 == 0 else list(reihe))
-    rows += [["."] * breite, tueren, ["W"] * breite]
-    return rows[:hoehe]
+    """Raster eines Raumes als Zeilenliste (T=Sitzplatz, P=Pult/Tischflaeche,
+    D=Tuer, W=Wand, .=frei). Zeilen, die mit `Text` beginnen, sind
+    Beschriftungen ueber verbundenen Zellen und kein Teil des Rasters."""
+    return [zeile.split(SEP) for zeile in RAUMRASTER[raum["raum"]].splitlines() if zeile.strip()]
 
 
 def plaetze(raum):
-    """Anzahl der Tische im Raster – das ist die Kapazitaet des Raumes."""
-    return sum(zeile.count("T") for zeile in raster(raum))
+    """Anzahl der Sitzplaetze (T) im Raster – das ist die Kapazitaet fuer die
+    Klausur. Sie ist kleiner als die Zahl der Sitze im Hoersaal: Zwischen zwei
+    Geprueften bleiben Plaetze frei."""
+    return sum(zeile.count("T") for zeile in raster(raum) if zeile[0] != "Text")
 
 
 def raeume(path):
@@ -240,20 +352,26 @@ def raeume(path):
                header=header)
 
 
-def raumschema(path):
-    """Raster aller Raeume in einer Datei (siehe packages/core/src/raumschema.ts).
+def raumschema_dateiname(raum):
+    """Dateiname des Rasters – wie `raumschemaDateiname` im Core:
+    `94/E01` -> `94_E01.csv`. Dateinamen bleiben ohne Sonderzeichen."""
+    name = (raum.replace("Ä", "AE").replace("Ö", "OE").replace("Ü", "UE")
+                .replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
+                .replace("ß", "ss"))
+    name = re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_")
+    return f"{name or 'raum'}.csv"
 
-    Zu jedem Raum kommt eine Beschriftung – ein Textfeld ueber verbundenen
-    Zellen, damit die Beispieldaten auch diesen Teil des Editors zeigen.
+
+def raumschemata(ordner):
+    """Je Raum eine Datei mit seinem Raster (siehe packages/core/src/raumschema.ts).
+
+    Ein Raum, eine Datei: So ist im Ordner zu sehen, welche Raeume es gibt, und
+    ein einzelner Raum laesst sich austauschen, ohne die anderen anzufassen.
     """
-    rows = []
+    ordner.mkdir(parents=True, exist_ok=True)
     for raum in RAEUME:
-        rows.append(["Raum", raum["raum"]])
-        rows += raster(raum)
-        # Textfeld ueber der zweiten Zeile, rechts neben dem Pult.
-        rows.append(["Text", "1", "3", "1", str(min(12, raum["spalten"] - 4)),
-                     f"Klausur SWE – Raum {raum['raum']}"])
-    write_rows(path, rows)
+        rows = [["Raum", raum["raum"]]] + raster(raum)
+        write_rows(ordner / raumschema_dateiname(raum["raum"]), rows)
 
 
 def main():
@@ -277,7 +395,7 @@ def main():
 
     # Schritt 4: Raeume
     raeume(LST / "4_MailRaumZuordnung" / "2_raum_zuteilung_erstellen" / "raeume.csv")
-    raumschema(LST / "4_MailRaumZuordnung" / "2_raum_zuteilung_erstellen" / "raumschema.csv")
+    raumschemata(LST / "4_MailRaumZuordnung" / "2_raum_zuteilung_erstellen" / "raumschema")
 
     print("Fertig. Abgeleitete Dateien entstehen ueber die Pipeline (siehe README.md).")
 

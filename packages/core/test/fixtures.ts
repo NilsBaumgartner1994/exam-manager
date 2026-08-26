@@ -20,9 +20,10 @@ export const pfad = {
   raeume: join(
     ROOT, 'Zuslassungliste_Erstellen', '4_MailRaumZuordnung', '2_raum_zuteilung_erstellen', 'raeume.csv',
   ),
-  raumschema: join(
+  /** Ordner mit den Rastern – je Raum eine Datei (`01_E01.csv`, …). */
+  raumschemaOrdner: join(
     ROOT, 'Zuslassungliste_Erstellen', '4_MailRaumZuordnung', '2_raum_zuteilung_erstellen',
-    'raumschema.csv',
+    'raumschema',
   ),
   sitzplan: join(
     ROOT, 'Zuslassungliste_Erstellen', '4_MailRaumZuordnung', '2_raum_zuteilung_erstellen',
@@ -32,6 +33,14 @@ export const pfad = {
 
 export function lies(datei: string): string {
   return readFileSync(datei, 'utf-8');
+}
+
+/** Alle Raster des Beispieldatensatzes – je Raum eine Datei. */
+export function liesRaumschemata(): string[] {
+  return readdirSync(pfad.raumschemaOrdner)
+    .filter((name) => name.toLowerCase().endsWith('.csv'))
+    .sort()
+    .map((name) => readFileSync(join(pfad.raumschemaOrdner, name), 'utf-8'));
 }
 
 /** Alle Zulassungslisten des Bestands (wie das Skript: nur *zulassungen*.csv). */

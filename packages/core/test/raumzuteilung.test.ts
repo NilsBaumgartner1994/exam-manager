@@ -1,9 +1,9 @@
-import { lies, pfad } from './fixtures';
+import { lies, liesRaumschemata, pfad } from './fixtures';
 import {
   eindeutigeNamenspraefixe,
   erstelleRaumzuteilung,
   parseRaeume,
-  parseRaumschemata,
+  parseRaumschemaDateien,
   parseSitzplaetze,
   sitzplaetzeToCsv,
   tischzellen,
@@ -25,13 +25,15 @@ describe('Raumzuteilung (Screen 4)', () => {
 
   it('liest die Raumliste', () => {
     expect(raeume.map((r) => r.raum)).toEqual(['01/E01', '66/E33', '94/E01', '94/E03', '94/E06']);
-    expect(raeume[0]).toMatchObject({ raum: '01/E01', plaetze: 975 });
+    expect(raeume[0]).toMatchObject({ raum: '01/E01', plaetze: 193 });
   });
 
   it('hält Platzzahl und Raumschema des Beispieldatensatzes zusammen', () => {
     // Die Plätze eines Raums sind genau die Tische in seinem Raster – sonst
-    // meldet die App Teilnehmende „ohne Tisch im Sitzplan“.
-    const schemata = parseRaumschemata(lies(pfad.raumschema));
+    // meldet die App Teilnehmende „ohne Tisch im Sitzplan“. Die Raster liegen
+    // je Raum in einer eigenen Datei; zusammen ergeben sie alle Räume.
+    const schemata = parseRaumschemaDateien(liesRaumschemata());
+    expect(schemata.map((s) => s.raum)).toEqual(raeume.map((r) => r.raum));
     for (const raum of raeume) {
       const schema = schemata.find((s) => s.raum === raum.raum);
       expect(schema).toBeDefined();

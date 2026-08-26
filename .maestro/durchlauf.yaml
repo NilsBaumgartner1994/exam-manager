@@ -103,4 +103,5 @@ url: http://localhost:8081
 - tapOn: 'Räume als CSV speichern'
 - assertVisible: 'Raumliste gespeichert – im Projekt unter Raeume/raeume.csv.'
 - tapOn: 'Raster als CSV speichern'
-- assertVisible: 'Raster gespeichert – im Projekt unter Raeume/raumschema.csv.'
+# Je Raum eine Datei, benannt nach dem Raum (01_E01.csv, 66_E33.csv, ...).
+- assertVisible: 'Raster gespeichert – je Raum eine Datei in Raeume/'

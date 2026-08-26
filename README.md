@@ -99,11 +99,14 @@ Alle CSV-Dateien: Trennzeichen `;`, UTF-8, Zeilenende `\n`.
 | VIPS-Notenliste | `Nachname;Vorname;Kennung;Matrikelnr.;<Aufgabenblatt …>;Summe` (Zeile 2 = Maximalpunktzahl, Datei mit BOM) |
 | Stud.IP-Export | `Status;Anrede;Titel;Vorname;Nachname;…;E-Mail;Anmeldedatum;Matrikelnummer;Studiengänge;Position` (alle Felder in `"`) |
 | Raumliste | `Raum;Plätze;ReservierteZeit` |
-| Raumschema (`raumschema.csv`) | Raster statt Kopfzeile: `Raum;<Name>` beginnt einen Raum, jede weitere Zeile ist eine Reihe im Raum. Zellen: `T` Sitzplatz (Tisch für Studierende), `P` Pult (Tisch ohne Sitzplatz), `D` Tür, `W` Wand, `.` frei. Freier Text über verbundenen Zellen steht in eigenen Zeilen: `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>` – er liegt über dem Raster, die Zellen darunter bleiben erhalten |
+| Raumschema (je Raum eine Datei, `94_E01.csv`) | Raster statt Kopfzeile: `Raum;<Name>` beginnt einen Raum, jede weitere Zeile ist eine Reihe im Raum. Zellen: `T` Sitzplatz (Tisch für Studierende), `P` Pult (Tisch ohne Sitzplatz), `D` Tür, `W` Wand, `.` frei. Freier Text über verbundenen Zellen steht in eigenen Zeilen: `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>` – er liegt über dem Raster, die Zellen darunter bleiben erhalten |
 | Raumbelegung (`raumbelegung.csv`) | `Raum;Zeile;Spalte;Sitzplatznummer;Matrikelnummer;Nachname;Vorname;Reserviert;Vorgabe` (Sitzplatznummer, Nachname und Vorname stehen nur zur Lesbarkeit darin und werden beim Einlesen ignoriert) |
 
 Ein Raumschema bildet den Aufbau des Raumes direkt ab und lässt sich deshalb
-auch in Excel bearbeiten – so sieht `raumschema.csv` der Beispieldaten aus:
+auch in Excel bearbeiten. Jeder Raum liegt in einer eigenen Datei, benannt nach
+dem Raum (`Raeume/94_E01.csv`) – so ist im Ordner zu sehen, welche Räume es
+gibt, und ein einzelner Raum lässt sich austauschen, ohne die anderen
+anzufassen. Mehrere Räume in einer Datei liest die App weiterhin:
 
 ```
 Raum;94/E01
@@ -119,8 +122,10 @@ Text;1;3;1;5;Klausur SWE – Raum 94/E01
 
 Die letzte Zeile ist ein Textfeld über verbundenen Zellen: ab Zeile 1,
 Spalte 3, eine Zeile hoch und fünf Spalten breit. Die Beispieldaten enthalten
-fünf Räume in realistischen Größen – vom Seminarraum (9 × 26 Felder) bis zum
-Hörsaal `01/E01` mit 47 × 34 Feldern.
+fünf echte Räume – vom Seminarraum `94/E01` (9 × 17 Felder) bis zum Hörsaal
+`01/E01` mit 44 × 32 Feldern. In den Hörsälen sitzt nur jede dritte Person:
+Zwischen zwei Sitzplätzen (`T`) bleibt die Tischfläche (`P`) frei, deshalb ist
+die Platzzahl deutlich kleiner als die Zahl der Sitze im Raum.
 
 ## Voraussetzungen
 
@@ -202,7 +207,7 @@ optionalen **Projektordner**:
    0_Input_Kurs_Teilnehmer_Studip_Liste/  *.csv               Teilnehmendenexport aus Stud.IP
    0_Input_Vips_Notenliste/               *.csv               Notenliste aus VIPS
    Zulassungen/                           *zulassungen*.csv   je Jahr eine Liste der Zugelassenen
-   Raeume/                                *.csv               raeume.csv, raumschema.csv (blanko)
+   Raeume/                                *.csv               raeume.csv + je Raum ein Raster (blanko)
    2_Zulassungs_PDFs_Export/              *.pdf               erzeugte Zulassungs-PDFs (Schritt 2)
    3_Klausur_Teilnehmende_Export/         *.csv               Angemeldete mit/ohne Zulassung (Schritt 3)
    4_Raumzuteilung_Export/                *.csv               Sitzplan und Belegung (Schritt 4)
@@ -250,15 +255,15 @@ Und die vier Schritte selbst:
    Zulassungsbestand prüfen; Zugelassene/Nicht-Zugelassene anzeigen und als
    CSV herunterladen.
 4. **Raumzuteilung & Sitzplan** – Teilnehmer-CSV aus Schritt 3 laden, Räume
-   modellieren (und als Blanko-CSV speichern), Sitzplätze ab Startnummer
+   modellieren (und als Blanko-CSVs speichern), Sitzplätze ab Startnummer
    (Default 1001) vergeben; Ansichten: Aushang (anonym), Dozent (nach
    Sitzplatz), Tutor (nach Nachname), Räume/Aushänge je Raum; Export als CSV,
    Sitzplatz-PDFs (ZIP) und alle Aushänge als PDF über den Druckdialog.
 
    **Sitzplan im Raum:** Zu jedem Raum lässt sich ein Raster hinterlegen, das
    den Aufbau des Raumes abbildet – wo Tische stehen, wo Tür, Wand und Pult
-   sind (`raumschema.csv`, siehe unten). Auf diesem Raster werden die
-   Studierenden platziert:
+   sind (je Raum eine CSV in `Raeume/`, siehe oben). Auf diesem Raster werden
+   die Studierenden platziert:
 
    - **Platzieren** – Person antippen, Zieltisch antippen; sitzt dort jemand,
      tauschen die beiden.
@@ -269,12 +274,13 @@ Und die vier Schritte selbst:
    - **Raum bearbeiten** – links liegt die Palette (Auswählen, Sitzplatz,
      Pult, Wand, Tür, Text, Radierer). Ein Element auf eine Zelle **ziehen**
      setzt es dort; **antippen** wählt es aus und man malt damit im Plan (über
-     Zellen ziehen zeichnet z. B. eine ganze Wand). Mit **Auswählen**
-     verschiebt man einen Block – die Belegung wandert mit –, und am blauen
-     **Griff an der unteren Ecke** zieht man ihn wie in einer
-     Tabellenkalkulation über mehrere Felder auf oder wieder zusammen. Zeilen
-     und Spalten lassen sich zusätzlich über die Knöpfe hinzufügen und
-     entfernen.
+     Zellen ziehen zeichnet z. B. eine ganze Wand). Mit **Auswählen** zieht
+     man über mehrere Zellen, ohne etwas zu verändern – markiert wird nur –,
+     und **gedrückt halten in der Auswahl** verschiebt den ganzen Block; die
+     Belegung wandert mit. Am blauen **Griff an der unteren Ecke** zieht man
+     die Auswahl wie in einer Tabellenkalkulation über mehrere Felder auf oder
+     wieder zusammen und füllt sie dabei. Zeilen und Spalten lassen sich
+     zusätzlich über die Knöpfe hinzufügen und entfernen.
    - **Sitzplatz oder Pult?** Beides sind Tische, in hellem bzw. dunklerem
      Holzton. Ein **Sitzplatz** (`T`) ist ein Tisch, an dem jemand geprüft
      wird: Nur diese werden nummeriert und belegt, und nur sie zählt die

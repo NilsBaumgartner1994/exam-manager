@@ -22,7 +22,7 @@ export type DateiRolle =
   | 'hisExport'
   /** Raumliste `Raum;Plätze;ReservierteZeit`. */
   | 'raeume'
-  /** Raster der Räume (Tische, Tür, Wand, Pult). */
+  /** Raster eines Raums (Tische, Tür, Wand, Pult) – je Raum eine Datei. */
   | 'raumschema'
   /** Wer an welchem Tisch sitzt. */
   | 'raumbelegung'
@@ -103,7 +103,8 @@ export const PROJEKT_SCHEMA: OrdnerRegel[] = [
     ordner: 'Raeume',
     endungen: ['.csv'],
     rollen: ['raeume', 'raumschema'],
-    zweck: 'Räume und ihre leeren Raster – ohne Studierende, jedes Jahr wiederverwendbar.',
+    zweck:
+      'Raumliste (raeume.csv) und je Raum eine Raster-Datei (94_E01.csv) – ohne Studierende, jedes Jahr wiederverwendbar.',
   },
   {
     ordner: '2_Zulassungs_PDFs_Export',
@@ -256,8 +257,10 @@ export function projektVorlage(): Map<string, string> {
     'Nachname;Vorname;Matrikelnummer;E-Mail\n',
   );
   vorlage.set('Raeume/raeume.csv', 'Raum;Plätze;ReservierteZeit\n');
+  // Je Raum eine Datei, benannt nach dem Raum – so ist im Ordner zu sehen,
+  // welche Räume es gibt (`raumschemaDateiname`).
   vorlage.set(
-    'Raeume/raumschema.csv',
+    'Raeume/beispielraum.csv',
     'Raum;Beispielraum\nP;.;.;.\n.;T;.;T\n.;T;.;T\nD;.;.;.\n',
   );
   return vorlage;

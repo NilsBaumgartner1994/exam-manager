@@ -39,8 +39,11 @@ DATEIEN = [
     (ROOT / "Zulassungen" / "pv2025_zulassungen.csv",
      "Zulassungen/pv2025_zulassungen.csv"),
     (RAUM / "raeume.csv", "Raeume/raeume.csv"),
-    (RAUM / "raumschema.csv", "Raeume/raumschema.csv"),
 ]
+
+# Die Raster liegen je Raum in einer eigenen Datei (siehe raumschema.ts) und
+# behalten ihren Namen: Raeume/01_E01.csv, Raeume/94_E01.csv, ...
+RAUMSCHEMATA = sorted((RAUM / "raumschema").glob("*.csv"))
 
 # Ordner, die die App selbst füllt: leer, aber mit Hinweis – ein leerer Ordner
 # überlebt Git nicht.
@@ -78,7 +81,7 @@ als „nicht zugeordnet“ an und rührt es nicht an.
 | 0_Input_Kurs_Teilnehmer_Studip_Liste/ | *.csv | Teilnehmendenexport der Veranstaltung aus Stud.IP |
 | 0_Input_Vips_Notenliste/ | *.csv | Notenliste aus VIPS mit den Punkten der Aufgabenblätter |
 | Zulassungen/ | *zulassungen*.csv | je Jahr eine Liste der Zugelassenen |
-| Raeume/ | *.csv | Räume und ihre leeren Raster, jedes Jahr wiederverwendbar |
+| Raeume/ | *.csv | Raumliste und je Raum ein leeres Raster, jedes Jahr wiederverwendbar |
 | 2_Zulassungs_PDFs_Export/ | *.pdf | erzeugte Zulassungs-PDFs (Schritt 2) |
 | 3_Klausur_Teilnehmende_Export/ | *.csv | Angemeldete mit und ohne Zulassung (Schritt 3) |
 | 4_Raumzuteilung_Export/ | *.csv | Sitzplan und Raumbelegung (Schritt 4) |
@@ -101,7 +104,7 @@ def main():
     if ZIEL.exists():
         shutil.rmtree(ZIEL)
 
-    for quelle, ziel in DATEIEN:
+    for quelle, ziel in DATEIEN + [(q, f"Raeume/{q.name}") for q in RAUMSCHEMATA]:
         pfad = ZIEL / ziel
         pfad.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(quelle, pfad)
@@ -112,7 +115,10 @@ def main():
         (pfad / "LIESMICH.md").write_text(f"# {ordner}\n\n{hinweis}", encoding="utf-8")
 
     (ZIEL / "LIESMICH.md").write_text(LIESMICH, encoding="utf-8")
-    print(f"geschrieben: {ZIEL.relative_to(ROOT)}/ ({len(DATEIEN)} Dateien + {len(EXPORT_ORDNER)} Export-Ordner)")
+    print(
+        f"geschrieben: {ZIEL.relative_to(ROOT)}/ "
+        f"({len(DATEIEN) + len(RAUMSCHEMATA)} Dateien + {len(EXPORT_ORDNER)} Export-Ordner)"
+    )
 
 
 if __name__ == "__main__":

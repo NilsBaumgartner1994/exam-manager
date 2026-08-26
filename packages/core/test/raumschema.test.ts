@@ -15,8 +15,11 @@ import {
   mitGroesse,
   parseBelegung,
   ohneFreieBelegung,
+  parseRaumschemaDateien,
   parseRaumschemata,
   Platzbelegung,
+  raumschemaDateien,
+  raumschemaDateiname,
   raumschemataToCsv,
   schalteReserve,
   schalteVorgabe,
@@ -363,5 +366,35 @@ describe('Raumbelegung', () => {
     expect(gelesen).toHaveLength(2);
     expect(gelesen[0]).toMatchObject({ raum: '94/E03', zeile: 0, spalte: 1, matrikelnummer: '1000001', vorgabe: true });
     expect(gelesen[1]).toMatchObject({ reserviert: true, matrikelnummer: '' });
+  });
+});
+
+describe('Raster als einzelne Dateien', () => {
+  it('macht aus dem Raumnamen einen Dateinamen ohne Sonderzeichen', () => {
+    expect(raumschemaDateiname('94/E01')).toBe('94_E01.csv');
+    expect(raumschemaDateiname('Übungsraum 3')).toBe('UEbungsraum_3.csv');
+    expect(raumschemaDateiname('')).toBe('raum.csv');
+  });
+
+  it('schreibt je Raum eine Datei, die sich wieder einlesen lässt', () => {
+    const schemata = parseRaumschemata(SCHEMA_CSV);
+    const dateien = raumschemaDateien(schemata);
+    expect([...dateien.keys()]).toEqual(['94_E01.csv', '94_E03.csv']);
+    expect(dateien.get('94_E01.csv')).toContain('Raum;94/E01');
+    expect(dateien.get('94_E01.csv')).not.toContain('Raum;94/E03');
+    expect(parseRaumschemaDateien([...dateien.values()])).toEqual(schemata);
+  });
+
+  it('lässt keine Datei die andere überschreiben', () => {
+    const dateien = raumschemaDateien([leeresRaumschema('A/1', 1, 1), leeresRaumschema('A 1', 1, 1)]);
+    expect([...dateien.keys()]).toEqual(['A_1.csv', 'A_1_2.csv']);
+  });
+
+  it('nimmt einen Raum nur einmal, auch wenn er in zwei Dateien steht', () => {
+    // Eine alte Sammeldatei neben den Einzeldateien: sonst stünde derselbe
+    // Raum zweimal im Editor.
+    const schemata = parseRaumschemaDateien([SCHEMA_CSV, 'Raum;94/E01\nT;T\n']);
+    expect(schemata.map((s) => s.raum)).toEqual(['94/E01', '94/E03']);
+    expect(tischzellen(schemata[0])).toHaveLength(6);
   });
 });

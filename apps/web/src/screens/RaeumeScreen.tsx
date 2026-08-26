@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
+  erstelleZip,
   parseRaeume,
-  parseRaumschemata,
+  parseRaumschemaDateien,
   Raum,
   raeumeToCsv,
   Raumschema,
-  raumschemataToCsv,
+  raumschemaDateien,
   standardRaumschema,
   tischzellen,
 } from '@exam-manager/core';
@@ -28,9 +29,9 @@ import {
   zeileZuRaum,
   type RaumZeile,
 } from '../components';
-import { downloadCsv, readFileAsText } from '../files';
+import { downloadCsv, downloadZip, readFileAsText } from '../files';
 import { useProjekt } from '../projekt';
-import { BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMA } from '../sampleData';
+import { BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMATA } from '../sampleData';
 import { colors, spacing } from '../theme';
 
 /**
@@ -67,11 +68,15 @@ export function RaeumeScreen() {
   useEffect(() => {
     if (zeilen.length > 0 || schemata.length > 0) return;
     const raumDatei = projekt.datei('raeume');
-    const schemaDatei = projekt.datei('raumschema');
-    if (!raumDatei?.text && !schemaDatei?.text) return;
+    // Je Raum eine Datei: Gelesen werden alle, nicht nur die erste.
+    const schemaTexte = projekt
+      .dateienMit('raumschema')
+      .map((datei) => datei.text ?? '')
+      .filter((text) => text !== '');
+    if (!raumDatei?.text && schemaTexte.length === 0) return;
     try {
       if (raumDatei?.text) setZeilen(parseRaeume(raumDatei.text).map(raumZuZeile));
-      if (schemaDatei?.text) uebernehmeSchemata(parseRaumschemata(schemaDatei.text));
+      if (schemaTexte.length > 0) uebernehmeSchemata(parseRaumschemaDateien(schemaTexte));
     } catch (e) {
       setFehler(`Projektdateien konnten nicht gelesen werden: ${String(e)}`);
     }
@@ -99,7 +104,7 @@ export function RaeumeScreen() {
   const beispielLaden = () => {
     setFehler(null);
     setZeilen(parseRaeume(BEISPIEL_RAEUME).map(raumZuZeile));
-    uebernehmeSchemata(parseRaumschemata(BEISPIEL_RAUMSCHEMA));
+    uebernehmeSchemata(parseRaumschemaDateien(Object.values(BEISPIEL_RAUMSCHEMATA)));
     setHinweis('Beispieldaten geladen.');
   };
 
@@ -113,12 +118,14 @@ export function RaeumeScreen() {
     }
   };
 
+  /** Raster laden – je Raum eine Datei, deshalb ruhig mehrere auf einmal. */
   const schemaLaden = async (files: File[]) => {
     setFehler(null);
     try {
-      const geladen = parseRaumschemata(await readFileAsText(files[0]));
+      const texte = await Promise.all(files.map(readFileAsText));
+      const geladen = parseRaumschemaDateien(texte);
       uebernehmeSchemata(geladen);
-      setHinweis(`${geladen.length} Raumschemata geladen.`);
+      setHinweis(`${geladen.length} Raumraster geladen.`);
     } catch (e) {
       setFehler(`Raumschema konnte nicht gelesen werden: ${String(e)}`);
     }
@@ -164,11 +171,26 @@ export function RaeumeScreen() {
     setHinweis('Raumliste gespeichert – im Projekt unter Raeume/raeume.csv.');
   };
 
-  const schemaSpeichern = () => {
-    const csv = raumschemataToCsv(schemata);
-    downloadCsv('raumschema.csv', csv);
-    projekt.schreibe('raumschema.csv', csv, 'raumschema');
-    setHinweis('Raster gespeichert – im Projekt unter Raeume/raumschema.csv.');
+  /**
+   * Die Raster speichern – je Raum eine Datei, benannt nach dem Raum. Im
+   * Projekt ersetzen sie den bisherigen Bestand: Wer ein Raster entfernt hat,
+   * will die Datei danach nicht mehr im Ordner haben.
+   */
+  const schemaSpeichern = async () => {
+    const dateien = raumschemaDateien(schemata);
+    projekt.ersetze('raumschema', dateien);
+    const namen = [...dateien.keys()];
+    if (namen.length === 1) {
+      downloadCsv(namen[0], dateien.get(namen[0]) ?? '');
+    } else {
+      // Mehrere Dateien auf einmal lässt der Browser nicht herunterladen –
+      // deshalb als ZIP, entpackt liegen sie direkt richtig.
+      const inhalte = new Map<string, Uint8Array | string>(
+        [...dateien].map(([name, csv]) => [`Raeume/${name}`, csv]),
+      );
+      downloadZip('raumschema.zip', await erstelleZip(inhalte));
+    }
+    setHinweis(`Raster gespeichert – je Raum eine Datei in Raeume/: ${namen.join(', ')}.`);
   };
 
   /** Plätze laut Liste je Raum – zum Abgleich mit den Tischen im Raster. */
@@ -204,7 +226,7 @@ export function RaeumeScreen() {
           />
         </View>
         <ProjektQuelle rolle="raeume" testID="raeume-quelle-raeume" />
-        <ProjektQuelle rolle="raumschema" testID="raeume-quelle-schema" />
+        <ProjektQuelle rolle="raumschema" alle testID="raeume-quelle-schema" />
         {ohneRaster.length > 0 ? (
           <>
             <StatusText kind="info" testID="raeume-ohne-raster">
@@ -224,8 +246,10 @@ export function RaeumeScreen() {
       <Section title="Raumpläne" testID="raeume-plaene">
         <Text style={styles.hinweis}>
           Ein Element aus der Palette auf eine Zelle ziehen setzt es dort; antippen wählt es aus und
-          man malt damit im Plan. Mit „Auswählen“ verschiebst du einen Block, am blauen Griff an der
-          unteren Ecke ziehst du ihn über mehrere Felder auf. Mit „Text“ (oder „Zellen verbinden“)
+          man malt damit im Plan. Mit „Auswählen“ ziehst du erst einen Bereich auf – das ändert
+          nichts, es markiert nur – und verschiebst ihn dann, indem du in der Auswahl gedrückt
+          hältst und ziehst. Am blauen Griff an der unteren Ecke ziehst du sie über mehrere Felder
+          auf und füllst sie dabei. Mit „Text“ (oder „Zellen verbinden“)
           entsteht über den ausgewählten Feldern ein Feld zum Reinschreiben – es legt sich über den
           Plan, ohne ihn zu ersetzen, beschriftet also auch Tür, Pult oder eine Tischreihe. Jeder
           Schritt lässt sich rückgängig machen (Strg/⌘ + Z).
@@ -234,7 +258,7 @@ export function RaeumeScreen() {
         {schemata.length === 0 ? (
           <StatusText kind="info">
             Noch kein Raster geladen – oben Räume eintragen und „Fehlende Raster anlegen“ wählen,
-            eine Raumschema-CSV laden oder die Beispieldaten nehmen.
+            Raumschema-CSVs laden oder die Beispieldaten nehmen.
           </StatusText>
         ) : (
           <>
@@ -274,7 +298,10 @@ export function RaeumeScreen() {
       <Section title="Speichern">
         <Text style={styles.hinweis}>
           Beides landet im Projektordner unter <Text style={styles.pfad}>Raeume/</Text> und wird
-          zusätzlich heruntergeladen – Schritt 4 findet es dort beim nächsten Laden wieder.
+          zusätzlich heruntergeladen – Schritt 4 findet es dort beim nächsten Laden wieder. Jeder
+          Raum bekommt seine eigene Datei mit seinem Namen (
+          <Text style={styles.pfad}>Raeume/94_E01.csv</Text>); bei mehreren Räumen kommt der
+          Download als ZIP, entpackt liegen die Dateien direkt richtig.
         </Text>
         <View style={styles.buttonZeile}>
           <AppButton title="Räume als CSV speichern" onPress={raeumeSpeichern} testID="raeume-speichern" />
@@ -285,7 +312,7 @@ export function RaeumeScreen() {
             testID="raeume-schema-speichern"
           />
         </View>
-        <FilePickerButton label="Raumschema-CSV laden" accept=".csv" onFiles={schemaLaden} />
+        <FilePickerButton label="Raumschema-CSVs laden" accept=".csv" multiple onFiles={schemaLaden} />
         <ProjektDownload hinweis="Raumliste und Raster liegen in Raeume/." testID="raeume-projekt-download" />
       </Section>
     </ScreenContainer>

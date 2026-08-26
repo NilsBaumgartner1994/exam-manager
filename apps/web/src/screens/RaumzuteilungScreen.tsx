@@ -10,13 +10,13 @@ import {
   ohneFreieBelegung,
   parseBelegung,
   parseRaeume,
-  parseRaumschemata,
+  parseRaumschemaDateien,
   parseZulassungsliste,
   Platzbelegung,
   Raum,
   Raumschema,
   raeumeToCsv,
-  raumschemataToCsv,
+  raumschemaDateien,
   schalteReserve,
   schalteVorgabe,
   setzePerson,
@@ -60,7 +60,7 @@ import {
 import { downloadCsv, downloadZip, readFileAsText } from '../files';
 import { druckeAnsicht, SEITENUMBRUCH } from '../print';
 import { useProjekt } from '../projekt';
-import { BEISPIEL_KLAUSUR_TEILNEHMER, BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMA } from '../sampleData';
+import { BEISPIEL_KLAUSUR_TEILNEHMER, BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMATA } from '../sampleData';
 import { colors, spacing } from '../theme';
 
 const ANSICHTEN = [
@@ -210,13 +210,17 @@ export function RaumzuteilungScreen() {
     if (teilnehmer.length > 0 || zeilen.length > 0) return;
     const liste = projekt.datei('teilnehmer');
     const raumDatei = projekt.datei('raeume');
-    const schemaDatei = projekt.datei('raumschema');
+    // Je Raum eine Datei: Gelesen werden alle, nicht nur die erste.
+    const schemaTexte = projekt
+      .dateienMit('raumschema')
+      .map((datei) => datei.text ?? '')
+      .filter((text) => text !== '');
     const belegungDatei = projekt.datei('raumbelegung');
     if (!liste?.text && !raumDatei?.text) return;
     try {
       if (liste?.text) setTeilnehmer(parseZulassungsliste(liste.text));
       if (raumDatei?.text) setZeilen(parseRaeume(raumDatei.text).map(raumZuZeile));
-      if (schemaDatei?.text) uebernehmeSchemata(parseRaumschemata(schemaDatei.text));
+      if (schemaTexte.length > 0) uebernehmeSchemata(parseRaumschemaDateien(schemaTexte));
       if (belegungDatei?.text) uebernehmeBelegung(parseBelegung(belegungDatei.text));
     } catch (e) {
       setFehler(`Projektdateien konnten nicht gelesen werden: ${String(e)}`);
@@ -270,7 +274,7 @@ export function RaumzuteilungScreen() {
     setFehler(null);
     setTeilnehmer(parseZulassungsliste(BEISPIEL_KLAUSUR_TEILNEHMER));
     setZeilen(parseRaeume(BEISPIEL_RAEUME).map(raumZuZeile));
-    uebernehmeSchemata(parseRaumschemata(BEISPIEL_RAUMSCHEMA));
+    uebernehmeSchemata(parseRaumschemaDateien(Object.values(BEISPIEL_RAUMSCHEMATA)));
     uebernehmeBelegung([]);
     setTeilnehmerStatus('Beispieldaten geladen.');
   };
@@ -378,13 +382,14 @@ export function RaumzuteilungScreen() {
     setHinweis('Sitzplan neu verteilt – Reserveplätze und Vorgaben sind geblieben.');
   };
 
+  /** Raster laden – je Raum eine Datei, deshalb ruhig mehrere auf einmal. */
   const schemaLaden = async (files: File[]) => {
     setFehler(null);
     try {
-      const geladen = parseRaumschemata(await readFileAsText(files[0]));
+      const geladen = parseRaumschemaDateien(await Promise.all(files.map(readFileAsText)));
       uebernehmeSchemata(geladen);
       if (sitzplaetze) belegungAktualisieren(geladen, sitzplaetze, belegungRef.current);
-      setHinweis(`${geladen.length} Raumschemata geladen.`);
+      setHinweis(`${geladen.length} Raumraster geladen.`);
     } catch (e) {
       setFehler(`Raumschema konnte nicht gelesen werden: ${String(e)}`);
     }
@@ -530,7 +535,7 @@ export function RaumzuteilungScreen() {
         <RaumListe zeilen={zeilen} onChange={setZeilen} />
         <FilePickerButton label="Räume-CSV laden" accept=".csv" onFiles={raeumeLaden} />
         <ProjektQuelle rolle="raeume" testID="raum-quelle-raeume" />
-        <ProjektQuelle rolle="raumschema" testID="raum-quelle-schema" />
+        <ProjektQuelle rolle="raumschema" alle testID="raum-quelle-schema" />
         <AppButton
           title="Räume als CSV speichern"
           variant="secondary"
@@ -654,10 +659,21 @@ export function RaumzuteilungScreen() {
             <AppButton
               title="Raumschema als CSV speichern"
               variant="secondary"
-              onPress={() => {
-                const csv = raumschemataToCsv(schemata);
-                downloadCsv('raumschema.csv', csv);
-                projekt.schreibe('raumschema.csv', csv, 'raumschema');
+              onPress={async () => {
+                // Je Raum eine Datei; im Projekt ersetzen sie den bisherigen
+                // Bestand, damit kein Raster liegen bleibt, das es nicht mehr gibt.
+                const dateien = raumschemaDateien(schemata);
+                projekt.ersetze('raumschema', dateien);
+                const namen = [...dateien.keys()];
+                if (namen.length === 1) {
+                  downloadCsv(namen[0], dateien.get(namen[0]) ?? '');
+                } else {
+                  const inhalte = new Map<string, Uint8Array | string>(
+                    [...dateien].map(([name, csv]) => [`Raeume/${name}`, csv]),
+                  );
+                  downloadZip('raumschema.zip', await erstelleZip(inhalte));
+                }
+                setHinweis(`Raster gespeichert – je Raum eine Datei in Raeume/: ${namen.join(', ')}.`);
               }}
               testID="raum-schema-speichern"
             />
@@ -672,7 +688,7 @@ export function RaumzuteilungScreen() {
               testID="raum-belegung-speichern"
             />
           </View>
-          <FilePickerButton label="Raumschema-CSV laden" accept=".csv" onFiles={schemaLaden} />
+          <FilePickerButton label="Raumschema-CSVs laden" accept=".csv" multiple onFiles={schemaLaden} />
           <FilePickerButton label="Belegung-CSV laden" accept=".csv" onFiles={belegungLaden} />
         </Section>
       ) : null}

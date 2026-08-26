@@ -30,7 +30,8 @@ python3 tools/generate_sample_data.py
 Beispiel-Projektordner der Web-App.
 
 Das Skript schreibt nur die **Eingangsdaten** (HIS-Export, VIPS-Notenliste,
-Stud.IP-Export, alte Zulassungsliste, Raumliste, Raumschema). Alle abgeleiteten Dateien
+Stud.IP-Export, alte Zulassungsliste, Raumliste, Raumraster – je Raum eine
+Datei in `.../2_raum_zuteilung_erstellen/raumschema/`). Alle abgeleiteten Dateien
 entstehen, indem die Pipeline darüber läuft – die Befehlsfolge steht in der
 README unter „Kompletter Durchlauf“. Wer den Datensatz ändert, führt sie
 komplett aus und committet die neuen Ergebnisse.
@@ -124,6 +125,14 @@ Konventionen des Datensatzes:
   Ergebnisse der Schritte. `Zulassungen/` und `Raeume/` bleiben unnummeriert,
   weil sie über eine einzelne Klausur hinaus gelten; die Raumraster liegen
   dort blanko, damit sie sich jedes Jahr wiederverwenden lassen.
+- **In `Raeume/` liegt je Raum eine Raster-Datei**, benannt nach dem Raum
+  (`raumschemaDateiname`: `94/E01` → `94_E01.csv`). So ist am Ordner zu sehen,
+  welche Räume es gibt, und ein einzelner Raum lässt sich austauschen, ohne die
+  anderen anzufassen. Gelesen werden immer **alle** Raster-Dateien des Ordners
+  (`dateienMit('raumschema')` → `parseRaumschemaDateien`), geschrieben wird mit
+  `ersetze('raumschema', raumschemaDateien(...))` – sonst bliebe die Datei
+  eines entfernten Rasters liegen. Eine alte Sammeldatei mit mehreren Räumen
+  bleibt lesbar; steht ein Raum doppelt, zählt der erste.
 - `apps/web/src/projekt.tsx` hält den Stand im Speicher (React-Kontext):
   `datei(rolle)`/`dateienMit(rolle)` zum Lesen, `schreibe(name, inhalt, rolle)`
   zum Zurückschreiben von Ergebnissen (der Zielordner kommt aus dem Schema),
@@ -247,8 +256,23 @@ Konventionen des Datensatzes:
   (`getBoundingClientRect` des Rasters, Zellgröße + Abstand); die Palette
   findet ihr Ziel über `document.elementFromPoint` und das `data-zelle` jeder
   Zelle (`datenAttribute()` in `src/domProps.ts`).
+- **Auswählen verändert nichts.** Mit dem Werkzeug „Auswählen“ markiert das
+  Ziehen nur ein Rechteck (`Zug.art === 'auswaehlen'`); wer danach *in* der
+  Auswahl gedrückt hält und zieht, verschiebt den Block (`verschieben`).
+  Gefüllt wird ausschließlich über den Griff an der unteren Ecke bzw. das
+  Textwerkzeug (`groesse` → `onAufziehen`) und beim Malen. Vorher zog jedes
+  Ziehen den Bereich auf und füllte ihn mit dem Element der Startzelle – damit
+  ließ sich nie mehr als eine Zelle auswählen, geschweige denn verschieben.
+- Ein Tippen *in* der Auswahl (gedrückt und ohne Bewegung wieder losgelassen)
+  setzt die Auswahl auf diese eine Zelle zurück – sonst käme man aus einer
+  großen Auswahl nicht mehr heraus.
 - Auf den ziehbaren Flächen steht `touch-action: none`, sonst scrollt die
   Seite mit, statt zu zeichnen.
+- **Solange ein Zug läuft, hört das Fenster mit** (`pointermove`, `pointerup`,
+  `pointercancel` auf `window`): Losgelassen wird oft neben dem Raster, und
+  ohne das bliebe der Zug hängen und die nächste Berührung setzte ihn fort.
+  Der laufende Zug liegt deshalb auch im Ref (`zugRef`) – wer ihn beendet,
+  räumt ihn dort auf, damit er nur einmal ausgewertet wird.
 - Schema und Belegung liegen im Screen zusätzlich in Refs
   (`schemataRef`/`belegungRef`) und werden über `uebernehmeSchemata()` bzw.
   `uebernehmeBelegung()` geschrieben. Beim Ziehen kommen viele Änderungen

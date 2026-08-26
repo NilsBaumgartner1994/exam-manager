@@ -12,7 +12,13 @@
  *     D;.;.;.;.
  *
  * Eine Zeile `Raum;<Name>` beginnt einen neuen Raum, alle weiteren Zeilen sind
- * dessen Raster. So stehen alle Räume in einer Datei.
+ * dessen Raster.
+ *
+ * Gespeichert wird **je Raum eine Datei**, benannt nach dem Raum
+ * (`Raeume/94_E01.csv`): So ist im Projektordner auf einen Blick zu sehen,
+ * welche Räume es gibt, und ein einzelner Raum lässt sich weitergeben oder
+ * ersetzen, ohne die anderen anzufassen. Mehrere Räume in einer Datei bleiben
+ * lesbar – ältere Sammeldateien (`raumschema.csv`) funktionieren weiter.
  *
  * Freier Text über verbundenen Zellen steht in eigenen Zeilen hinter dem
  * Raster – `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>`. Das Raster bleibt
@@ -25,6 +31,7 @@
  *     Text;0;1;1;4;Bitte Ausweise bereitlegen
  */
 import { CSV_DELIMITER, parseCsvRows, toCsv } from './csv';
+import { normalizeName } from './namen';
 
 export type ZellTyp = 'leer' | 'tisch' | 'tuer' | 'wand' | 'pult';
 
@@ -197,6 +204,56 @@ export function raumschemataToCsv(schemata: Raumschema[]): string {
     }
   }
   return toCsv(rows);
+}
+
+/**
+ * Dateiname für das Raster eines Raums: `94/E01` → `94_E01.csv`.
+ *
+ * Raumnamen enthalten Schrägstriche, Leerzeichen und manchmal Umlaute –
+ * Dateinamen im Projektordner nicht (siehe AGENTS.md). Der Raumname selbst
+ * bleibt in der Datei stehen (`Raum;94/E01`); der Dateiname muss ihn also
+ * nicht zurückrechnen können, sondern nur wiedererkennbar sein.
+ */
+export function raumschemaDateiname(raum: string): string {
+  const name = normalizeName(raum)
+    .replace(/[^A-Za-z0-9_-]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return `${name === '' ? 'raum' : name}.csv`;
+}
+
+/**
+ * Die Raster als einzelne Dateien: Dateiname → CSV mit genau einem Raum.
+ *
+ * Zwei Räume können auf denselben Dateinamen fallen (`94/E01` und `94 E01`);
+ * der zweite bekommt dann eine laufende Nummer, damit keiner den anderen
+ * überschreibt.
+ */
+export function raumschemaDateien(schemata: Raumschema[]): Map<string, string> {
+  const dateien = new Map<string, string>();
+  for (const schema of schemata) {
+    const basis = raumschemaDateiname(schema.raum);
+    let name = basis;
+    for (let nummer = 2; dateien.has(name); nummer++) {
+      name = basis.replace(/\.csv$/, `_${nummer}.csv`);
+    }
+    dateien.set(name, raumschemataToCsv([schema]));
+  }
+  return dateien;
+}
+
+/**
+ * Raster aus mehreren Dateien einlesen – im Projektordner liegt je Raum eine.
+ * Steht ein Raum in zweien (eine alte Sammeldatei neben den Einzeldateien),
+ * zählt der erste; sonst stünde derselbe Raum zweimal im Editor.
+ */
+export function parseRaumschemaDateien(texte: string[]): Raumschema[] {
+  const schemata: Raumschema[] = [];
+  for (const text of texte) {
+    for (const schema of parseRaumschemata(text)) {
+      if (!schemata.some((vorhanden) => vorhanden.raum === schema.raum)) schemata.push(schema);
+    }
+  }
+  return schemata;
 }
 
 /** Leeres Raster einer bestimmten Größe. */

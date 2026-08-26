@@ -46,7 +46,7 @@ export type Werkzeug = 'auswahl' | 'text' | ZellTyp;
  * (Aufsicht, Ablage, Materialtisch).
  */
 export const PALETTE: { werkzeug: Werkzeug; titel: string; untertitel: string }[] = [
-  { werkzeug: 'auswahl', titel: 'Auswählen', untertitel: 'wählen & schieben' },
+  { werkzeug: 'auswahl', titel: 'Auswählen', untertitel: 'markieren & verschieben' },
   { werkzeug: 'tisch', titel: 'Sitzplatz', untertitel: 'Tisch für Studierende · T' },
   { werkzeug: 'pult', titel: 'Pult', untertitel: 'Tisch ohne Sitzplatz · P' },
   { werkzeug: 'wand', titel: 'Wand', untertitel: 'W' },
@@ -333,9 +333,11 @@ export function useRaumplanEditor({
     },
 
     /**
-     * Auswahl über mehrere Felder aufziehen (Griff an der unteren Ecke).
-     * Gefüllt wird mit dem Element der bisherigen Auswahl – so wird aus einem
-     * Tisch eine Tischreihe und aus einer Wandzelle eine ganze Wand.
+     * Auswahl über mehrere Felder aufziehen – am Griff an der unteren Ecke
+     * oder mit dem Textwerkzeug. Gefüllt wird mit dem Element der bisherigen
+     * Auswahl, so wird aus einem Tisch eine Tischreihe und aus einer Wandzelle
+     * eine ganze Wand. Das bloße Auswählen zieht nicht auf: Es markiert nur,
+     * damit sich ein Block auch verschieben lässt, ohne ihn zu verändern.
      */
     bereichAufziehen: (raum, neuerBereich) => {
       const alteAuswahl = auswahl && auswahl.raum === raum ? auswahl.bereich : neuerBereich;
@@ -438,9 +440,11 @@ export function RaumPalette({ editor, testID }: { editor: RaumplanEditor; testID
       ))}
       <Text style={styles.hinweis}>
         Auf eine Zelle ziehen setzt das Element dort. Antippen wählt es aus, dann im Plan über
-        Zellen ziehen – praktisch für eine ganze Wand. Ein Sitzplatz ist ein Tisch, an dem jemand
-        geprüft wird (nur die werden nummeriert und belegt); das Pult ist der einfache Tisch für
-        alles andere. Rückgängig geht mit Strg/⌘ + Z.
+        Zellen ziehen – praktisch für eine ganze Wand. Mit „Auswählen“ ziehst du über mehrere
+        Zellen, ohne etwas zu ändern; gedrückt halten in der Auswahl und ziehen verschiebt den
+        ganzen Block, der blaue Griff an der unteren Ecke zieht ihn auf. Ein Sitzplatz ist ein
+        Tisch, an dem jemand geprüft wird (nur die werden nummeriert und belegt); das Pult ist der
+        einfache Tisch für alles andere. Rückgängig geht mit Strg/⌘ + Z.
       </Text>
     </View>
   );
@@ -601,7 +605,9 @@ export function RaumplanKarte({
         ansicht={editor.ansicht}
         onZellGroesse={(groesse) => editor.merkeZellGroesse(schema.raum, groesse)}
         bearbeiten={bearbeiten}
-        werkzeug={editor.werkzeug === 'auswahl' || editor.werkzeug === 'text' ? 'auswahl' : 'malen'}
+        werkzeug={
+          editor.werkzeug === 'auswahl' ? 'auswahl' : editor.werkzeug === 'text' ? 'aufziehen' : 'malen'
+        }
         auswahl={auswahl}
         onAuswahl={(bereich) => editor.setzeAuswahl({ raum: schema.raum, bereich })}
         onAufziehen={(bereich) => editor.bereichAufziehen(schema.raum, bereich)}

@@ -23,6 +23,15 @@ def text(path):
 def b64(path):
     return base64.b64encode((ROOT / path).read_bytes()).decode("ascii")
 
+raumschema_ordner = (
+    ROOT / "Zuslassungliste_Erstellen" / "4_MailRaumZuordnung" / "2_raum_zuteilung_erstellen"
+    / "raumschema"
+)
+# Je Raum eine Datei – genau so, wie sie im Projektordner unter Raeume/ liegen.
+raumschemata = {
+    p.name: p.read_text(encoding="utf-8") for p in sorted(raumschema_ordner.glob("*.csv"))
+}
+
 zulassungen_ordner = ROOT / "Zulassungen"
 bestand = {
     p.name: p.read_text(encoding="utf-8")
@@ -52,8 +61,8 @@ export const BEISPIEL_HIS_EXPORT_XLSX_BASE64: string =
 /** Raumliste (`raeume.csv`). */
 export const BEISPIEL_RAEUME: string = {json.dumps(text("Zuslassungliste_Erstellen/4_MailRaumZuordnung/2_raum_zuteilung_erstellen/raeume.csv"))};
 
-/** Raumschema (`raumschema.csv`): Raster mit Tischen, Tuer und Pult je Raum. */
-export const BEISPIEL_RAUMSCHEMA: string = {json.dumps(text("Zuslassungliste_Erstellen/4_MailRaumZuordnung/2_raum_zuteilung_erstellen/raumschema.csv"))};
+/** Raumraster: Dateiname → CSV, je Raum eine Datei (Ordner `Raeume/`). */
+export const BEISPIEL_RAUMSCHEMATA: Record<string, string> = {json.dumps(raumschemata, ensure_ascii=False, indent=2)};
 
 /** Ergebnis aus Schritt 3 (`allowedStudents.csv` mit E-Mail aus Schritt 2). */
 export const BEISPIEL_KLAUSUR_TEILNEHMER: string = {json.dumps(text("Zuslassungliste_Erstellen/4_MailRaumZuordnung/2_raum_zuteilung_erstellen/result.csv"))};

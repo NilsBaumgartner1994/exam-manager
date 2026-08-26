@@ -1,7 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutChangeEvent,
-  PointerEvent,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,8 +26,16 @@ import {
 import { datenAttribute } from '../domProps';
 import { colors, radius, spacing } from '../theme';
 
-/** Werkzeug im Bearbeiten-Modus: auswählen/verschieben oder Zellen malen. */
-export type PlanWerkzeug = 'auswahl' | 'malen';
+/**
+ * Werkzeug im Bearbeiten-Modus:
+ *
+ * - `auswahl` – ziehen wählt Zellen aus (ändert nichts); wer in der Auswahl
+ *   gedrückt hält und zieht, verschiebt den ganzen Block,
+ * - `aufziehen` – ziehen zieht einen Bereich auf und legt etwas darüber
+ *   (Textfeld),
+ * - `malen` – ziehen setzt das gewählte Element in jede überstrichene Zelle.
+ */
+export type PlanWerkzeug = 'auswahl' | 'aufziehen' | 'malen';
 
 interface Props {
   schema: Raumschema;
@@ -86,7 +93,11 @@ interface Props {
 
 /** Laufender Zug auf dem Raster (alles in Anzeige-Koordinaten). */
 interface Zug {
-  art: 'malen' | 'verschieben' | 'groesse';
+  /**
+   * `auswaehlen` markiert nur, `verschieben` schiebt die Auswahl, `groesse`
+   * zieht einen Bereich auf (Griff oder Textwerkzeug), `malen` setzt Zellen.
+   */
+  art: 'malen' | 'auswaehlen' | 'verschieben' | 'groesse';
   start: { zeile: number; spalte: number };
   aktuell: { zeile: number; spalte: number };
   /** Beim Aufziehen der feste Eckpunkt (Anzeige oben links der Auswahl). */
@@ -203,12 +214,16 @@ type Rastermasse = ReturnType<typeof rastermasse>;
  * volle Breite, und frei gezoomt gibt man die Zellgröße in Pixeln vor wie bei
  * einem Bild. Was nicht mehr hineinpasst, wird gescrollt.
  *
- * Im Bearbeiten-Modus wird gezogen wie in einer Tabellenkalkulation:
- * über Zellen ziehen malt (praktisch für Wände), am Griff an der unteren Ecke
- * zieht man ein Element über mehrere Felder auf, und innerhalb der Auswahl
- * verschiebt man den ganzen Block. Welche Zelle unter dem Finger liegt, wird
- * aus den Koordinaten gerechnet (nicht aus Hover-Ereignissen): Beim Ziehen mit
- * dem Finger bleiben alle Ereignisse beim Startelement.
+ * Im Bearbeiten-Modus wird gezogen wie in einer Tabellenkalkulation: Mit
+ * einem Element aus der Palette malt das Ziehen (praktisch für Wände), mit
+ * „Auswählen“ markiert es nur – und wer danach *in* der Auswahl gedrückt hält
+ * und zieht, verschiebt den ganzen Block. Am Griff an der unteren Ecke zieht
+ * man die Auswahl über mehrere Felder auf und füllt sie dabei.
+ *
+ * Welche Zelle unter dem Finger liegt, wird aus den Koordinaten gerechnet
+ * (nicht aus Hover-Ereignissen): Beim Ziehen mit dem Finger bleiben alle
+ * Ereignisse beim Startelement. Bewegung und Loslassen hört deshalb das
+ * Fenster mit, solange ein Zug läuft.
  */
 export function Raumplan({
   schema,
@@ -236,6 +251,17 @@ export function Raumplan({
   const [breite, setBreite] = useState(0);
   const gitterRef = useRef<View>(null);
   const [zug, setZug] = useState<Zug | null>(null);
+  /**
+   * Der laufende Zug zusätzlich im Ref: Die Ereignisse kommen schneller, als
+   * React neu rendert, und das Ende eines Zuges meldet sowohl das Raster als
+   * auch das Fenster (losgelassen wird oft außerhalb). Wer den Zug beendet,
+   * räumt hier auf – so wird er nur einmal ausgewertet.
+   */
+  const zugRef = useRef<Zug | null>(null);
+  const setzeZug = (neu: Zug | null) => {
+    zugRef.current = neu;
+    setZug(neu);
+  };
 
   const raster = useMemo(() => anzeigeRaster(schema, drehungen), [schema, drehungen]);
   const spaltenAnzahl = raster[0]?.length ?? 0;
@@ -261,16 +287,33 @@ export function Raumplan({
     [belegung],
   );
 
-  /** Anzeige-Position einer Zelle aus den Bildschirmkoordinaten. */
-  const zelleBeiPunkt = (x: number, y: number): { zeile: number; spalte: number } | null => {
+  /**
+   * Anzeige-Position einer Zelle aus den Bildschirmkoordinaten.
+   *
+   * `begrenzen` fängt ab, was neben dem Raster liegt: Beim Auswählen und
+   * Verschieben zieht man leicht über den Rand hinaus, und dort soll die
+   * Auswahl an der letzten Zelle stehenbleiben statt einzufrieren. Beim Malen
+   * bleibt es bei `null` – gemalt wird nur, wo der Zeiger wirklich war.
+   */
+  const zelleBeiPunkt = (
+    x: number,
+    y: number,
+    begrenzen = false,
+  ): { zeile: number; spalte: number } | null => {
     const knoten = gitterRef.current as unknown as HTMLElement | null;
-    if (!knoten) return null;
+    if (!knoten || raster.length === 0 || spaltenAnzahl === 0) return null;
     // Der gemessene Knoten ist genau das Zellraster (die Köpfe liegen außerhalb),
     // die erste Zelle beginnt also an seiner Ecke.
     const rect = knoten.getBoundingClientRect();
     const zeile = Math.floor((y - rect.top) / schritt);
     const spalte = Math.floor((x - rect.left) / schritt);
-    if (zeile < 0 || spalte < 0 || zeile >= raster.length || spalte >= spaltenAnzahl) return null;
+    if (zeile < 0 || spalte < 0 || zeile >= raster.length || spalte >= spaltenAnzahl) {
+      if (!begrenzen) return null;
+      return {
+        zeile: Math.min(Math.max(zeile, 0), raster.length - 1),
+        spalte: Math.min(Math.max(spalte, 0), spaltenAnzahl - 1),
+      };
+    }
     return { zeile, spalte };
   };
 
@@ -283,6 +326,7 @@ export function Raumplan({
   /** Vorschau während eines Zugs (Anzeige-Koordinaten). */
   const vorschau = (() => {
     if (!zug) return null;
+    if (zug.art === 'auswaehlen') return bereichAus(zug.start, zug.aktuell);
     if (zug.art === 'groesse' && zug.anker) return bereichAus(zug.anker, zug.aktuell);
     if (zug.art === 'verschieben' && auswahlAnzeige) {
       return {
@@ -300,18 +344,27 @@ export function Raumplan({
       onZellePress?.(zelle.zeile, zelle.spalte);
       return;
     }
-    if (auswahl && imBereich(auswahl, zelle.zeile, zelle.spalte) && werkzeug === 'auswahl') {
-      setZug({ art: 'verschieben', start: anzeige, aktuell: anzeige });
+    // In der Auswahl gedrückt: gedrückt halten und ziehen verschiebt den
+    // ganzen Block – wie ein Kasten in einer Tabellenkalkulation.
+    if (werkzeug === 'auswahl' && auswahl && imBereich(auswahl, zelle.zeile, zelle.spalte)) {
+      setzeZug({ art: 'verschieben', start: anzeige, aktuell: anzeige });
       return;
     }
     if (werkzeug === 'malen') {
       onZellePress?.(zelle.zeile, zelle.spalte);
-      setZug({ art: 'malen', start: anzeige, aktuell: anzeige });
+      setzeZug({ art: 'malen', start: anzeige, aktuell: anzeige });
       return;
     }
-    // Auswählen: einzelne Zelle wählen, ziehen zieht direkt einen Bereich auf.
+    if (werkzeug === 'auswahl') {
+      // Auswählen verändert nichts: Es markiert die Zelle, und wer zieht,
+      // markiert das Rechteck bis dorthin. Gefüllt wird erst am Griff.
+      onAuswahl?.(bereichAus(zelle, zelle));
+      setzeZug({ art: 'auswaehlen', start: anzeige, aktuell: anzeige });
+      return;
+    }
+    // Aufziehen (Textwerkzeug): der Bereich entsteht beim Loslassen.
     onAuswahl?.(bereichAus(zelle, zelle));
-    setZug({ art: 'groesse', start: anzeige, aktuell: anzeige, anker: anzeige });
+    setzeZug({ art: 'groesse', start: anzeige, aktuell: anzeige, anker: anzeige });
   };
 
   // Die Zellen bekommen stabile Rückrufe, damit `React.memo` greift: Bei
@@ -327,33 +380,75 @@ export function Raumplan({
     const bereich = aktuelleHandler.current.auswahlAnzeige;
     if (!bereich) return;
     const ecke = { zeile: bereich.zeile + bereich.hoehe - 1, spalte: bereich.spalte + bereich.breite - 1 };
-    setZug({ art: 'groesse', start: ecke, aktuell: ecke, anker: { zeile: bereich.zeile, spalte: bereich.spalte } });
+    setzeZug({ art: 'groesse', start: ecke, aktuell: ecke, anker: { zeile: bereich.zeile, spalte: bereich.spalte } });
   }, []);
 
-  const pointerMove = (ereignis: PointerEvent) => {
-    if (!zug) return;
-    const position = zelleBeiPunkt(ereignis.nativeEvent.clientX, ereignis.nativeEvent.clientY);
+  const pointerMove = (x: number, y: number) => {
+    const laufend = zugRef.current;
+    if (!laufend) return;
+    const position = zelleBeiPunkt(x, y, laufend.art !== 'malen');
     if (!position) return;
-    if (position.zeile === zug.aktuell.zeile && position.spalte === zug.aktuell.spalte) return;
-    if (zug.art === 'malen') {
+    if (position.zeile === laufend.aktuell.zeile && position.spalte === laufend.aktuell.spalte) {
+      return;
+    }
+    if (laufend.art === 'malen') {
       const zelle = kanonisch(position);
       onZellePress?.(zelle.zeile, zelle.spalte);
     }
-    setZug({ ...zug, aktuell: position });
+    if (laufend.art === 'auswaehlen') {
+      // Die Auswahl wächst schon während des Ziehens mit – sonst sähe man
+      // erst beim Loslassen, was man erwischt hat.
+      onAuswahl?.(bereichAus(kanonisch(laufend.start), kanonisch(position)));
+    }
+    setzeZug({ ...laufend, aktuell: position });
   };
 
   const pointerUp = () => {
-    if (!zug) return;
-    if (zug.art === 'groesse' && zug.anker) {
-      onAufziehen?.(bereichAus(kanonisch(zug.anker), kanonisch(zug.aktuell)));
-    } else if (zug.art === 'verschieben') {
-      const von = kanonisch(zug.start);
-      const bis = kanonisch(zug.aktuell);
-      onVerschieben?.(bis.zeile - von.zeile, bis.spalte - von.spalte);
+    const laufend = zugRef.current;
+    if (!laufend) return;
+    zugRef.current = null;
+    if (laufend.art === 'groesse' && laufend.anker) {
+      onAufziehen?.(bereichAus(kanonisch(laufend.anker), kanonisch(laufend.aktuell)));
+    } else if (laufend.art === 'verschieben') {
+      const von = kanonisch(laufend.start);
+      const bis = kanonisch(laufend.aktuell);
+      if (von.zeile === bis.zeile && von.spalte === bis.spalte) {
+        // Nur angetippt, nicht gezogen: Das war kein Verschieben, sondern die
+        // Auswahl auf diese eine Zelle – sonst käme man aus einer großen
+        // Auswahl nicht mehr heraus.
+        onAuswahl?.(bereichAus(bis, bis));
+      } else {
+        onVerschieben?.(bis.zeile - von.zeile, bis.spalte - von.spalte);
+      }
     }
+    // Beim Auswählen steht die Auswahl schon – hier ist nichts mehr zu tun.
     setZug(null);
     onZugEnde?.();
   };
+
+  /**
+   * Solange gezogen wird, hört das Fenster mit: Losgelassen wird oft neben
+   * dem Raster (beim Verschieben über den Rand hinaus, oder wenn der Zeiger
+   * das Fenster verlässt). Ohne das bliebe der Zug hängen und die nächste
+   * Berührung würde ihn fortsetzen.
+   */
+  const zeigerHandler = useRef({ pointerMove, pointerUp });
+  zeigerHandler.current = { pointerMove, pointerUp };
+  const zieht = zug !== null;
+  useEffect(() => {
+    if (!zieht) return;
+    const bewegt = (ereignis: globalThis.PointerEvent) =>
+      zeigerHandler.current.pointerMove(ereignis.clientX, ereignis.clientY);
+    const beendet = () => zeigerHandler.current.pointerUp();
+    window.addEventListener('pointermove', bewegt);
+    window.addEventListener('pointerup', beendet);
+    window.addEventListener('pointercancel', beendet);
+    return () => {
+      window.removeEventListener('pointermove', bewegt);
+      window.removeEventListener('pointerup', beendet);
+      window.removeEventListener('pointercancel', beendet);
+    };
+  }, [zieht]);
 
   /** Zellen unter einem verbundenen Textfeld – sie liegen hinter dem Feld. */
   const verdeckt = useMemo(() => {
@@ -412,12 +507,12 @@ export function Raumplan({
             // der Bezugspunkt für Koordinaten (und für Tests).
             testID={testID ? `${testID}-raster` : undefined}
             style={[styles.raster, { gap: abstand }, bearbeiten ? ohneBrowserGeste : null]}
-            onPointerMove={bearbeiten || zug ? pointerMove : undefined}
+            // Zusätzlich zum Fenster (siehe oben): Wird sehr schnell geklickt,
+            // ist das Loslassen da, bevor der Effekt den Zeiger am Fenster
+            // angemeldet hat. Doppelt schadet nicht – `pointerUp` räumt den Zug
+            // im Ref auf und tut beim zweiten Mal nichts.
             onPointerUp={pointerUp}
-            onPointerCancel={() => {
-              setZug(null);
-              onZugEnde?.();
-            }}
+            onPointerCancel={pointerUp}
           >
             {raster.map((zeile, z) => (
               <View key={z} style={[styles.zeile, { gap: abstand }]}>
@@ -676,7 +771,7 @@ const Zelle = memo(function Zelle({
       {inhalt}
       {griff ? (
         <View
-          style={[styles.griff, { width: Math.max(10, groesse * 0.2), height: Math.max(10, groesse * 0.2) }]}
+          style={[styles.griff, { width: Math.max(12, groesse * 0.22), height: Math.max(12, groesse * 0.22) }]}
           onPointerDown={(ereignis) => {
             ereignis.stopPropagation();
             onGriffPointerDown();
@@ -729,10 +824,16 @@ const styles = StyleSheet.create({
   // Wand: eckig, ohne eigene Ecken – die Fugen schließt `wandFuellung`.
   wand: { backgroundColor: '#475569', borderRadius: 0, borderColor: '#475569', overflow: 'visible' },
   wandFuellung: { position: 'absolute', backgroundColor: '#475569' },
+  /**
+   * Der Ziehgriff sitzt **innerhalb** der Zelle: Die Zelle schneidet ab, was
+   * über ihren Rand ragt (`overflow: hidden`), und ein Griff, der nach außen
+   * steht, ließe sich zur Hälfte nicht treffen – der Druck landete auf der
+   * Zelle und verschöbe die Auswahl, statt sie aufzuziehen.
+   */
   griff: {
     position: 'absolute',
-    right: -5,
-    bottom: -5,
+    right: 0,
+    bottom: 0,
     borderRadius: 4,
     backgroundColor: colors.primary,
     borderWidth: 2,

@@ -173,14 +173,28 @@ yarn typecheck   # TypeScript-Prüfung beider Pakete
 Die Startseite zeigt vier Kacheln entlang des Workflows – und darunter den
 optionalen **Projektordner**:
 
-0. **Projektordner (optional)** – Liegen alle Dateien einer Klausur in einem
-   Ordner, lässt er sich einmal auswählen; die App erkennt an Dateiname und
-   Kopfzeile, was welche Datei ist (Notenliste, Stud.IP-Export,
-   Zulassungslisten, HIS-Export, Räume, Raumschema, Belegung …) und füllt die
-   vier Schritte damit. Ergebnisse schreiben die Schritte in den Projektstand
-   zurück, der sich als **ZIP herunterladen** lässt – damit ersetzt man den
-   eigenen Ordner. Wer neu anfängt, lädt die **Projektvorlage als ZIP**
-   herunter: ein leerer Ordner mit der erwarteten Struktur und `LIESMICH.md`.
+0. **Projektordner (optional)** – Der Ordner hält nur das, was über eine
+   einzelne Klausur hinaus gilt:
+
+   ```
+   Zulassungen/   *_zulassungen.csv   je Jahr eine Liste der Zugelassenen
+   Raeume/        raumschema.csv      leeres Raster der Räume (Tische, Tür, Wand, Pult)
+                  raeume.csv          Räume mit Plätzen und reservierter Zeit
+   ```
+
+   Die Raumraster sind bewusst **blanko** – ohne platzierte Studierende –,
+   damit sich dieselben Räume für jeden Sitzplan wiederverwenden lassen.
+   Alles Klausurbezogene (Notenliste, Stud.IP-Export, HIS-Export,
+   Teilnehmendenliste, Raumbelegung, Sitzplan) wird im jeweiligen Schritt
+   hochgeladen und das Ergebnis dort heruntergeladen; im Projektordner wird es
+   nicht abgelegt.
+
+   Einmal ausgewählt, erkennt die App an Dateiname und Kopfzeile, was welche
+   Datei ist, und füllt die Schritte damit. Neue Jahreslisten und geänderte
+   Raumraster schreiben die Schritte in den Projektstand zurück, der sich als
+   **ZIP herunterladen** lässt – damit ersetzt man den eigenen Ordner. Wer neu
+   anfängt, lädt die **Projektvorlage als ZIP** herunter: ein leerer Ordner mit
+   der erwarteten Struktur und `LIESMICH.md`.
 
    Der Ordner bleibt nur im Speicher der geöffneten Seite: Ein Neuladen leert
    ihn, gespeichert wird bewusst nichts, und der Browser darf auch nicht in

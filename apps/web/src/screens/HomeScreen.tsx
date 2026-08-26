@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { ROLLEN_TITEL } from '@exam-manager/core';
+import { gehoertInsProjekt, ROLLEN_TITEL } from '@exam-manager/core';
 import {
   AppButton,
   DataTable,
@@ -51,6 +51,8 @@ export function HomeScreen() {
   };
 
   const erkannt = projekt.dateien.filter((datei) => datei.rolle !== 'unbekannt');
+  // Nur diese Dateien hält der Projektordner dauerhaft – und nur sie landen im ZIP.
+  const bestand = projekt.dateien.filter((datei) => gehoertInsProjekt(datei.rolle));
 
   return (
     <ScreenContainer
@@ -72,9 +74,14 @@ export function HomeScreen() {
 
       <Section title="Projektordner (optional)" testID="home-projekt">
         <Text style={styles.hinweis}>
-          Liegen alle Dateien der Klausur in einem Ordner? Dann hier einmal auswählen – die vier
-          Schritte holen sich ihre Dateien dann von selbst, und Ergebnisse landen wieder im
-          Projektstand. Ohne Ordner funktioniert weiterhin jeder Schritt einzeln.
+          Der Projektordner hält das, was über eine einzelne Klausur hinaus gilt: die
+          Zulassungslisten der vergangenen Jahre in <Text style={styles.pfad}>Zulassungen/</Text>{' '}
+          (<Text style={styles.pfad}>*_zulassungen.csv</Text>) und die leeren Raumraster in{' '}
+          <Text style={styles.pfad}>Raeume/</Text> – ohne Studierende, damit sich dieselben Räume
+          für jeden Sitzplan wiederverwenden lassen. Einmal auswählen, dann holen sich die Schritte
+          diese Dateien von selbst. Alles Klausurbezogene (HIS-Export, Notenliste, Teilnehmende,
+          Belegung, Sitzplan) wird im jeweiligen Schritt hoch- und wieder heruntergeladen und nicht
+          im Ordner abgelegt. Ohne Ordner funktioniert weiterhin jeder Schritt einzeln.
         </Text>
         <FilePickerButton
           label="Projektordner auswählen"
@@ -108,9 +115,9 @@ export function HomeScreen() {
 
         <View style={styles.buttonZeile}>
           <AppButton
-            title="Aktuellen Stand als ZIP herunterladen"
+            title="Projektordner als ZIP herunterladen"
             onPress={standHerunterladen}
-            disabled={projekt.dateien.length === 0}
+            disabled={bestand.length === 0}
             testID="home-stand-zip"
           />
           <AppButton
@@ -138,10 +145,10 @@ export function HomeScreen() {
         </Text>
         <Text style={styles.hinweis}>
           Der Browser darf nicht in den Ordner zurückschreiben – deshalb der Umweg über die ZIP:
-          herunterladen, entpacken und den eigenen Ordner damit ersetzen. Enthalten sind alle
-          gelesenen CSV- und Excel-Dateien samt der in der App erzeugten Ergebnisse; erzeugte PDFs
-          bleiben außen vor. Die Vorlage-ZIP enthält einen leeren Ordner mit der erwarteten
-          Struktur (siehe LIESMICH.md darin).
+          herunterladen, entpacken und den eigenen Ordner damit ersetzen. Enthalten sind nur die
+          Zulassungslisten und Raumraster, also der dauerhafte Bestand; klausurbezogene Ergebnisse
+          lädt man im jeweiligen Schritt herunter. Die Vorlage-ZIP enthält einen leeren Ordner mit
+          der erwarteten Struktur (siehe LIESMICH.md darin).
         </Text>
       </Section>
 
@@ -162,5 +169,6 @@ const styles = StyleSheet.create({
   },
   buttonZeile: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   hinweis: { fontSize: 13, color: colors.textMuted, lineHeight: 19 },
+  pfad: { fontWeight: '600', color: colors.text },
   footer: { fontSize: 13, color: colors.textMuted, marginTop: spacing.lg },
 });

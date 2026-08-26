@@ -1,6 +1,6 @@
 {
   "report_version": "^0.1.103",
-  "report_timestamp": "2026-08-26T18:01:19.178Z",
+  "report_timestamp": "2026-08-26T20:33:08.139Z",
   "target_language": "typescript",
   "report_summary": {
     "additional": {
@@ -14,9 +14,9 @@
         },
         "invertedParameterToMethods": {
           "median": 2,
-          "maximum": 10,
-          "average": 2.2413793103448274,
-          "amountSavedValuesForKeys": 65,
+          "maximum": 11,
+          "average": 2.3448275862068964,
+          "amountSavedValuesForKeys": 68,
           "amountKeys": 6
         },
         "invertedParameterToClasses": {
@@ -28,45 +28,45 @@
         }
       },
       "timer_information": {
-        "ast_generation_time_ms": 672,
-        "detection_time_ms": 14,
+        "ast_generation_time_ms": 621,
+        "detection_time_ms": 12,
         "machine_information": {
           "os": "Linux",
           "os_release": "6.17.0-1022-azure",
           "os_platform": "linux",
           "os_arch": "x64",
-          "os_uptime": 82.27,
-          "os_memory_free": 15053819904,
-          "os_memory_total": 16766410752,
+          "os_uptime": 181.98,
+          "os_memory_free": 15035310080,
+          "os_memory_total": 16766414848,
           "os_cpu_cores": 4,
-          "os_cpu_model": "AMD EPYC 7763 64-Core Processor",
+          "os_cpu_model": "AMD EPYC 9V74 80-Core Processor",
           "os_cpu_speed": 0
         }
       }
     },
     "amount_classes_or_interfaces_with_data_clumps": 13,
     "amount_files_with_data_clumps": 9,
-    "amount_methods_with_data_clumps": 3,
+    "amount_methods_with_data_clumps": 4,
     "fields_to_fields_data_clump": 30,
-    "parameters_to_fields_data_clump": 2,
-    "parameters_to_parameters_data_clump": 4,
-    "amount_data_clumps": 36
+    "parameters_to_fields_data_clump": 3,
+    "parameters_to_parameters_data_clump": 8,
+    "amount_data_clumps": 41
   },
   "project_info": {
     "project_url": "https://github.com/NilsBaumgartner1994/exam-manager",
     "project_name": "exam-manager",
-    "project_version": "71311063511b79fe4f13770d4bfb4328cd6cd332",
-    "project_commit_hash": "71311063511b79fe4f13770d4bfb4328cd6cd332",
+    "project_version": "d62116a44bc81a33d61cb83399dc85c433bb3e2e",
+    "project_commit_hash": "d62116a44bc81a33d61cb83399dc85c433bb3e2e",
     "project_tag": null,
-    "project_commit_date": "1787767211",
+    "project_commit_date": "1787776347",
     "additional": {
       "relative_path_to_source_folder_in_project": ""
     },
     "number_of_files": 32,
     "number_of_classes_or_interfaces": 72,
-    "number_of_methods": 53,
+    "number_of_methods": 54,
     "number_of_data_fields": 237,
-    "number_of_method_parameters": 65
+    "number_of_method_parameters": 68
   },
   "detector": {
     "name": "data-clumps-doctor",
@@ -119,16 +119,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 159,
+              "startLine": 166,
               "startColumn": 41,
-              "endLine": 159,
+              "endLine": 166,
               "endColumn": 54
             }
           },
           "position": {
-            "startLine": 103,
+            "startLine": 106,
             "startColumn": 25,
-            "endLine": 103,
+            "endLine": 106,
             "endColumn": 38
           }
         },
@@ -144,16 +144,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 159,
+              "startLine": 166,
               "startColumn": 56,
-              "endLine": 159,
+              "endLine": 166,
               "endColumn": 70
             }
           },
           "position": {
-            "startLine": 103,
+            "startLine": 106,
             "startColumn": 40,
-            "endLine": 103,
+            "endLine": 106,
             "endColumn": 54
           }
         },
@@ -169,16 +169,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 159,
+              "startLine": 166,
               "startColumn": 72,
-              "endLine": 159,
+              "endLine": 166,
               "endColumn": 84
             }
           },
           "position": {
-            "startLine": 103,
+            "startLine": 106,
             "startColumn": 56,
-            "endLine": 103,
+            "endLine": 106,
             "endColumn": 68
           }
         }
@@ -216,16 +216,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 159,
+              "startLine": 166,
               "startColumn": 27,
-              "endLine": 159,
+              "endLine": 166,
               "endColumn": 39
             }
           },
           "position": {
-            "startLine": 156,
+            "startLine": 163,
             "startColumn": 16,
-            "endLine": 156,
+            "endLine": 163,
             "endColumn": 28
           }
         },
@@ -241,16 +241,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 159,
+              "startLine": 166,
               "startColumn": 41,
-              "endLine": 159,
+              "endLine": 166,
               "endColumn": 54
             }
           },
           "position": {
-            "startLine": 156,
+            "startLine": 163,
             "startColumn": 30,
-            "endLine": 156,
+            "endLine": 163,
             "endColumn": 43
           }
         },
@@ -266,16 +266,113 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 159,
+              "startLine": 166,
               "startColumn": 56,
-              "endLine": 159,
+              "endLine": 166,
               "endColumn": 70
             }
           },
           "position": {
-            "startLine": 156,
+            "startLine": 163,
             "startColumn": 45,
-            "endLine": 156,
+            "endLine": 163,
+            "endColumn": 59
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "parameters_to_parameters_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen-raumzeilespalte": {
+      "type": "data_clump",
+      "key": "parameters_to_parameters_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen-raumzeilespalte",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "from_class_or_interface_name": "RaumplanEditor",
+      "from_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor",
+      "from_method_name": "zellePress",
+      "from_method_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress",
+      "to_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "to_class_or_interface_name": "RaumplanEditor",
+      "to_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor",
+      "to_method_name": "textfeldAnlegen",
+      "to_method_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen",
+      "data_clump_type": "parameters_to_parameters_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/raum": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/raum",
+          "name": "raum",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/raum",
+            "name": "raum",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 171,
+              "startColumn": 21,
+              "endLine": 171,
+              "endColumn": 33
+            }
+          },
+          "position": {
+            "startLine": 163,
+            "startColumn": 16,
+            "endLine": 163,
+            "endColumn": 28
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/zeile": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/zeile",
+          "name": "zeile",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/zeile",
+            "name": "zeile",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 171,
+              "startColumn": 35,
+              "endLine": 171,
+              "endColumn": 48
+            }
+          },
+          "position": {
+            "startLine": 163,
+            "startColumn": 30,
+            "endLine": 163,
+            "endColumn": 43
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/spalte": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/spalte",
+          "name": "spalte",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/spalte",
+            "name": "spalte",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 171,
+              "startColumn": 50,
+              "endLine": 171,
+              "endColumn": 64
+            }
+          },
+          "position": {
+            "startLine": 163,
+            "startColumn": 45,
+            "endLine": 163,
             "endColumn": 59
           }
         }
@@ -320,9 +417,9 @@
             }
           },
           "position": {
-            "startLine": 156,
+            "startLine": 163,
             "startColumn": 16,
-            "endLine": 156,
+            "endLine": 163,
             "endColumn": 28
           }
         },
@@ -345,9 +442,9 @@
             }
           },
           "position": {
-            "startLine": 156,
+            "startLine": 163,
             "startColumn": 30,
-            "endLine": 156,
+            "endLine": 163,
             "endColumn": 43
           }
         },
@@ -370,9 +467,9 @@
             }
           },
           "position": {
-            "startLine": 156,
+            "startLine": 163,
             "startColumn": 45,
-            "endLine": 156,
+            "endLine": 163,
             "endColumn": 59
           }
         }
@@ -410,16 +507,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 156,
+              "startLine": 163,
               "startColumn": 16,
-              "endLine": 156,
+              "endLine": 163,
               "endColumn": 28
             }
           },
           "position": {
-            "startLine": 159,
+            "startLine": 166,
             "startColumn": 27,
-            "endLine": 159,
+            "endLine": 166,
             "endColumn": 39
           }
         },
@@ -435,16 +532,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 156,
+              "startLine": 163,
               "startColumn": 30,
-              "endLine": 156,
+              "endLine": 163,
               "endColumn": 43
             }
           },
           "position": {
-            "startLine": 159,
+            "startLine": 166,
             "startColumn": 41,
-            "endLine": 159,
+            "endLine": 166,
             "endColumn": 54
           }
         },
@@ -460,16 +557,113 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 156,
+              "startLine": 163,
               "startColumn": 45,
-              "endLine": 156,
+              "endLine": 163,
               "endColumn": 59
             }
           },
           "position": {
-            "startLine": 159,
+            "startLine": 166,
             "startColumn": 56,
-            "endLine": 159,
+            "endLine": 166,
+            "endColumn": 70
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "parameters_to_parameters_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen-raumzeilespalte": {
+      "type": "data_clump",
+      "key": "parameters_to_parameters_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen-raumzeilespalte",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "from_class_or_interface_name": "RaumplanEditor",
+      "from_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor",
+      "from_method_name": "beschriftungSchreiben",
+      "from_method_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben",
+      "to_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "to_class_or_interface_name": "RaumplanEditor",
+      "to_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor",
+      "to_method_name": "textfeldAnlegen",
+      "to_method_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen",
+      "data_clump_type": "parameters_to_parameters_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/raum": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/raum",
+          "name": "raum",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/raum",
+            "name": "raum",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 171,
+              "startColumn": 21,
+              "endLine": 171,
+              "endColumn": 33
+            }
+          },
+          "position": {
+            "startLine": 166,
+            "startColumn": 27,
+            "endLine": 166,
+            "endColumn": 39
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/zeile": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/zeile",
+          "name": "zeile",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/zeile",
+            "name": "zeile",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 171,
+              "startColumn": 35,
+              "endLine": 171,
+              "endColumn": 48
+            }
+          },
+          "position": {
+            "startLine": 166,
+            "startColumn": 41,
+            "endLine": 166,
+            "endColumn": 54
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/spalte": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/spalte",
+          "name": "spalte",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/spalte",
+            "name": "spalte",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 171,
+              "startColumn": 50,
+              "endLine": 171,
+              "endColumn": 64
+            }
+          },
+          "position": {
+            "startLine": 166,
+            "startColumn": 56,
+            "endLine": 166,
             "endColumn": 70
           }
         }
@@ -507,16 +701,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 103,
+              "startLine": 106,
               "startColumn": 25,
-              "endLine": 103,
+              "endLine": 106,
               "endColumn": 38
             }
           },
           "position": {
-            "startLine": 159,
+            "startLine": 166,
             "startColumn": 41,
-            "endLine": 159,
+            "endLine": 166,
             "endColumn": 54
           }
         },
@@ -532,16 +726,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 103,
+              "startLine": 106,
               "startColumn": 40,
-              "endLine": 103,
+              "endLine": 106,
               "endColumn": 54
             }
           },
           "position": {
-            "startLine": 159,
+            "startLine": 166,
             "startColumn": 56,
-            "endLine": 159,
+            "endLine": 166,
             "endColumn": 70
           }
         },
@@ -557,16 +751,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 103,
+              "startLine": 106,
               "startColumn": 56,
-              "endLine": 103,
+              "endLine": 106,
               "endColumn": 68
             }
           },
           "position": {
-            "startLine": 159,
+            "startLine": 166,
             "startColumn": 72,
-            "endLine": 159,
+            "endLine": 166,
             "endColumn": 84
           }
         }
@@ -611,9 +805,9 @@
             }
           },
           "position": {
-            "startLine": 159,
+            "startLine": 166,
             "startColumn": 27,
-            "endLine": 159,
+            "endLine": 166,
             "endColumn": 39
           }
         },
@@ -636,9 +830,9 @@
             }
           },
           "position": {
-            "startLine": 159,
+            "startLine": 166,
             "startColumn": 41,
-            "endLine": 159,
+            "endLine": 166,
             "endColumn": 54
           }
         },
@@ -661,10 +855,301 @@
             }
           },
           "position": {
-            "startLine": 159,
+            "startLine": 166,
             "startColumn": 56,
-            "endLine": 159,
+            "endLine": 166,
             "endColumn": 70
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "parameters_to_parameters_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress-raumzeilespalte": {
+      "type": "data_clump",
+      "key": "parameters_to_parameters_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress-raumzeilespalte",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "from_class_or_interface_name": "RaumplanEditor",
+      "from_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor",
+      "from_method_name": "textfeldAnlegen",
+      "from_method_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen",
+      "to_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "to_class_or_interface_name": "RaumplanEditor",
+      "to_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor",
+      "to_method_name": "zellePress",
+      "to_method_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress",
+      "data_clump_type": "parameters_to_parameters_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/raum": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/raum",
+          "name": "raum",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/raum",
+            "name": "raum",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 163,
+              "startColumn": 16,
+              "endLine": 163,
+              "endColumn": 28
+            }
+          },
+          "position": {
+            "startLine": 171,
+            "startColumn": 21,
+            "endLine": 171,
+            "endColumn": 33
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/zeile": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/zeile",
+          "name": "zeile",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/zeile",
+            "name": "zeile",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 163,
+              "startColumn": 30,
+              "endLine": 163,
+              "endColumn": 43
+            }
+          },
+          "position": {
+            "startLine": 171,
+            "startColumn": 35,
+            "endLine": 171,
+            "endColumn": 48
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/spalte": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/spalte",
+          "name": "spalte",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/spalte",
+            "name": "spalte",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 163,
+              "startColumn": 45,
+              "endLine": 163,
+              "endColumn": 59
+            }
+          },
+          "position": {
+            "startLine": 171,
+            "startColumn": 50,
+            "endLine": 171,
+            "endColumn": 64
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "parameters_to_parameters_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben-raumzeilespalte": {
+      "type": "data_clump",
+      "key": "parameters_to_parameters_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben-raumzeilespalte",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "from_class_or_interface_name": "RaumplanEditor",
+      "from_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor",
+      "from_method_name": "textfeldAnlegen",
+      "from_method_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen",
+      "to_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "to_class_or_interface_name": "RaumplanEditor",
+      "to_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor",
+      "to_method_name": "beschriftungSchreiben",
+      "to_method_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben",
+      "data_clump_type": "parameters_to_parameters_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/raum": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/raum",
+          "name": "raum",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/raum",
+            "name": "raum",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 166,
+              "startColumn": 27,
+              "endLine": 166,
+              "endColumn": 39
+            }
+          },
+          "position": {
+            "startLine": 171,
+            "startColumn": 21,
+            "endLine": 171,
+            "endColumn": 33
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/zeile": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/zeile",
+          "name": "zeile",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/zeile",
+            "name": "zeile",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 166,
+              "startColumn": 41,
+              "endLine": 166,
+              "endColumn": 54
+            }
+          },
+          "position": {
+            "startLine": 171,
+            "startColumn": 35,
+            "endLine": 171,
+            "endColumn": 48
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/spalte": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/spalte",
+          "name": "spalte",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/spalte",
+            "name": "spalte",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 166,
+              "startColumn": 56,
+              "endLine": 166,
+              "endColumn": 70
+            }
+          },
+          "position": {
+            "startLine": 171,
+            "startColumn": 50,
+            "endLine": 171,
+            "endColumn": 64
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "parameters_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen-packages/core/src/raumbelegung.ts/interface/Platzbelegung-raumzeilespalte": {
+      "type": "data_clump",
+      "key": "parameters_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen-packages/core/src/raumbelegung.ts/interface/Platzbelegung-raumzeilespalte",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "from_class_or_interface_name": "RaumplanEditor",
+      "from_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor",
+      "from_method_name": "textfeldAnlegen",
+      "from_method_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen",
+      "to_file_path": "packages/core/src/raumbelegung.ts",
+      "to_class_or_interface_name": "Platzbelegung",
+      "to_class_or_interface_key": "packages/core/src/raumbelegung.ts/interface/Platzbelegung",
+      "to_method_name": null,
+      "to_method_key": null,
+      "data_clump_type": "parameters_to_fields_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/raum": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/raum",
+          "name": "raum",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/raumbelegung.ts/interface/Platzbelegung/memberField/raum",
+            "name": "raum",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 54,
+              "startColumn": 3,
+              "endLine": 54,
+              "endColumn": 16
+            }
+          },
+          "position": {
+            "startLine": 171,
+            "startColumn": 21,
+            "endLine": 171,
+            "endColumn": 33
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/zeile": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/zeile",
+          "name": "zeile",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/raumbelegung.ts/interface/Platzbelegung/memberField/zeile",
+            "name": "zeile",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 55,
+              "startColumn": 3,
+              "endLine": 55,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 171,
+            "startColumn": 35,
+            "endLine": 171,
+            "endColumn": 48
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/spalte": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/spalte",
+          "name": "spalte",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/raumbelegung.ts/interface/Platzbelegung/memberField/spalte",
+            "name": "spalte",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 56,
+              "startColumn": 3,
+              "endLine": 56,
+              "endColumn": 18
+            }
+          },
+          "position": {
+            "startLine": 171,
+            "startColumn": 50,
+            "endLine": 171,
+            "endColumn": 64
           }
         }
       },
@@ -895,16 +1380,16 @@
             "type": "Raumschema",
             "modifiers": [],
             "position": {
-              "startLine": 564,
+              "startLine": 612,
               "startColumn": 3,
-              "endLine": 564,
+              "endLine": 612,
               "endColumn": 22
             }
           },
           "position": {
-            "startLine": 44,
+            "startLine": 47,
             "startColumn": 3,
-            "endLine": 44,
+            "endLine": 47,
             "endColumn": 22
           }
         },
@@ -920,16 +1405,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 570,
+              "startLine": 618,
               "startColumn": 3,
-              "endLine": 570,
+              "endLine": 618,
               "endColumn": 23
             }
           },
           "position": {
-            "startLine": 51,
+            "startLine": 54,
             "startColumn": 3,
-            "endLine": 51,
+            "endLine": 54,
             "endColumn": 23
           }
         },
@@ -945,16 +1430,16 @@
             "type": "Platzbelegung[]",
             "modifiers": [],
             "position": {
-              "startLine": 579,
+              "startLine": 627,
               "startColumn": 3,
-              "endLine": 579,
+              "endLine": 627,
               "endColumn": 30
             }
           },
           "position": {
-            "startLine": 55,
+            "startLine": 58,
             "startColumn": 3,
-            "endLine": 55,
+            "endLine": 58,
             "endColumn": 29
           }
         },
@@ -970,16 +1455,16 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 580,
+              "startLine": 628,
               "startColumn": 3,
-              "endLine": 580,
+              "endLine": 628,
               "endColumn": 33
             }
           },
           "position": {
-            "startLine": 57,
+            "startLine": 60,
             "startColumn": 3,
-            "endLine": 57,
+            "endLine": 60,
             "endColumn": 32
           }
         },
@@ -995,16 +1480,16 @@
             "type": "Map<string, Sitzplatz>",
             "modifiers": [],
             "position": {
-              "startLine": 581,
+              "startLine": 629,
               "startColumn": 3,
-              "endLine": 581,
+              "endLine": 629,
               "endColumn": 37
             }
           },
           "position": {
-            "startLine": 59,
+            "startLine": 62,
             "startColumn": 3,
-            "endLine": 59,
+            "endLine": 62,
             "endColumn": 36
           }
         },
@@ -1020,16 +1505,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 584,
+              "startLine": 632,
               "startColumn": 3,
-              "endLine": 584,
+              "endLine": 632,
               "endColumn": 31
             }
           },
           "position": {
-            "startLine": 61,
+            "startLine": 64,
             "startColumn": 3,
-            "endLine": 61,
+            "endLine": 64,
             "endColumn": 31
           }
         },
@@ -1045,16 +1530,16 @@
             "type": "boolean",
             "modifiers": [],
             "position": {
-              "startLine": 574,
+              "startLine": 622,
               "startColumn": 3,
-              "endLine": 574,
+              "endLine": 622,
               "endColumn": 23
             }
           },
           "position": {
-            "startLine": 93,
+            "startLine": 96,
             "startColumn": 3,
-            "endLine": 93,
+            "endLine": 96,
             "endColumn": 24
           }
         },
@@ -1070,16 +1555,16 @@
             "type": "PlanAnzeige",
             "modifiers": [],
             "position": {
-              "startLine": 583,
+              "startLine": 631,
               "startColumn": 3,
-              "endLine": 583,
+              "endLine": 631,
               "endColumn": 25
             }
           },
           "position": {
-            "startLine": 116,
+            "startLine": 119,
             "startColumn": 3,
-            "endLine": 116,
+            "endLine": 119,
             "endColumn": 25
           }
         },
@@ -1095,16 +1580,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 587,
+              "startLine": 635,
               "startColumn": 3,
-              "endLine": 587,
+              "endLine": 635,
               "endColumn": 19
             }
           },
           "position": {
-            "startLine": 122,
+            "startLine": 125,
             "startColumn": 3,
-            "endLine": 122,
+            "endLine": 125,
             "endColumn": 19
           }
         }
@@ -1149,9 +1634,9 @@
             }
           },
           "position": {
-            "startLine": 51,
+            "startLine": 54,
             "startColumn": 3,
-            "endLine": 51,
+            "endLine": 54,
             "endColumn": 23
           }
         },
@@ -1174,9 +1659,9 @@
             }
           },
           "position": {
-            "startLine": 53,
+            "startLine": 56,
             "startColumn": 3,
-            "endLine": 53,
+            "endLine": 56,
             "endColumn": 21
           }
         },
@@ -1199,9 +1684,9 @@
             }
           },
           "position": {
-            "startLine": 57,
+            "startLine": 60,
             "startColumn": 3,
-            "endLine": 57,
+            "endLine": 60,
             "endColumn": 32
           }
         }
@@ -1239,16 +1724,16 @@
             "type": "Raumschema",
             "modifiers": [],
             "position": {
-              "startLine": 44,
+              "startLine": 47,
               "startColumn": 3,
-              "endLine": 44,
+              "endLine": 47,
               "endColumn": 22
             }
           },
           "position": {
-            "startLine": 564,
+            "startLine": 612,
             "startColumn": 3,
-            "endLine": 564,
+            "endLine": 612,
             "endColumn": 22
           }
         },
@@ -1264,16 +1749,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 51,
+              "startLine": 54,
               "startColumn": 3,
-              "endLine": 51,
+              "endLine": 54,
               "endColumn": 23
             }
           },
           "position": {
-            "startLine": 570,
+            "startLine": 618,
             "startColumn": 3,
-            "endLine": 570,
+            "endLine": 618,
             "endColumn": 23
           }
         },
@@ -1289,16 +1774,16 @@
             "type": "boolean",
             "modifiers": [],
             "position": {
-              "startLine": 93,
+              "startLine": 96,
               "startColumn": 3,
-              "endLine": 93,
+              "endLine": 96,
               "endColumn": 24
             }
           },
           "position": {
-            "startLine": 574,
+            "startLine": 622,
             "startColumn": 3,
-            "endLine": 574,
+            "endLine": 622,
             "endColumn": 23
           }
         },
@@ -1314,16 +1799,16 @@
             "type": "Platzbelegung[]",
             "modifiers": [],
             "position": {
-              "startLine": 55,
+              "startLine": 58,
               "startColumn": 3,
-              "endLine": 55,
+              "endLine": 58,
               "endColumn": 29
             }
           },
           "position": {
-            "startLine": 579,
+            "startLine": 627,
             "startColumn": 3,
-            "endLine": 579,
+            "endLine": 627,
             "endColumn": 30
           }
         },
@@ -1339,16 +1824,16 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 57,
+              "startLine": 60,
               "startColumn": 3,
-              "endLine": 57,
+              "endLine": 60,
               "endColumn": 32
             }
           },
           "position": {
-            "startLine": 580,
+            "startLine": 628,
             "startColumn": 3,
-            "endLine": 580,
+            "endLine": 628,
             "endColumn": 33
           }
         },
@@ -1364,16 +1849,16 @@
             "type": "Map<string, Sitzplatz>",
             "modifiers": [],
             "position": {
-              "startLine": 59,
+              "startLine": 62,
               "startColumn": 3,
-              "endLine": 59,
+              "endLine": 62,
               "endColumn": 36
             }
           },
           "position": {
-            "startLine": 581,
+            "startLine": 629,
             "startColumn": 3,
-            "endLine": 581,
+            "endLine": 629,
             "endColumn": 37
           }
         },
@@ -1389,16 +1874,16 @@
             "type": "PlanAnzeige",
             "modifiers": [],
             "position": {
-              "startLine": 116,
+              "startLine": 119,
               "startColumn": 3,
-              "endLine": 116,
+              "endLine": 119,
               "endColumn": 25
             }
           },
           "position": {
-            "startLine": 583,
+            "startLine": 631,
             "startColumn": 3,
-            "endLine": 583,
+            "endLine": 631,
             "endColumn": 25
           }
         },
@@ -1414,16 +1899,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 61,
+              "startLine": 64,
               "startColumn": 3,
-              "endLine": 61,
+              "endLine": 64,
               "endColumn": 31
             }
           },
           "position": {
-            "startLine": 584,
+            "startLine": 632,
             "startColumn": 3,
-            "endLine": 584,
+            "endLine": 632,
             "endColumn": 31
           }
         },
@@ -1439,16 +1924,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 122,
+              "startLine": 125,
               "startColumn": 3,
-              "endLine": 122,
+              "endLine": 125,
               "endColumn": 19
             }
           },
           "position": {
-            "startLine": 587,
+            "startLine": 635,
             "startColumn": 3,
-            "endLine": 587,
+            "endLine": 635,
             "endColumn": 19
           }
         }
@@ -1493,9 +1978,9 @@
             }
           },
           "position": {
-            "startLine": 570,
+            "startLine": 618,
             "startColumn": 3,
-            "endLine": 570,
+            "endLine": 618,
             "endColumn": 23
           }
         },
@@ -1518,9 +2003,9 @@
             }
           },
           "position": {
-            "startLine": 572,
+            "startLine": 620,
             "startColumn": 3,
-            "endLine": 572,
+            "endLine": 620,
             "endColumn": 18
           }
         },
@@ -1543,9 +2028,9 @@
             }
           },
           "position": {
-            "startLine": 580,
+            "startLine": 628,
             "startColumn": 3,
-            "endLine": 580,
+            "endLine": 628,
             "endColumn": 33
           }
         }
@@ -1777,9 +2262,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 572,
+              "startLine": 620,
               "startColumn": 3,
-              "endLine": 572,
+              "endLine": 620,
               "endColumn": 18
             }
           },
@@ -1802,9 +2287,9 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 580,
+              "startLine": 628,
               "startColumn": 3,
-              "endLine": 580,
+              "endLine": 628,
               "endColumn": 33
             }
           },
@@ -1827,9 +2312,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 570,
+              "startLine": 618,
               "startColumn": 3,
-              "endLine": 570,
+              "endLine": 618,
               "endColumn": 23
             }
           },
@@ -1874,9 +2359,9 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 57,
+              "startLine": 60,
               "startColumn": 3,
-              "endLine": 57,
+              "endLine": 60,
               "endColumn": 32
             }
           },
@@ -1899,9 +2384,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 51,
+              "startLine": 54,
               "startColumn": 3,
-              "endLine": 51,
+              "endLine": 54,
               "endColumn": 23
             }
           },
@@ -1924,9 +2409,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 53,
+              "startLine": 56,
               "startColumn": 3,
-              "endLine": 53,
+              "endLine": 56,
               "endColumn": 21
             }
           },

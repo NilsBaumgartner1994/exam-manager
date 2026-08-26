@@ -87,6 +87,16 @@ Konventionen des Datensatzes:
   3. `ScreenContainer` – der `ScrollView` mit `flex: 1` ist der Scroller.
   Vorbild ist der Aufbau üblicher Expo-Apps (View `flex: 1` + ScrollView,
   Header außerhalb des ScrollViews), z. B. rocket-meals/score-tracker.
+- **Modals sind eine Ebene der App, kein zweites Fenster.** `ModalProvider`
+  (`src/components/ModalHost.tsx`, um die ganze App in `App.tsx`) legt über den
+  Screens eine absolut positionierte Ebene an; `useModalEbene(inhalt)` zeichnet
+  ein Blatt dort hinein (`createPortal` in ihren DOM-Knoten – im React-Baum
+  bleibt es bei dem Screen, der es öffnet, samt Kontext). Vorbild ist der
+  `ModalProvider`/`ModalRenderer` von rocket-meals. **Kein `Modal` aus React
+  Native**: Das hängt sich im Web als eigenes `div` an den `body` – außerhalb
+  von `#root` und damit außerhalb der App-Shell –, und dann scrollt wieder der
+  Browser die Seite, statt der ScrollView des Screens. Wer ein neues Modal
+  baut, nimmt `BlattModal` oder wenigstens `useModalEbene`.
 - Scrollen ist die fehleranfälligste Stelle dieser App und **von Hand zu
   prüfen** – am besten auf einem Touchgerät oder mit Geräte-Emulation. Der
   Maestro-Flow deckt es nicht zuverlässig ab: Vorher konnte man auf dem iPad
@@ -262,7 +272,9 @@ Konventionen des Datensatzes:
   geht in `Raumplan` und in `sitzplanPdf` – gedruckt wird, was man sieht. Am
   Aushang wird `sitzplatznummer` erzwungen: Danach sucht man dort.
 - **Ein Tippen auf einen Platz öffnet ein Blatt** (`BlattModal`), kein Modus
-  entscheidet vorher, was passiert. Darin steht, wer sitzt, und dort wird
+  entscheidet vorher, was passiert. Das Blatt ist so hoch wie sein Inhalt,
+  höchstens vier Fünftel des Bildschirms – ein Blatt mit drei Zeilen darin
+  verdeckte sonst den Plan, um den es gerade geht. Darin steht, wer sitzt, und dort wird
   gesetzt, geräumt, festgehalten und freigehalten. Wer von Hand setzt, setzt
   automatisch eine Vorgabe – sonst säße die Person nach dem nächsten Verteilen
   woanders; `erstelleRaumzuteilung` bekommt diese Vorgaben als

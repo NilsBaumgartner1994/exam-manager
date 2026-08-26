@@ -4,6 +4,7 @@ export { Checkbox } from './Checkbox';
 export { DataTable, type Column } from './DataTable';
 export { FilePickerButton } from './FilePickerButton';
 export { LabeledNumberInput, LabeledTextInput } from './LabeledInput';
+export { ModalProvider, useModalEbene } from './ModalHost';
 export { PaletteElement } from './PaletteElement';
 export { ProjektDownload } from './ProjektDownload';
 export { ProjektQuelle } from './ProjektQuelle';

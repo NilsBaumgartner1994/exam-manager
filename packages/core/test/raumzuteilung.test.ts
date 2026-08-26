@@ -3,8 +3,10 @@ import {
   eindeutigeNamenspraefixe,
   erstelleRaumzuteilung,
   parseRaeume,
+  parseRaumschemata,
   parseSitzplaetze,
   sitzplaetzeToCsv,
+  tischzellen,
   Zulassung,
 } from '../src';
 
@@ -22,8 +24,19 @@ describe('Raumzuteilung (Screen 4)', () => {
   const raeume = parseRaeume(lies(pfad.raeume));
 
   it('liest die Raumliste', () => {
-    expect(raeume).toHaveLength(2);
-    expect(raeume[0]).toMatchObject({ raum: '94/E01', plaetze: 4 });
+    expect(raeume.map((r) => r.raum)).toEqual(['01/E01', '66/E33', '94/E01', '94/E03', '94/E06']);
+    expect(raeume[0]).toMatchObject({ raum: '01/E01', plaetze: 975 });
+  });
+
+  it('hält Platzzahl und Raumschema des Beispieldatensatzes zusammen', () => {
+    // Die Plätze eines Raums sind genau die Tische in seinem Raster – sonst
+    // meldet die App Teilnehmende „ohne Tisch im Sitzplan“.
+    const schemata = parseRaumschemata(lies(pfad.raumschema));
+    for (const raum of raeume) {
+      const schema = schemata.find((s) => s.raum === raum.raum);
+      expect(schema).toBeDefined();
+      expect(tischzellen(schema!)).toHaveLength(raum.plaetze);
+    }
   });
 
   it('verteilt alle 7 Teilnehmenden und vergibt Sitzplätze ab 1001', () => {
@@ -32,7 +45,8 @@ describe('Raumzuteilung (Screen 4)', () => {
     expect(sitzplaetze).toHaveLength(7);
     expect(sitzplaetze.map((s) => s.sitzplatznummer)).toEqual([1001, 1002, 1003, 1004, 1005, 1006, 1007]);
     // Innerhalb eines Raums alphabetisch nach Nachname
-    const raum1 = sitzplaetze.filter((s) => s.raum === '94/E01').map((s) => s.nachname);
+    const raum1 = sitzplaetze.filter((s) => s.raum === '01/E01').map((s) => s.nachname);
+    expect(raum1.length).toBeGreaterThan(1);
     expect(raum1).toEqual([...raum1].sort());
   });
 

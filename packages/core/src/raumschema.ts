@@ -13,8 +13,18 @@
  *
  * Eine Zeile `Raum;<Name>` beginnt einen neuen Raum, alle weiteren Zeilen sind
  * dessen Raster. So stehen alle Räume in einer Datei.
+ *
+ * Freier Text über verbundenen Zellen steht in eigenen Zeilen hinter dem
+ * Raster – `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>`. Das Raster bleibt
+ * dadurch ein sauberes Rechteck aus Ein-Zeichen-Kürzeln, und der Text kann
+ * beliebig lang sein:
+ *
+ *     Raum;94/E01
+ *     P;.;.;.;.
+ *     .;T;T;.;T
+ *     Text;0;1;1;4;Bitte Ausweise bereitlegen
  */
-import { parseCsvRows, toCsv } from './csv';
+import { CSV_DELIMITER, parseCsvRows, toCsv } from './csv';
 
 export type ZellTyp = 'leer' | 'tisch' | 'tuer' | 'wand' | 'pult';
 
@@ -36,10 +46,51 @@ const KUERZEL_ZU_TYP: Record<string, ZellTyp> = {
   P: 'pult',
 };
 
+/**
+ * Freier Text über einem rechteckigen Bereich – „verbundene Zellen“ wie in
+ * einer Tabellenkalkulation. Das Raster darunter bleibt leer; der Text liegt
+ * als eigenes Element darüber und kann deshalb beliebig lang sein.
+ */
+export interface Beschriftung extends Bereich {
+  text: string;
+}
+
 export interface Raumschema {
   raum: string;
   /** Raster [Zeile][Spalte] in kanonischer Ausrichtung (wie gespeichert). */
   zellen: ZellTyp[][];
+  /** Textfelder über verbundenen Zellen (kanonische Positionen). */
+  beschriftungen: Beschriftung[];
+}
+
+/**
+ * Spaltenname wie in einer Tabellenkalkulation: 0 → A, 25 → Z, 26 → AA.
+ * Zeilen werden dagegen schlicht ab 1 durchnummeriert (`zeilenName`).
+ */
+export function spaltenName(index: number): string {
+  let name = '';
+  let rest = Math.max(0, Math.trunc(index));
+  for (;;) {
+    name = String.fromCharCode(65 + (rest % 26)) + name;
+    rest = Math.floor(rest / 26) - 1;
+    if (rest < 0) return name;
+  }
+}
+
+export function zeilenName(index: number): string {
+  return String(Math.max(0, Math.trunc(index)) + 1);
+}
+
+/** Zelladresse wie „B3“ – für Beschriftungen im Editor. */
+export function zellName(zeile: number, spalte: number): string {
+  return `${spaltenName(spalte)}${zeilenName(zeile)}`;
+}
+
+/** Adresse eines Bereichs wie „B3“ bzw. „B3:E7“. */
+export function bereichName(bereich: Bereich): string {
+  const von = zellName(bereich.zeile, bereich.spalte);
+  if (bereich.hoehe <= 1 && bereich.breite <= 1) return von;
+  return `${von}:${zellName(bereich.zeile + bereich.hoehe - 1, bereich.spalte + bereich.breite - 1)}`;
 }
 
 export function zeilen(schema: Raumschema): number {
@@ -58,14 +109,20 @@ export function parseRaumschemata(csvText: string): Raumschema[] {
   for (const row of parseCsvRows(csvText)) {
     const erste = (row[0] ?? '').trim();
     if (erste.toLowerCase() === 'raum') {
-      aktuell = { raum: (row[1] ?? '').trim(), zellen: [] };
+      aktuell = { raum: (row[1] ?? '').trim(), zellen: [], beschriftungen: [] };
       schemata.push(aktuell);
       continue;
     }
     if (aktuell === null) {
       // Raster ohne vorangestellte Raum-Zeile: namenloser Raum.
-      aktuell = { raum: '', zellen: [] };
+      aktuell = { raum: '', zellen: [], beschriftungen: [] };
       schemata.push(aktuell);
+    }
+    // Textfelder stehen in eigenen Zeilen; das Raster kennt nur Ein-Zeichen-Kürzel.
+    if (erste.toLowerCase() === TEXT_SCHLUESSEL.toLowerCase()) {
+      const beschriftung = parseBeschriftung(row);
+      if (beschriftung) aktuell.beschriftungen.push(beschriftung);
+      continue;
     }
     aktuell.zellen.push(row.map((zelle) => KUERZEL_ZU_TYP[zelle.trim().toUpperCase()] ?? 'leer'));
   }
@@ -73,7 +130,27 @@ export function parseRaumschemata(csvText: string): Raumschema[] {
   return schemata.map(rechteckig);
 }
 
-/** Kurze Zeilen mit `leer` auffüllen, damit das Raster rechteckig ist. */
+/** Schlüsselwort der Textzeilen in der CSV. */
+const TEXT_SCHLUESSEL = 'Text';
+
+function parseBeschriftung(row: string[]): Beschriftung | null {
+  const zahl = (wert: string | undefined, minimum: number) => {
+    const n = Number((wert ?? '').trim());
+    return Number.isFinite(n) ? Math.max(minimum, Math.trunc(n)) : null;
+  };
+  const zeile = zahl(row[1], 0);
+  const spalte = zahl(row[2], 0);
+  const hoehe = zahl(row[3], 1);
+  const breite = zahl(row[4], 1);
+  if (zeile === null || spalte === null || hoehe === null || breite === null) return null;
+  // Der Text darf Semikolon enthalten – alles ab Spalte 5 gehört dazu.
+  return { zeile, spalte, hoehe, breite, text: row.slice(5).join(CSV_DELIMITER) };
+}
+
+/**
+ * Kurze Zeilen mit `leer` auffüllen, damit das Raster rechteckig ist, und
+ * Beschriftungen auf das Raster begrenzen.
+ */
 function rechteckig(schema: Raumschema): Raumschema {
   const breite = spalten(schema);
   return {
@@ -83,7 +160,27 @@ function rechteckig(schema: Raumschema): Raumschema {
       while (voll.length < breite) voll.push('leer');
       return voll;
     }),
+    beschriftungen: beschnitteneBeschriftungen(schema.beschriftungen, schema.zellen.length, breite),
   };
+}
+
+/** Beschriftungen auf ein Raster begrenzen; was ganz draußen liegt, fällt weg. */
+function beschnitteneBeschriftungen(
+  beschriftungen: Beschriftung[],
+  anzahlZeilen: number,
+  anzahlSpalten: number,
+): Beschriftung[] {
+  const beschnitten: Beschriftung[] = [];
+  for (const b of beschriftungen) {
+    // Verschoben wird nichts: Liegt die obere linke Ecke draußen, fällt das
+    // Feld weg, sonst wird nur seine Ausdehnung gekappt.
+    if (b.zeile < 0 || b.spalte < 0 || b.zeile >= anzahlZeilen || b.spalte >= anzahlSpalten) continue;
+    const hoehe = Math.min(b.hoehe, anzahlZeilen - b.zeile);
+    const breite = Math.min(b.breite, anzahlSpalten - b.spalte);
+    if (hoehe < 1 || breite < 1) continue;
+    beschnitten.push({ zeile: b.zeile, spalte: b.spalte, hoehe, breite, text: b.text });
+  }
+  return beschnitten;
 }
 
 export function raumschemataToCsv(schemata: Raumschema[]): string {
@@ -92,6 +189,9 @@ export function raumschemataToCsv(schemata: Raumschema[]): string {
     rows.push(['Raum', schema.raum]);
     for (const zeile of schema.zellen) {
       rows.push(zeile.map((typ) => ZELL_KUERZEL[typ]));
+    }
+    for (const b of schema.beschriftungen) {
+      rows.push([TEXT_SCHLUESSEL, String(b.zeile), String(b.spalte), String(b.hoehe), String(b.breite), b.text]);
     }
   }
   return toCsv(rows);
@@ -104,6 +204,7 @@ export function leeresRaumschema(raum: string, anzahlZeilen: number, anzahlSpalt
     zellen: Array.from({ length: anzahlZeilen }, () =>
       Array.from({ length: anzahlSpalten }, (): ZellTyp => 'leer'),
     ),
+    beschriftungen: [],
   };
 }
 
@@ -139,7 +240,7 @@ export function standardRaumschema(raum: string, plaetze: number): Raumschema {
     zellen.push(zeile);
   }
   zellen.push(['tuer', ...Array.from({ length: breite - 1 }, (): ZellTyp => 'leer')]);
-  return { raum, zellen };
+  return { raum, zellen, beschriftungen: [] };
 }
 
 /** Eine Zelle in der Anzeige – kennt ihre kanonische Position im gespeicherten Raster. */
@@ -173,6 +274,46 @@ function drehe90(raster: AnzeigeZelle[][]): AnzeigeZelle[][] {
   return Array.from({ length: breite }, (_, s) =>
     Array.from({ length: hoehe }, (_, z) => raster[hoehe - 1 - z][s]),
   );
+}
+
+/**
+ * Eine kanonische Position in Anzeige-Koordinaten umrechnen – dieselbe Drehung
+ * wie `anzeigeRaster`, nur als Formel. Wird für alles gebraucht, was über dem
+ * Raster liegt (Auswahlrahmen, Textfelder) und deshalb nicht Zelle für Zelle
+ * gesucht werden kann.
+ */
+export function anzeigePosition(
+  zeile: number,
+  spalte: number,
+  anzahlZeilen: number,
+  anzahlSpalten: number,
+  drehungen: number,
+): { zeile: number; spalte: number } {
+  switch (((drehungen % 4) + 4) % 4) {
+    case 1:
+      return { zeile: spalte, spalte: anzahlZeilen - 1 - zeile };
+    case 2:
+      return { zeile: anzahlZeilen - 1 - zeile, spalte: anzahlSpalten - 1 - spalte };
+    case 3:
+      return { zeile: anzahlSpalten - 1 - spalte, spalte: zeile };
+    default:
+      return { zeile, spalte };
+  }
+}
+
+/** Ein Bereich in Anzeige-Koordinaten (dreht als Rechteck mit). */
+export function anzeigeBereich(
+  bereich: Bereich,
+  schema: Raumschema,
+  drehungen: number,
+): Bereich {
+  const h = zeilen(schema);
+  const b = spalten(schema);
+  const ecken = [
+    anzeigePosition(bereich.zeile, bereich.spalte, h, b, drehungen),
+    anzeigePosition(bereich.zeile + bereich.hoehe - 1, bereich.spalte + bereich.breite - 1, h, b, drehungen),
+  ];
+  return bereichAus(ecken[0], ecken[1]);
 }
 
 /** Alle Tischzellen in Lesereihenfolge des gespeicherten Rasters. */
@@ -223,13 +364,98 @@ export function imBereich(bereich: Bereich, zeile: number, spalte: number): bool
   );
 }
 
-/** Alle Zellen eines Bereichs auf einen Typ setzen. */
+/** Überschneiden sich zwei Bereiche? */
+export function bereicheUeberlappen(a: Bereich, b: Bereich): boolean {
+  return (
+    a.zeile < b.zeile + b.hoehe &&
+    b.zeile < a.zeile + a.hoehe &&
+    a.spalte < b.spalte + b.breite &&
+    b.spalte < a.spalte + a.breite
+  );
+}
+
+/** Liegt `innen` vollständig in `aussen`? */
+function bereichEnthaelt(aussen: Bereich, innen: Bereich): boolean {
+  return (
+    innen.zeile >= aussen.zeile &&
+    innen.spalte >= aussen.spalte &&
+    innen.zeile + innen.hoehe <= aussen.zeile + aussen.hoehe &&
+    innen.spalte + innen.breite <= aussen.spalte + aussen.breite
+  );
+}
+
+/** Textfeld an einer Zelle (falls die Zelle zu einem verbundenen Feld gehört). */
+export function beschriftungBei(
+  schema: Raumschema,
+  zeile: number,
+  spalte: number,
+): Beschriftung | undefined {
+  return schema.beschriftungen.find((b) => imBereich(b, zeile, spalte));
+}
+
+/** Alle Textfelder, die einen Bereich berühren. */
+export function beschriftungenIn(schema: Raumschema, bereich: Bereich): Beschriftung[] {
+  return schema.beschriftungen.filter((b) => bereicheUeberlappen(b, bereich));
+}
+
+/**
+ * Zellen verbinden: Über den Bereich kommt ein Textfeld. Bereits vorhandene
+ * Textfelder darin gehen darin auf – ihre Texte werden zusammengezogen, damit
+ * beim Verbinden nichts verloren geht. Die Zellen darunter werden frei, sonst
+ * verschwänden Tische unsichtbar unter dem Feld.
+ */
+export function verbindeZellen(schema: Raumschema, bereich: Bereich, text?: string): Raumschema {
+  const bisherige = beschriftungenIn(schema, bereich);
+  const zusammen =
+    text ?? bisherige.map((b) => b.text.trim()).filter((wert) => wert !== '').join(' ');
+  return {
+    raum: schema.raum,
+    zellen: schema.zellen.map((reihe, z) =>
+      reihe.map((alt, s) => (imBereich(bereich, z, s) ? ('leer' as ZellTyp) : alt)),
+    ),
+    beschriftungen: [
+      ...schema.beschriftungen.filter((b) => !bereicheUeberlappen(b, bereich)),
+      { ...bereich, text: zusammen },
+    ],
+  };
+}
+
+/** Zellen trennen: Alle Textfelder im Bereich fallen weg. */
+export function trenneZellen(schema: Raumschema, bereich: Bereich): Raumschema {
+  return {
+    raum: schema.raum,
+    zellen: schema.zellen,
+    beschriftungen: schema.beschriftungen.filter((b) => !bereicheUeberlappen(b, bereich)),
+  };
+}
+
+/** Text eines Feldes ändern; angesprochen wird es über seine obere linke Zelle. */
+export function setzeBeschriftungsText(
+  schema: Raumschema,
+  zeile: number,
+  spalte: number,
+  text: string,
+): Raumschema {
+  return {
+    raum: schema.raum,
+    zellen: schema.zellen,
+    beschriftungen: schema.beschriftungen.map((b) =>
+      imBereich(b, zeile, spalte) ? { ...b, text } : b,
+    ),
+  };
+}
+
+/**
+ * Alle Zellen eines Bereichs auf einen Typ setzen. Textfelder, die dabei
+ * überbaut würden, fallen weg – was im Raster steht, ist immer sichtbar.
+ */
 export function fuelleBereich(schema: Raumschema, bereich: Bereich, typ: ZellTyp): Raumschema {
   return {
     raum: schema.raum,
     zellen: schema.zellen.map((reihe, z) =>
       reihe.map((alt, s) => (imBereich(bereich, z, s) ? typ : alt)),
     ),
+    beschriftungen: schema.beschriftungen.filter((b) => !bereicheUeberlappen(b, bereich)),
   };
 }
 
@@ -261,7 +487,21 @@ export function verschiebeBereich(
   for (const zelle of inhalt) {
     if (passt(zelle.zeile, zelle.spalte)) zellen[zelle.zeile][zelle.spalte] = zelle.typ;
   }
-  return { raum: schema.raum, zellen };
+
+  // Textfelder im verschobenen Block wandern mit; angeschnittene fallen weg.
+  const beschriftungen: Beschriftung[] = [];
+  for (const b of schema.beschriftungen) {
+    if (!bereicheUeberlappen(b, bereich)) {
+      beschriftungen.push(b);
+      continue;
+    }
+    if (!bereichEnthaelt(bereich, b)) continue;
+    const ziel = { ...b, zeile: b.zeile + dZeile, spalte: b.spalte + dSpalte };
+    if (passt(ziel.zeile, ziel.spalte) && passt(ziel.zeile + ziel.hoehe - 1, ziel.spalte + ziel.breite - 1)) {
+      beschriftungen.push(ziel);
+    }
+  }
+  return { raum: schema.raum, zellen, beschriftungen };
 }
 
 /**
@@ -279,18 +519,14 @@ export function bereichAendern(
     zellen: schema.zellen.map((reihe, z) =>
       reihe.map((zellTyp, s) => (imBereich(alt, z, s) && !imBereich(neu, z, s) ? 'leer' : zellTyp)),
     ),
+    beschriftungen: schema.beschriftungen.filter((b) => !bereicheUeberlappen(b, alt)),
   };
   return fuelleBereich(geleert, neu, typ);
 }
 
 /** Zelltyp setzen (unveränderlich, gibt ein neues Schema zurück). */
 export function setzeZelle(schema: Raumschema, zeile: number, spalte: number, typ: ZellTyp): Raumschema {
-  return {
-    raum: schema.raum,
-    zellen: schema.zellen.map((reihe, z) =>
-      z === zeile ? reihe.map((alt, s) => (s === spalte ? typ : alt)) : reihe,
-    ),
-  };
+  return fuelleBereich(schema, { zeile, spalte, hoehe: 1, breite: 1 }, typ);
 }
 
 /** Nächster Zelltyp beim Antippen im Bearbeiten-Modus. */
@@ -310,5 +546,6 @@ export function mitGroesse(schema: Raumschema, anzahlZeilen: number, anzahlSpalt
     zellen: Array.from({ length: z }, (_, zi) =>
       Array.from({ length: s }, (_, si): ZellTyp => schema.zellen[zi]?.[si] ?? 'leer'),
     ),
+    beschriftungen: beschnitteneBeschriftungen(schema.beschriftungen, z, s),
   };
 }

@@ -20,6 +20,10 @@ export const pfad = {
   raeume: join(
     ROOT, 'Zuslassungliste_Erstellen', '4_MailRaumZuordnung', '2_raum_zuteilung_erstellen', 'raeume.csv',
   ),
+  raumschema: join(
+    ROOT, 'Zuslassungliste_Erstellen', '4_MailRaumZuordnung', '2_raum_zuteilung_erstellen',
+    'raumschema.csv',
+  ),
   sitzplan: join(
     ROOT, 'Zuslassungliste_Erstellen', '4_MailRaumZuordnung', '2_raum_zuteilung_erstellen',
     'studierendeZuRaumUndZeitZuordnung.csv',

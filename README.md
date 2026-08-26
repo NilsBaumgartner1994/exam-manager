@@ -91,7 +91,7 @@ Alle CSV-Dateien: Trennzeichen `;`, UTF-8, Zeilenende `\n`.
 | VIPS-Notenliste | `Nachname;Vorname;Kennung;Matrikelnr.;<Aufgabenblatt …>;Summe` (Zeile 2 = Maximalpunktzahl, Datei mit BOM) |
 | Stud.IP-Export | `Status;Anrede;Titel;Vorname;Nachname;…;E-Mail;Anmeldedatum;Matrikelnummer;Studiengänge;Position` (alle Felder in `"`) |
 | Raumliste | `Raum;Plätze;ReservierteZeit` |
-| Raumschema (`raumschema.csv`) | Raster statt Kopfzeile: `Raum;<Name>` beginnt einen Raum, jede weitere Zeile ist eine Reihe im Raum. Zellen: `T` Tisch, `D` Tür, `W` Wand, `P` Pult, `.` frei |
+| Raumschema (`raumschema.csv`) | Raster statt Kopfzeile: `Raum;<Name>` beginnt einen Raum, jede weitere Zeile ist eine Reihe im Raum. Zellen: `T` Tisch, `D` Tür, `W` Wand, `P` Pult, `.` frei. Freier Text über verbundenen Zellen steht in eigenen Zeilen: `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>` |
 | Raumbelegung (`raumbelegung.csv`) | `Raum;Zeile;Spalte;Sitzplatznummer;Matrikelnummer;Nachname;Vorname;Reserviert;Vorgabe` (Sitzplatznummer, Nachname und Vorname stehen nur zur Lesbarkeit darin und werden beim Einlesen ignoriert) |
 
 Ein Raumschema bildet den Aufbau des Raumes direkt ab und lässt sich deshalb
@@ -99,11 +99,20 @@ auch in Excel bearbeiten – so sieht `raumschema.csv` der Beispieldaten aus:
 
 ```
 Raum;94/E01
-P;.;.;.
-.;T;.;T
-.;T;.;T
-D;.;.;.
+W;W;W;W;W;W;W;W;W
+.;P;.;.;.;.;.;.;.
+.;.;.;.;.;.;.;.;.
+.;T;T;T;.;T;T;T;.
+…
+.;D;.;.;.;.;.;D;.
+W;W;W;W;W;W;W;W;W
+Text;1;3;1;5;Klausur SWE – Raum 94/E01
 ```
+
+Die letzte Zeile ist ein Textfeld über verbundenen Zellen: ab Zeile 1,
+Spalte 3, eine Zeile hoch und fünf Spalten breit. Die Beispieldaten enthalten
+fünf Räume in realistischen Größen – vom Seminarraum (9 × 26 Felder) bis zum
+Hörsaal `01/E01` mit 47 × 34 Feldern.
 
 ## Voraussetzungen
 
@@ -152,7 +161,7 @@ echo 2 | python3 createRoomAssignment.py \
 ```
 
 Erwartetes Ergebnis: 6 neue Zulassungen, 9 Teilnehmende mit Zulassung,
-7 zugelassene Angemeldete, 1 Person ohne Zulassung, 7 Sitzplätze in 2 Räumen.
+7 zugelassene Angemeldete, 1 Person ohne Zulassung, 7 Sitzplätze in 5 Räumen.
 
 ## Web-App (TypeScript)
 
@@ -216,17 +225,30 @@ Und die vier Schritte selbst:
    - **Vorgabe** – eine Person fest auf ihren Platz binden; sie bleibt dort
      auch bei „Sitzplan neu verteilen“.
    - **Raum bearbeiten** – links liegt die Palette (Auswählen, Tisch, Wand,
-     Tür, Pult, Radierer). Ein Element auf eine Zelle **ziehen** setzt es
+     Tür, Pult, Text, Radierer). Ein Element auf eine Zelle **ziehen** setzt es
      dort; **antippen** wählt es aus und man malt damit im Plan (über Zellen
      ziehen zeichnet z. B. eine ganze Wand). Mit **Auswählen** verschiebt man
      einen Block – die Belegung wandert mit –, und am blauen **Griff an der
      unteren Ecke** zieht man ihn wie in einer Tabellenkalkulation über
      mehrere Felder auf oder wieder zusammen. Zeilen und Spalten lassen sich
      zusätzlich über die Knöpfe hinzufügen und entfernen.
-   - **Raster sehen** – jedes Feld hat eine dünne Linie, links und oben stehen
-     Zeilen- und Spaltennummern, und die Überschrift nennt die Rastergröße.
-     So ist zu erkennen, wie groß der Raum ist und wo sich klicken lässt –
-     auch dort, wo noch nichts steht. Der Aushang verzichtet darauf.
+   - **Text und verbundene Zellen** – mit dem Werkzeug **Text** zieht man über
+     mehrere Felder ein Feld auf, in das sich frei schreiben lässt (z. B.
+     „Tafel“, „Aufsicht“ oder ein Hinweis für die Aufsicht). Dasselbe leisten
+     die Knöpfe **Zellen verbinden** und **Zellen trennen** für die aktuelle
+     Auswahl. Die Zellen unter einem Textfeld werden frei, damit kein Tisch
+     unsichtbar darunter verschwindet; wer wieder etwas hineinmalt, löst das
+     Feld auf.
+   - **Raster sehen** – jedes Feld hat eine dünne Linie, oben stehen die
+     Spalten als `A`, `B`, `C` … und links die Zeilen als `1`, `2`, `3` – wie
+     in einer Tabellenkalkulation. Die Überschrift nennt die Rastergröße und
+     die Adresse der Auswahl (etwa `B3:E7`). So ist zu erkennen, wie groß der
+     Raum ist und wo sich klicken lässt – auch dort, wo noch nichts steht.
+     Der Aushang verzichtet darauf.
+   - **Größe der Ansicht** – ohne Zoom passt jeder Raum ganz ins Fenster, auch
+     ein Hörsaal mit 47 × 34 Feldern auf einem 1920 × 1080-Schirm. Zum Lesen
+     der Namen zoomt man mit **+** hinein (dann scrollt der Plan), **Einpassen**
+     stellt die Übersicht wieder her.
    - **Drehen** – die Ansicht je Raum um 90° drehen (vier Richtungen), damit
      sie zur eigenen Blickrichtung im Raum passt. Gedreht wird nur die
      Darstellung; die gespeicherten Positionen und die Sitzplatznummern

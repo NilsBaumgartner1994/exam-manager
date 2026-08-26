@@ -1,7 +1,7 @@
 # Kompletter Durchlauf: alle vier Screens mit den eingebauten Beispieldaten.
 # Erwartete Zahlen stammen aus dem anonymisierten Beispiel-Datensatz
 # (siehe README "Beispieldaten"): 6 neue Zulassungen, 9 mit Zulassung,
-# 7 von 8 Angemeldeten zugelassen, 7 Sitzplätze in 2 Räumen.
+# 7 von 8 Angemeldeten zugelassen, 7 Sitzplätze in 5 Räumen.
 url: http://localhost:8081
 ---
 # ---------- Startseite ----------
@@ -68,8 +68,8 @@ url: http://localhost:8081
     element: 'Zuteilung erstellen'
 - tapOn: 'Zuteilung erstellen'
 - scrollUntilVisible:
-    element: '7 Sitzplätze in 2 Räumen vergeben.'
-- assertVisible: '7 Sitzplätze in 2 Räumen vergeben.'
+    element: '7 Sitzplätze in 5 Räumen vergeben.'
+- assertVisible: '7 Sitzplätze in 5 Räumen vergeben.'
 - scrollUntilVisible:
     element: 'Aushang'
 - tapOn: 'Dozent'

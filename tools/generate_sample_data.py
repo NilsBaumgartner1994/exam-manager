@@ -183,32 +183,76 @@ def his_export(path_xlsx, path_csv):
     write_rows(path_csv, [[p["nachname"], p["vorname"], p["matrikel"]] for p in ANGEMELDET])
 
 
+# Raeume der Beispielklausur: Name, Spalten x Zeilen des Rasters und die
+# Breite eines Tischblocks zwischen zwei Gaengen. Die Groessen entsprechen
+# echten Hoersaal-Zuschnitten (ein grosser Hoersaal, ein mittlerer, drei
+# gleich geschnittene Seminarraeume) – gross genug, um die Ansicht der App
+# unter realistischen Bedingungen zu pruefen.
+RAEUME = [
+    {"raum": "01/E01", "spalten": 47, "zeilen": 34, "block": 6, "gruppe": 1},
+    {"raum": "66/E33", "spalten": 19, "zeilen": 31, "block": 4, "gruppe": 1},
+    {"raum": "94/E01", "spalten": 9, "zeilen": 26, "block": 3, "gruppe": 2},
+    {"raum": "94/E03", "spalten": 9, "zeilen": 26, "block": 3, "gruppe": 2},
+    {"raum": "94/E06", "spalten": 9, "zeilen": 26, "block": 3, "gruppe": 2},
+]
+
+
+def raster(raum):
+    """Raster eines Raumes: T=Tisch, D=Tuer, W=Wand, P=Pult, .=frei.
+
+    Aufbau wie in einem Hoersaal: vorne Wand und Pult, dahinter Tischreihen in
+    Bloecken mit Gaengen dazwischen, hinten zwei Tueren und die Rueckwand.
+    """
+    breite, hoehe, block = raum["spalten"], raum["zeilen"], raum["block"]
+
+    # Spaltenmuster einer Sitzreihe: Rand, dann Bloecke mit je einem Gang.
+    reihe = ["."] * breite
+    for spalte in range(1, breite - 1):
+        if (spalte - 1) % (block + 1) != block:
+            reihe[spalte] = "T"
+
+    pult = ["."] * breite
+    pult[1] = "P"
+    tueren = ["."] * breite
+    tueren[1] = "D"
+    tueren[breite - 2] = "D"
+
+    rows = [["W"] * breite, pult, ["."] * breite]
+    # Alle acht Reihen ein Quergang, damit die Sitzbloecke erreichbar bleiben.
+    for i in range(max(0, hoehe - 6)):
+        rows.append(["."] * breite if i > 0 and i % 8 == 0 else list(reihe))
+    rows += [["."] * breite, tueren, ["W"] * breite]
+    return rows[:hoehe]
+
+
+def plaetze(raum):
+    """Anzahl der Tische im Raster – das ist die Kapazitaet des Raumes."""
+    return sum(zeile.count("T") for zeile in raster(raum))
+
+
 def raeume(path):
     header = ["Raum", "Plätze", "ReservierteZeit"]
-    zeit1 = f"{PRUEFUNGSDATUM} Gruppe 1: ca. 09:15 Uhr = Einlassstart / 09:30 Uhr (s.t.) = Einlassschluss (fix)"
-    zeit2 = f"{PRUEFUNGSDATUM} Gruppe 2: ca. 12:15 Uhr = Einlassstart / 12:30 Uhr (s.t.) = Einlassschluss (fix)"
-    write_rows(path, [["94/E01", "4", zeit1], ["94/E03", "4", zeit2]], header=header)
+    zeiten = {
+        1: f"{PRUEFUNGSDATUM} Gruppe 1: ca. 09:15 Uhr = Einlassstart / 09:30 Uhr (s.t.) = Einlassschluss (fix)",
+        2: f"{PRUEFUNGSDATUM} Gruppe 2: ca. 12:15 Uhr = Einlassstart / 12:30 Uhr (s.t.) = Einlassschluss (fix)",
+    }
+    write_rows(path, [[r["raum"], str(plaetze(r)), zeiten[r["gruppe"]]] for r in RAEUME],
+               header=header)
 
 
 def raumschema(path):
-    """Raster der Raeume: T=Tisch, D=Tuer, W=Wand, P=Pult, .=frei.
+    """Raster aller Raeume in einer Datei (siehe packages/core/src/raumschema.ts).
 
-    Bildet den Aufbau des Raumes ab (siehe packages/core/src/raumschema.ts) und
-    ist bewusst je Raum anders geschnitten, damit das Drehen der Ansicht in der
-    App sichtbar etwas aendert.
+    Zu jedem Raum kommt eine Beschriftung – ein Textfeld ueber verbundenen
+    Zellen, damit die Beispieldaten auch diesen Teil des Editors zeigen.
     """
-    rows = [
-        ["Raum", "94/E01"],
-        ["P", ".", ".", "."],
-        [".", "T", ".", "T"],
-        [".", "T", ".", "T"],
-        ["D", ".", ".", "."],
-        ["Raum", "94/E03"],
-        [".", ".", "P", "."],
-        ["T", "T", ".", "."],
-        ["T", "T", ".", "."],
-        [".", ".", ".", "D"],
-    ]
+    rows = []
+    for raum in RAEUME:
+        rows.append(["Raum", raum["raum"]])
+        rows += raster(raum)
+        # Textfeld ueber der zweiten Zeile, rechts neben dem Pult.
+        rows.append(["Text", "1", "3", "1", str(min(12, raum["spalten"] - 4)),
+                     f"Klausur SWE – Raum {raum['raum']}"])
     write_rows(path, rows)
 
 

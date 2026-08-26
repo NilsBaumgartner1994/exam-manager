@@ -1,5 +1,8 @@
 import {
+  anzeigeBereich,
   anzeigeRaster,
+  beschriftungBei,
+  bereichName,
   bereichAendern,
   bereichAus,
   fuelleBereich,
@@ -9,6 +12,7 @@ import {
   belegungToCsv,
   erstelleRaumzuteilung,
   leeresRaumschema,
+  mitGroesse,
   parseBelegung,
   ohneFreieBelegung,
   parseRaumschemata,
@@ -16,12 +20,16 @@ import {
   raumschemataToCsv,
   schalteReserve,
   schalteVorgabe,
+  setzeBeschriftungsText,
   setzePerson,
   setzeZelle,
   sitzplaetzeMitBelegung,
   sitzplatznummern,
+  spaltenName,
   standardRaumschema,
   tischzellen,
+  trenneZellen,
+  verbindeZellen,
   verteileAufRaumschemata,
   verteileImRaum,
   Zulassung,
@@ -127,6 +135,102 @@ describe('Raumschema', () => {
     const neu = setzeZelle(leer, 0, 1, 'tisch');
     expect(neu.zellen[0][1]).toBe('tisch');
     expect(leer.zellen[0][1]).toBe('leer');
+  });
+
+  it('benennt Spalten wie eine Tabellenkalkulation', () => {
+    expect([0, 1, 25, 26, 27, 46, 51, 52].map(spaltenName)).toEqual([
+      'A', 'B', 'Z', 'AA', 'AB', 'AU', 'AZ', 'BA',
+    ]);
+    expect(bereichName({ zeile: 2, spalte: 1, hoehe: 1, breite: 1 })).toBe('B3');
+    expect(bereichName({ zeile: 2, spalte: 1, hoehe: 3, breite: 4 })).toBe('B3:E5');
+  });
+
+  it('rechnet einen Bereich in die gedrehte Ansicht um', () => {
+    const schema = parseRaumschemata(SCHEMA_CSV)[0]; // 4 Zeilen x 5 Spalten
+    // Ungedreht bleibt alles, wie es ist.
+    const bereich = { zeile: 1, spalte: 1, hoehe: 2, breite: 3 };
+    expect(anzeigeBereich(bereich, schema, 0)).toEqual(bereich);
+    // Gedreht deckt der Bereich dieselben Zellen ab wie das gedrehte Raster.
+    for (const drehungen of [1, 2, 3]) {
+      const raster = anzeigeRaster(schema, drehungen);
+      const gedreht = anzeigeBereich(bereich, schema, drehungen);
+      raster.forEach((zeile, z) =>
+        zeile.forEach((zelle, s) => {
+          expect(imBereich(gedreht, z, s)).toBe(imBereich(bereich, zelle.zeile, zelle.spalte));
+        }),
+      );
+    }
+  });
+});
+
+describe('Textfelder über verbundenen Zellen', () => {
+  const mitText = () =>
+    verbindeZellen(leeresRaumschema('X', 3, 4), { zeile: 0, spalte: 1, hoehe: 1, breite: 3 }, 'Hinweis');
+
+  it('verbindet Zellen zu einem Textfeld und trennt sie wieder', () => {
+    const schema = mitText();
+    expect(schema.beschriftungen).toEqual([
+      { zeile: 0, spalte: 1, hoehe: 1, breite: 3, text: 'Hinweis' },
+    ]);
+    expect(beschriftungBei(schema, 0, 3)?.text).toBe('Hinweis');
+    expect(beschriftungBei(schema, 1, 3)).toBeUndefined();
+    const getrennt = trenneZellen(schema, { zeile: 0, spalte: 3, hoehe: 1, breite: 1 });
+    expect(getrennt.beschriftungen).toEqual([]);
+  });
+
+  it('zieht beim Verbinden die Texte der beteiligten Felder zusammen', () => {
+    const eins = verbindeZellen(leeresRaumschema('X', 2, 4), { zeile: 0, spalte: 0, hoehe: 1, breite: 1 }, 'A');
+    const zwei = verbindeZellen(eins, { zeile: 0, spalte: 2, hoehe: 1, breite: 1 }, 'B');
+    const zusammen = verbindeZellen(zwei, { zeile: 0, spalte: 0, hoehe: 1, breite: 4 });
+    expect(zusammen.beschriftungen).toEqual([
+      { zeile: 0, spalte: 0, hoehe: 1, breite: 4, text: 'A B' },
+    ]);
+  });
+
+  it('macht die Zellen unter einem Textfeld frei und weicht Elementen', () => {
+    const schema = verbindeZellen(
+      fuelleBereich(leeresRaumschema('X', 2, 3), { zeile: 0, spalte: 0, hoehe: 1, breite: 3 }, 'tisch'),
+      { zeile: 0, spalte: 0, hoehe: 1, breite: 2 },
+      'Aufsicht',
+    );
+    // Unter dem Feld darf kein Tisch liegen bleiben – sonst wäre er unsichtbar.
+    expect(schema.zellen[0]).toEqual(['leer', 'leer', 'tisch']);
+    expect(tischzellen(schema)).toHaveLength(1);
+    // Wer wieder etwas hineinmalt, löst das Feld auf.
+    expect(setzeZelle(schema, 0, 1, 'wand').beschriftungen).toEqual([]);
+  });
+
+  it('nimmt Textfelder beim Verschieben eines Blocks mit', () => {
+    const schema = verbindeZellen(leeresRaumschema('X', 3, 4), { zeile: 0, spalte: 0, hoehe: 1, breite: 2 }, 'Tafel');
+    const verschoben = verschiebeBereich(schema, { zeile: 0, spalte: 0, hoehe: 1, breite: 2 }, 1, 1);
+    expect(verschoben.beschriftungen).toEqual([
+      { zeile: 1, spalte: 1, hoehe: 1, breite: 2, text: 'Tafel' },
+    ]);
+  });
+
+  it('ändert den Text eines Feldes über eine beliebige seiner Zellen', () => {
+    const schema = setzeBeschriftungsText(mitText(), 0, 3, 'Neuer Text');
+    expect(schema.beschriftungen[0].text).toBe('Neuer Text');
+  });
+
+  it('schreibt Textfelder in die CSV und liest sie wieder ein', () => {
+    const schema = mitText();
+    const csv = raumschemataToCsv([schema]);
+    expect(csv).toContain('Text;0;1;1;3;Hinweis');
+    expect(parseRaumschemata(csv)).toEqual([schema]);
+  });
+
+  it('nimmt auch Semikolon im Text mit', () => {
+    const gelesen = parseRaumschemata('Raum;X\n.;.\nText;0;0;1;2;Erst A; dann B\n')[0];
+    expect(gelesen.beschriftungen[0].text).toBe('Erst A; dann B');
+  });
+
+  it('begrenzt Textfelder auf das Raster, wenn der Raum kleiner wird', () => {
+    const schema = verbindeZellen(leeresRaumschema('X', 3, 4), { zeile: 2, spalte: 2, hoehe: 1, breite: 2 }, 'weg');
+    expect(mitGroesse(schema, 2, 4).beschriftungen).toEqual([]);
+    expect(mitGroesse(schema, 3, 3).beschriftungen).toEqual([
+      { zeile: 2, spalte: 2, hoehe: 1, breite: 1, text: 'weg' },
+    ]);
   });
 });
 

@@ -1,18 +1,30 @@
-import { useRef, useState } from 'react';
-import { PointerEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import {
+  LayoutChangeEvent,
+  PointerEvent,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import {
   AnzeigeZelle,
+  anzeigeBereich,
   anzeigeRaster,
   Bereich,
   bereichAus,
+  Beschriftung,
   imBereich,
   Platzbelegung,
   platzSchluessel,
   Raumschema,
   Sitzplatz,
+  spaltenName,
+  zeilenName,
 } from '@exam-manager/core';
 import { datenAttribute } from '../domProps';
-import { useResponsiveLayout } from '../responsive';
 import { colors, radius, spacing } from '../theme';
 
 /** Werkzeug im Bearbeiten-Modus: auswählen/verschieben oder Zellen malen. */
@@ -33,6 +45,12 @@ interface Props {
   /** Zelle angetippt bzw. beim Malen überstrichen (kanonische Position). */
   onZellePress?: (zeile: number, spalte: number) => void;
 
+  /**
+   * Vergrößerung gegenüber der eingepassten Größe (1 = ganzer Raum sichtbar).
+   * Große Räume (47 × 34 Felder) passen dadurch auch auf einen 1920×1080-Schirm.
+   */
+  zoom?: number;
+
   // --- nur im Bearbeiten-Modus ---
   /** Zeigt Auswahl und Ziehgriff und schaltet das Ziehen frei. */
   bearbeiten?: boolean;
@@ -44,6 +62,8 @@ interface Props {
   onVerschieben?: (dZeile: number, dSpalte: number) => void;
   /** Auswahl über mehrere Felder aufziehen (neuer kanonischer Bereich). */
   onAufziehen?: (bereich: Bereich) => void;
+  /** Text eines verbundenen Feldes geändert (obere linke Zelle des Feldes). */
+  onBeschriftungText?: (zeile: number, spalte: number, text: string) => void;
   /** Zelle, über der gerade ein Element aus der Palette schwebt. */
   zielZelle?: { zeile: number; spalte: number } | null;
 
@@ -61,9 +81,47 @@ interface Zug {
   anker?: { zeile: number; spalte: number };
 }
 
-const GITTER_ABSTAND = 4;
-/** Breite/Höhe der Zeilen- und Spaltenköpfe (wie in einer Tabelle). */
-const KOPF_GROESSE = 20;
+/** Grenzen der Zellgröße: klein genug für große Räume, groß genug zum Lesen. */
+const ZELLE_MIN = 14;
+const ZELLE_MAX = 84;
+/** Höhe, die neben dem Plan für Kopfzeile, Schaltflächen und Listen bleibt. */
+const HOEHE_FUER_DEN_REST = 340;
+
+function begrenze(wert: number, min: number, max: number): number {
+  return Math.round(Math.min(Math.max(wert, min), max));
+}
+
+/**
+ * Maße des Rasters zu einer Raumgröße: So groß, dass der ganze Raum in das
+ * verfügbare Fenster passt (`zoom` = 1), aber nie größer als `ZELLE_MAX`.
+ * Abstand, Kopfgröße und Schriftgrößen hängen an der Zellgröße – sonst wäre
+ * bei 47 Spalten mehr Fuge als Zelle zu sehen.
+ */
+export function rastermasse(
+  anzahlZeilen: number,
+  anzahlSpalten: number,
+  breite: number,
+  hoehe: number,
+  zoom: number,
+) {
+  const proSpalte = breite / Math.max(1, anzahlSpalten);
+  const proZeile = hoehe / Math.max(1, anzahlZeilen);
+  const eingepasst = begrenze(Math.min(proSpalte, proZeile) - 4, ZELLE_MIN, ZELLE_MAX);
+  const groesse = begrenze(eingepasst * (zoom > 0 ? zoom : 1), 8, 240);
+  return {
+    groesse,
+    abstand: groesse >= 40 ? 4 : groesse >= 24 ? 2 : 1,
+    kopfGroesse: begrenze(groesse * 0.34, 11, 22),
+    kopfSchrift: begrenze(groesse * 0.22, 8, 11),
+    /** Ab hier ist Platz für Nummer und Zusatz, darunter nur noch der Name. */
+    zeigeDetails: groesse >= 40,
+    zeigeNamen: groesse >= 26,
+    namenSchrift: begrenze(groesse * 0.2, 8, 13),
+    kleinSchrift: begrenze(groesse * 0.16, 7, 11),
+  };
+}
+
+type Rastermasse = ReturnType<typeof rastermasse>;
 
 /**
  * Sitzplan eines Raums als Raster.
@@ -72,9 +130,15 @@ const KOPF_GROESSE = 20;
  * Blickrichtung im Raum passt. Gedreht wird nur die Darstellung – jede Zelle
  * behält ihre gespeicherte Position, Sitzplatznummern bleiben also gleich.
  *
- * Jedes Feld hat eine dünne Linie und das Raster Zeilen- und Spaltenköpfe:
- * So ist zu sehen, wie groß der Raum ist und wo sich klicken lässt – auch
- * dort, wo (noch) nichts steht. Der Aushang (`anonym`) verzichtet darauf.
+ * Das Raster hat Köpfe wie eine Tabellenkalkulation: Spalten A, B, C …,
+ * Zeilen 1, 2, 3 … So ist zu sehen, wie groß der Raum ist und wo sich klicken
+ * lässt – auch dort, wo (noch) nichts steht. Der Aushang (`anonym`) verzichtet
+ * darauf. Beschriftet wird immer das, was man sieht: Nach einer Drehung
+ * benennen die Köpfe die gedrehte Ansicht.
+ *
+ * Die Zellgröße richtet sich nach dem Fenster: Ohne Zoom passt der ganze Raum
+ * hinein, auch ein Hörsaal mit 47 × 34 Feldern. Zum Lesen der Namen zoomt man
+ * hinein, dann scrollt der Plan.
  *
  * Im Bearbeiten-Modus wird gezogen wie in einer Tabellenkalkulation:
  * über Zellen ziehen malt (praktisch für Wände), am Griff an der unteren Ecke
@@ -91,24 +155,41 @@ export function Raumplan({
   personen,
   ausgewaehlt,
   onZellePress,
+  zoom = 1,
   bearbeiten,
   werkzeug = 'auswahl',
   auswahl,
   onAuswahl,
   onVerschieben,
   onAufziehen,
+  onBeschriftungText,
   zielZelle,
   anonym,
   testID,
 }: Props) {
-  const { isCompact } = useResponsiveLayout();
-  const raster = anzeigeRaster(schema, drehungen);
-  const groesse = isCompact ? 64 : 84;
+  const fenster = useWindowDimensions();
+  const [breite, setBreite] = useState(0);
   const gitterRef = useRef<View>(null);
   const [zug, setZug] = useState<Zug | null>(null);
 
-  const belegungJePlatz = new Map(
-    belegung.map((platz) => [platzSchluessel(platz.raum, platz.zeile, platz.spalte), platz]),
+  const raster = useMemo(() => anzeigeRaster(schema, drehungen), [schema, drehungen]);
+  const spaltenAnzahl = raster[0]?.length ?? 0;
+  const mitGitter = !anonym;
+
+  const masse = rastermasse(
+    raster.length,
+    spaltenAnzahl,
+    (breite > 0 ? breite : fenster.width) - spacing.md,
+    Math.max(280, fenster.height - HOEHE_FUER_DEN_REST),
+    zoom,
+  );
+  const { groesse, abstand, kopfGroesse } = masse;
+  const schritt = groesse + abstand;
+
+  const belegungJePlatz = useMemo(
+    () =>
+      new Map(belegung.map((platz) => [platzSchluessel(platz.raum, platz.zeile, platz.spalte), platz])),
+    [belegung],
   );
 
   /** Anzeige-Position einer Zelle aus den Bildschirmkoordinaten. */
@@ -118,10 +199,9 @@ export function Raumplan({
     // Der gemessene Knoten ist genau das Zellraster (die Köpfe liegen außerhalb),
     // die erste Zelle beginnt also an seiner Ecke.
     const rect = knoten.getBoundingClientRect();
-    const schritt = groesse + GITTER_ABSTAND;
     const zeile = Math.floor((y - rect.top) / schritt);
     const spalte = Math.floor((x - rect.left) / schritt);
-    if (zeile < 0 || spalte < 0 || zeile >= raster.length || spalte >= (raster[0]?.length ?? 0)) return null;
+    if (zeile < 0 || spalte < 0 || zeile >= raster.length || spalte >= spaltenAnzahl) return null;
     return { zeile, spalte };
   };
 
@@ -129,70 +209,57 @@ export function Raumplan({
     raster[position.zeile][position.spalte];
 
   /** Anzeige-Rechteck der Auswahl – für Griff und Vorschau. */
-  const auswahlAnzeige = (() => {
-    if (!auswahl) return null;
-    let minZ = Infinity, minS = Infinity, maxZ = -1, maxS = -1;
-    raster.forEach((zeile, z) =>
-      zeile.forEach((zelle, s) => {
-        if (!imBereich(auswahl, zelle.zeile, zelle.spalte)) return;
-        minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
-        minS = Math.min(minS, s); maxS = Math.max(maxS, s);
-      }),
-    );
-    return maxZ < 0 ? null : { minZ, minS, maxZ, maxS };
-  })();
+  const auswahlAnzeige = auswahl ? anzeigeBereich(auswahl, schema, drehungen) : null;
 
   /** Vorschau während eines Zugs (Anzeige-Koordinaten). */
   const vorschau = (() => {
-    if (!zug || !auswahlAnzeige) return null;
-    if (zug.art === 'groesse' && zug.anker) {
-      const z = [Math.min(zug.anker.zeile, zug.aktuell.zeile), Math.max(zug.anker.zeile, zug.aktuell.zeile)];
-      const s = [Math.min(zug.anker.spalte, zug.aktuell.spalte), Math.max(zug.anker.spalte, zug.aktuell.spalte)];
-      return { minZ: z[0], maxZ: z[1], minS: s[0], maxS: s[1] };
-    }
-    if (zug.art === 'verschieben') {
-      const dz = zug.aktuell.zeile - zug.start.zeile;
-      const ds = zug.aktuell.spalte - zug.start.spalte;
+    if (!zug) return null;
+    if (zug.art === 'groesse' && zug.anker) return bereichAus(zug.anker, zug.aktuell);
+    if (zug.art === 'verschieben' && auswahlAnzeige) {
       return {
-        minZ: auswahlAnzeige.minZ + dz, maxZ: auswahlAnzeige.maxZ + dz,
-        minS: auswahlAnzeige.minS + ds, maxS: auswahlAnzeige.maxS + ds,
+        ...auswahlAnzeige,
+        zeile: auswahlAnzeige.zeile + (zug.aktuell.zeile - zug.start.zeile),
+        spalte: auswahlAnzeige.spalte + (zug.aktuell.spalte - zug.start.spalte),
       };
     }
     return null;
   })();
 
-  const inVorschau = (z: number, s: number) =>
-    !!vorschau && z >= vorschau.minZ && z <= vorschau.maxZ && s >= vorschau.minS && s <= vorschau.maxS;
-
   const zellePointerDown = (anzeige: { zeile: number; spalte: number }) => {
+    const zelle = kanonisch(anzeige);
     if (!bearbeiten) {
-      const zelle = kanonisch(anzeige);
       onZellePress?.(zelle.zeile, zelle.spalte);
       return;
     }
-    const inAuswahl = auswahl ? imBereich(auswahl, kanonisch(anzeige).zeile, kanonisch(anzeige).spalte) : false;
-    if (inAuswahl && werkzeug === 'auswahl') {
+    if (auswahl && imBereich(auswahl, zelle.zeile, zelle.spalte) && werkzeug === 'auswahl') {
       setZug({ art: 'verschieben', start: anzeige, aktuell: anzeige });
       return;
     }
     if (werkzeug === 'malen') {
-      const zelle = kanonisch(anzeige);
       onZellePress?.(zelle.zeile, zelle.spalte);
       setZug({ art: 'malen', start: anzeige, aktuell: anzeige });
       return;
     }
     // Auswählen: einzelne Zelle wählen, ziehen zieht direkt einen Bereich auf.
-    const zelle = kanonisch(anzeige);
     onAuswahl?.(bereichAus(zelle, zelle));
     setZug({ art: 'groesse', start: anzeige, aktuell: anzeige, anker: anzeige });
   };
 
-  const griffPointerDown = () => {
-    if (!auswahlAnzeige) return;
-    const anker = { zeile: auswahlAnzeige.minZ, spalte: auswahlAnzeige.minS };
-    const ecke = { zeile: auswahlAnzeige.maxZ, spalte: auswahlAnzeige.maxS };
-    setZug({ art: 'groesse', start: ecke, aktuell: ecke, anker });
-  };
+  // Die Zellen bekommen stabile Rückrufe, damit `React.memo` greift: Bei
+  // 47 × 34 Feldern würde sonst jeder Zug das ganze Raster neu rendern.
+  const aktuelleHandler = useRef({ zellePointerDown, auswahlAnzeige });
+  aktuelleHandler.current = { zellePointerDown, auswahlAnzeige };
+
+  const zellDown = useCallback((zeile: number, spalte: number) => {
+    aktuelleHandler.current.zellePointerDown({ zeile, spalte });
+  }, []);
+
+  const griffDown = useCallback(() => {
+    const bereich = aktuelleHandler.current.auswahlAnzeige;
+    if (!bereich) return;
+    const ecke = { zeile: bereich.zeile + bereich.hoehe - 1, spalte: bereich.spalte + bereich.breite - 1 };
+    setZug({ art: 'groesse', start: ecke, aktuell: ecke, anker: { zeile: bereich.zeile, spalte: bereich.spalte } });
+  }, []);
 
   const pointerMove = (ereignis: PointerEvent) => {
     if (!zug) return;
@@ -218,88 +285,188 @@ export function Raumplan({
     setZug(null);
   };
 
-  const mitGitter = !anonym;
-  const spaltenAnzahl = raster[0]?.length ?? 0;
+  /** Zellen unter einem verbundenen Textfeld – sie liegen hinter dem Feld. */
+  const verdeckt = useMemo(() => {
+    const schluessel = new Set<string>();
+    for (const b of schema.beschriftungen) {
+      for (let z = b.zeile; z < b.zeile + b.hoehe; z++) {
+        for (let s = b.spalte; s < b.spalte + b.breite; s++) schluessel.add(`${z}|${s}`);
+      }
+    }
+    return schluessel;
+  }, [schema.beschriftungen]);
+
+  const merkeBreite = (ereignis: LayoutChangeEvent) => {
+    const gemessen = Math.round(ereignis.nativeEvent.layout.width);
+    if (gemessen > 0 && gemessen !== breite) setBreite(gemessen);
+  };
 
   return (
-    <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator testID={testID}>
+    <ScrollView
+      horizontal
+      nestedScrollEnabled
+      showsHorizontalScrollIndicator
+      onLayout={merkeBreite}
+      testID={testID}
+    >
       <View style={styles.aussen}>
         {mitGitter ? (
-          <View style={styles.kopfZeile}>
-            <View style={styles.kopfEcke} />
+          <View style={[styles.kopfZeile, { gap: abstand }]}>
+            <View style={{ width: kopfGroesse, height: kopfGroesse }} />
             {Array.from({ length: spaltenAnzahl }, (_, s) => (
-              <View key={s} style={[styles.kopf, { width: groesse, height: KOPF_GROESSE }]}>
-                <Text style={styles.kopfText}>{s + 1}</Text>
+              <View key={s} style={[styles.kopf, { width: groesse, height: kopfGroesse }]}>
+                <Text style={[styles.kopfText, { fontSize: masse.kopfSchrift }]} numberOfLines={1}>
+                  {spaltenName(s)}
+                </Text>
               </View>
             ))}
           </View>
         ) : null}
 
-        <View style={styles.innen}>
+        <View style={[styles.innen, { gap: abstand }]}>
           {mitGitter ? (
-            <View style={styles.kopfSpalte}>
+            <View style={{ gap: abstand }}>
               {raster.map((_, z) => (
-                <View key={z} style={[styles.kopf, { width: KOPF_GROESSE, height: groesse }]}>
-                  <Text style={styles.kopfText}>{z + 1}</Text>
+                <View key={z} style={[styles.kopf, { width: kopfGroesse, height: groesse }]}>
+                  <Text style={[styles.kopfText, { fontSize: masse.kopfSchrift }]} numberOfLines={1}>
+                    {zeilenName(z)}
+                  </Text>
                 </View>
               ))}
             </View>
           ) : null}
 
-      <View
-        ref={gitterRef}
-        // Eigene Kennung: Die Köpfe liegen außerhalb, das reine Zellraster ist
-        // der Bezugspunkt für Koordinaten (und für Tests).
-        testID={testID ? `${testID}-raster` : undefined}
-        style={[styles.raster, bearbeiten ? ohneBrowserGeste : null]}
-        onPointerMove={bearbeiten || zug ? pointerMove : undefined}
-        onPointerUp={pointerUp}
-        onPointerCancel={() => setZug(null)}
-      >
-        {raster.map((zeile, z) => (
-          <View key={z} style={styles.zeile}>
-            {zeile.map((zelle, s) => {
-              const schluessel = platzSchluessel(schema.raum, zelle.zeile, zelle.spalte);
-              const istZiel =
-                !!zielZelle && zielZelle.zeile === zelle.zeile && zielZelle.spalte === zelle.spalte;
-              return (
-                <Zelle
-                  key={s}
-                  zelle={zelle}
-                  groesse={groesse}
-                  platz={belegungJePlatz.get(schluessel)}
-                  nummer={nummern.get(schluessel)}
-                  personen={personen}
-                  ausgewaehlt={ausgewaehlt ?? null}
-                  anonym={anonym ?? false}
-                  gitter={mitGitter}
-                  markiert={!!auswahl && imBereich(auswahl, zelle.zeile, zelle.spalte)}
-                  vorschau={inVorschau(z, s) || istZiel}
-                  griff={
-                    !!bearbeiten &&
-                    !!auswahlAnzeige &&
-                    auswahlAnzeige.maxZ === z &&
-                    auswahlAnzeige.maxS === s
-                  }
-                  interaktiv={!!onZellePress || !!bearbeiten}
-                  datenSchluessel={schluessel}
-                  onPointerDown={() => zellePointerDown({ zeile: z, spalte: s })}
-                  onGriffPointerDown={griffPointerDown}
-                />
-              );
-            })}
+          <View
+            ref={gitterRef}
+            // Eigene Kennung: Die Köpfe liegen außerhalb, das reine Zellraster ist
+            // der Bezugspunkt für Koordinaten (und für Tests).
+            testID={testID ? `${testID}-raster` : undefined}
+            style={[styles.raster, { gap: abstand }, bearbeiten ? ohneBrowserGeste : null]}
+            onPointerMove={bearbeiten || zug ? pointerMove : undefined}
+            onPointerUp={pointerUp}
+            onPointerCancel={() => setZug(null)}
+          >
+            {raster.map((zeile, z) => (
+              <View key={z} style={[styles.zeile, { gap: abstand }]}>
+                {zeile.map((zelle, s) => {
+                  const schluessel = platzSchluessel(schema.raum, zelle.zeile, zelle.spalte);
+                  return (
+                    <Zelle
+                      key={s}
+                      zeile={z}
+                      spalte={s}
+                      zelle={zelle}
+                      masse={masse}
+                      platz={belegungJePlatz.get(schluessel)}
+                      nummer={nummern.get(schluessel)}
+                      personen={personen}
+                      ausgewaehlt={ausgewaehlt ?? null}
+                      anonym={anonym ?? false}
+                      gitter={mitGitter}
+                      verdeckt={verdeckt.has(`${zelle.zeile}|${zelle.spalte}`)}
+                      markiert={!!auswahl && imBereich(auswahl, zelle.zeile, zelle.spalte)}
+                      vorschau={
+                        (!!vorschau && imBereich(vorschau, z, s)) ||
+                        (!!zielZelle &&
+                          zielZelle.zeile === zelle.zeile &&
+                          zielZelle.spalte === zelle.spalte)
+                      }
+                      griff={
+                        !!bearbeiten &&
+                        !!auswahlAnzeige &&
+                        auswahlAnzeige.zeile + auswahlAnzeige.hoehe - 1 === z &&
+                        auswahlAnzeige.spalte + auswahlAnzeige.breite - 1 === s
+                      }
+                      interaktiv={!!onZellePress || !!bearbeiten}
+                      datenSchluessel={schluessel}
+                      onPointerDown={zellDown}
+                      onGriffPointerDown={griffDown}
+                    />
+                  );
+                })}
+              </View>
+            ))}
+
+            {/* Verbundene Zellen liegen als eigene Felder über dem Raster – ein
+                Rechteck statt vieler Einzelzellen, damit der Text durchläuft. */}
+            {schema.beschriftungen.map((beschriftung) => (
+              <Textfeld
+                key={`${beschriftung.zeile}|${beschriftung.spalte}`}
+                beschriftung={beschriftung}
+                bereich={anzeigeBereich(beschriftung, schema, drehungen)}
+                masse={masse}
+                bearbeiten={!!bearbeiten}
+                markiert={!!auswahl && imBereich(auswahl, beschriftung.zeile, beschriftung.spalte)}
+                onAuswahl={onAuswahl}
+                onText={onBeschriftungText}
+                testID={testID ? `${testID}-text-${beschriftung.zeile}-${beschriftung.spalte}` : undefined}
+              />
+            ))}
           </View>
-        ))}
-      </View>
         </View>
       </View>
     </ScrollView>
   );
 }
 
-function Zelle({
+/** Ein verbundenes Textfeld über dem Raster. */
+function Textfeld({
+  beschriftung,
+  bereich,
+  masse,
+  bearbeiten,
+  markiert,
+  onAuswahl,
+  onText,
+  testID,
+}: {
+  beschriftung: Beschriftung;
+  bereich: Bereich;
+  masse: Rastermasse;
+  bearbeiten: boolean;
+  markiert: boolean;
+  onAuswahl?: (bereich: Bereich) => void;
+  onText?: (zeile: number, spalte: number, text: string) => void;
+  testID?: string;
+}) {
+  const schritt = masse.groesse + masse.abstand;
+  const rahmen = {
+    left: bereich.spalte * schritt,
+    top: bereich.zeile * schritt,
+    width: bereich.breite * masse.groesse + (bereich.breite - 1) * masse.abstand,
+    height: bereich.hoehe * masse.groesse + (bereich.hoehe - 1) * masse.abstand,
+  };
+  const schrift = { fontSize: Math.max(9, Math.min(16, Math.round(masse.groesse * 0.24))) };
+  const ecken = { borderRadius: Math.min(radius.md, Math.round(masse.groesse * 0.18)) };
+
+  return (
+    <View
+      style={[styles.textfeld, rahmen, ecken, markiert && styles.textfeldMarkiert]}
+      pointerEvents={bearbeiten ? 'auto' : 'none'}
+      onPointerDown={() => onAuswahl?.(beschriftung)}
+      testID={testID}
+    >
+      {bearbeiten && onText ? (
+        <TextInput
+          style={[styles.textfeldEingabe, schrift, mitTextauswahl]}
+          value={beschriftung.text}
+          onChangeText={(text) => onText(beschriftung.zeile, beschriftung.spalte, text)}
+          placeholder="Text …"
+          placeholderTextColor={colors.textMuted}
+          multiline
+        />
+      ) : (
+        <Text style={[styles.textfeldText, schrift]}>{beschriftung.text}</Text>
+      )}
+    </View>
+  );
+}
+
+const Zelle = memo(function Zelle({
+  zeile,
+  spalte,
   zelle,
-  groesse,
+  masse,
   platz,
   nummer,
   personen,
@@ -309,13 +476,17 @@ function Zelle({
   vorschau,
   griff,
   gitter,
+  verdeckt,
   interaktiv,
   datenSchluessel,
   onPointerDown,
   onGriffPointerDown,
 }: {
+  /** Position in der Anzeige – nur für die Rückrufe. */
+  zeile: number;
+  spalte: number;
   zelle: AnzeigeZelle;
-  groesse: number;
+  masse: Rastermasse;
   platz?: Platzbelegung;
   nummer?: number;
   personen: Map<string, Sitzplatz>;
@@ -325,36 +496,49 @@ function Zelle({
   vorschau: boolean;
   griff: boolean;
   gitter: boolean;
+  verdeckt: boolean;
   interaktiv: boolean;
   datenSchluessel: string;
-  onPointerDown: () => void;
+  onPointerDown: (zeile: number, spalte: number) => void;
   onGriffPointerDown: () => void;
 }) {
   const person = platz?.matrikelnummer ? personen.get(platz.matrikelnummer) : undefined;
   const istAusgewaehlt = !!ausgewaehlt && platz?.matrikelnummer === ausgewaehlt;
+  const { groesse, abstand } = masse;
 
   const inhalt = (() => {
+    if (verdeckt) return null;
     switch (zelle.typ) {
       case 'tisch':
         return (
           <>
-            <Text style={styles.nummer}>{nummer ?? ''}</Text>
-            {platz?.reserviert ? (
-              <Text style={styles.reserve}>Reserve</Text>
+            {masse.zeigeDetails ? (
+              <Text style={[styles.nummer, { fontSize: masse.kleinSchrift }]}>{nummer ?? ''}</Text>
+            ) : null}
+            {!masse.zeigeNamen ? null : platz?.reserviert ? (
+              <Text style={[styles.reserve, { fontSize: masse.kleinSchrift }]} numberOfLines={1}>
+                Reserve
+              </Text>
             ) : person ? (
-              <Text style={styles.name} numberOfLines={2}>
+              <Text style={[styles.name, { fontSize: masse.namenSchrift }]} numberOfLines={2}>
                 {anonym ? person.anfangNachname : person.nachname}
               </Text>
-            ) : (
-              <Text style={styles.frei}>frei</Text>
-            )}
-            {platz?.vorgabe ? <Text style={styles.vorgabe}>fest</Text> : null}
+            ) : masse.zeigeDetails ? (
+              <Text style={[styles.frei, { fontSize: masse.kleinSchrift }]}>frei</Text>
+            ) : null}
+            {platz?.vorgabe && masse.zeigeDetails ? (
+              <Text style={[styles.vorgabe, { fontSize: masse.kleinSchrift }]}>fest</Text>
+            ) : null}
           </>
         );
       case 'tuer':
-        return <Text style={styles.symbolText}>Tür</Text>;
+        return masse.zeigeNamen ? (
+          <Text style={[styles.symbolText, { fontSize: masse.kleinSchrift }]}>Tür</Text>
+        ) : null;
       case 'pult':
-        return <Text style={styles.symbolText}>Pult</Text>;
+        return masse.zeigeNamen ? (
+          <Text style={[styles.symbolText, { fontSize: masse.kleinSchrift }]}>Pult</Text>
+        ) : null;
       default:
         return null;
     }
@@ -365,7 +549,8 @@ function Zelle({
       // Wände rücken zusammen, damit eine Reihe wie eine durchgehende Wand wirkt.
       style={[
         styles.zelle,
-        { width: groesse, height: groesse },
+        // Die Ecken runden mit: Bei 18 px Zellen wären 8 px Radius Kreise.
+        { width: groesse, height: groesse, borderRadius: Math.min(radius.md, Math.round(groesse * 0.18)) },
         gitter && styles.gitterlinie,
         zelle.typ === 'tisch' && styles.tisch,
         zelle.typ === 'tuer' && styles.tuer,
@@ -376,14 +561,31 @@ function Zelle({
         istAusgewaehlt && styles.personAusgewaehlt,
         markiert && styles.markiert,
         vorschau && styles.vorschau,
+        verdeckt && styles.verdeckt,
       ]}
-      onPointerDown={interaktiv ? onPointerDown : undefined}
+      onPointerDown={interaktiv ? () => onPointerDown(zeile, spalte) : undefined}
       {...datenAttribute({ zelle: datenSchluessel })}
     >
+      {/* Die Wand füllt auch die Fugen zu ihren Nachbarn, damit eine Reihe wie
+          eine durchgehende Wand wirkt – als Überstand, nicht als negativer
+          Rand: Der würde die ganze Zeile schmaler machen als das Raster. */}
+      {zelle.typ === 'wand' ? (
+        <View
+          style={[
+            styles.wandFuellung,
+            // Halbe Fuge auf jeder Seite (plus der 1 px Rahmen) – dann stoßen
+            // zwei Wandzellen genau aneinander, ohne den Nachbarn zu überdecken.
+            (() => {
+              const ueberstand = -(abstand / 2 + 1);
+              return { left: ueberstand, top: ueberstand, right: ueberstand, bottom: ueberstand };
+            })(),
+          ]}
+        />
+      ) : null}
       {inhalt}
       {griff ? (
         <View
-          style={styles.griff}
+          style={[styles.griff, { width: Math.max(10, groesse * 0.2), height: Math.max(10, groesse * 0.2) }]}
           onPointerDown={(ereignis) => {
             ereignis.stopPropagation();
             onGriffPointerDown();
@@ -392,7 +594,7 @@ function Zelle({
       ) : null}
     </View>
   );
-}
+});
 
 /** Browser-Gesten (Scrollen, Textauswahl) während des Zeichnens abschalten. */
 const ohneBrowserGeste = {
@@ -400,25 +602,30 @@ const ohneBrowserGeste = {
   userSelect: 'none',
 } as unknown as object;
 
+/** Im Textfeld gilt das Gegenteil: Dort will man tippen und markieren. */
+const mitTextauswahl = {
+  touchAction: 'auto',
+  userSelect: 'text',
+} as unknown as object;
+
 const styles = StyleSheet.create({
-  aussen: { padding: spacing.xs, gap: GITTER_ABSTAND },
-  innen: { flexDirection: 'row', gap: GITTER_ABSTAND },
-  raster: { gap: GITTER_ABSTAND },
-  kopfZeile: { flexDirection: 'row', gap: GITTER_ABSTAND },
-  kopfSpalte: { gap: GITTER_ABSTAND },
-  kopfEcke: { width: KOPF_GROESSE, height: KOPF_GROESSE },
+  aussen: { padding: spacing.xs, gap: 4 },
+  innen: { flexDirection: 'row' },
+  raster: {},
+  kopfZeile: { flexDirection: 'row' },
   kopf: { alignItems: 'center', justifyContent: 'center' },
-  kopfText: { fontSize: 11, color: colors.textMuted },
+  kopfText: { color: colors.textMuted },
   /** Dünne Linie um jedes Feld – zeigt Größe des Rasters und Klickflächen. */
   gitterlinie: { borderColor: colors.gitter, borderStyle: 'solid' },
-  zeile: { flexDirection: 'row', gap: GITTER_ABSTAND },
+  zeile: { flexDirection: 'row' },
   zelle: {
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 2,
+    padding: 1,
+    overflow: 'hidden',
   },
   tisch: { borderColor: colors.border, backgroundColor: colors.surface, borderStyle: 'dashed' },
   belegt: { borderStyle: 'solid', backgroundColor: '#eef2ff', borderColor: colors.primary },
@@ -426,32 +633,48 @@ const styles = StyleSheet.create({
   personAusgewaehlt: { borderColor: colors.danger, borderWidth: 2 },
   markiert: { borderColor: colors.primary, borderWidth: 2, borderStyle: 'solid' },
   vorschau: { backgroundColor: '#dbeafe', borderColor: colors.primary, borderWidth: 2, borderStyle: 'dashed' },
+  /** Liegt unter einem verbundenen Textfeld und wird davon überdeckt. */
+  verdeckt: { backgroundColor: 'transparent', borderColor: 'transparent' },
   tuer: { backgroundColor: colors.successBg, borderColor: colors.success },
   pult: { backgroundColor: '#fef3c7', borderColor: '#d97706' },
-  // Wand: eckig und mit negativem Rand, damit nebeneinanderliegende Zellen
-  // eine durchgehende Wand ergeben statt einer gestrichelten Reihe.
-  wand: {
-    backgroundColor: '#475569',
-    borderRadius: 0,
-    margin: -GITTER_ABSTAND / 2,
-    borderWidth: GITTER_ABSTAND / 2,
-    borderColor: '#475569',
-  },
+  // Wand: eckig, ohne eigene Ecken – die Fugen schließt `wandFuellung`.
+  wand: { backgroundColor: '#475569', borderRadius: 0, borderColor: '#475569', overflow: 'visible' },
+  wandFuellung: { position: 'absolute', backgroundColor: '#475569' },
   griff: {
     position: 'absolute',
-    right: -6,
-    bottom: -6,
-    width: 16,
-    height: 16,
+    right: -5,
+    bottom: -5,
     borderRadius: 4,
     backgroundColor: colors.primary,
     borderWidth: 2,
     borderColor: colors.surface,
   },
-  nummer: { fontSize: 11, color: colors.textMuted },
-  name: { fontSize: 13, fontWeight: '600', color: colors.text, textAlign: 'center' },
-  frei: { fontSize: 12, color: colors.textMuted },
-  reserve: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
-  vorgabe: { fontSize: 10, fontWeight: '700', color: colors.danger },
-  symbolText: { fontSize: 12, fontWeight: '600', color: colors.text },
+  textfeld: {
+    position: 'absolute',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: '#c7d2fe',
+    backgroundColor: '#fffbeb',
+    padding: 4,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  textfeldMarkiert: { borderColor: colors.primary, borderWidth: 2 },
+  textfeldText: { color: colors.text, fontWeight: '600' },
+  textfeldEingabe: {
+    color: colors.text,
+    fontWeight: '600',
+    flex: 1,
+    width: '100%',
+    padding: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+  },
+  nummer: { color: colors.textMuted },
+  name: { fontWeight: '600', color: colors.text, textAlign: 'center' },
+  frei: { color: colors.textMuted },
+  reserve: { fontWeight: '600', color: colors.textMuted },
+  vorgabe: { fontWeight: '700', color: colors.danger },
+  symbolText: { fontWeight: '600', color: colors.text },
 });

@@ -139,6 +139,23 @@ Konventionen des Datensatzes:
   plus `fuelleBereich`/`bereichAendern`/`verschiebeBereich`. Dadurch bleibt die
   CSV ein Raster und lässt sich trotzdem wie in einer Tabellenkalkulation
   bedienen.
+- **Freier Text liegt neben dem Raster, nicht darin:** `Beschriftung` ist ein
+  Bereich mit Text (`verbindeZellen`/`trenneZellen`/`setzeBeschriftungsText`)
+  und steht in eigenen CSV-Zeilen `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>`.
+  So bleibt das Raster ein Rechteck aus Ein-Zeichen-Kürzeln und der Text darf
+  beliebig lang sein. Die Zellen unter einem Feld werden geleert, und jedes
+  Malen darüber löst das Feld auf – was im Raster steht, ist immer sichtbar.
+- **Adressen wie in Excel:** `spaltenName` (A, B, …, AA), `zeilenName` (ab 1),
+  `bereichName` (`B3:E7`). Die Köpfe beschriften die *gedrehte* Ansicht; was
+  über dem Raster liegt (Auswahl, Textfelder), rechnet `anzeigeBereich` mit
+  derselben Drehung um wie `anzeigeRaster`.
+- **Die Zellgröße ist nicht fest:** `rastermasse()` in `Raumplan.tsx` passt
+  Zellen, Abstand, Kopfgröße und Schriftgrößen an Fenster und Raumgröße an –
+  ohne Zoom passt auch ein Hörsaal mit 47 × 34 Feldern auf einen
+  1920 × 1080-Schirm. Bei so vielen Zellen zählt jede Neuberechnung: Die
+  Zellen sind `React.memo` und bekommen deshalb stabile Rückrufe (Position als
+  Argument statt frisch erzeugter Closure) und gemerkte Werte (`useMemo` für
+  Raster und Belegungskarte).
 
 ### Ziehen im Editor
 

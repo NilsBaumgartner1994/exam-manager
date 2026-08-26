@@ -11,7 +11,66 @@ const MARGIN = 50;
 const FONT_SIZE = 12;
 const LINE_HEIGHT = 18;
 
-async function textPdf(absaetze: string[]): Promise<Uint8Array> {
+/**
+ * Zeichen, die die eingebauten PDF-Schriften darstellen können (WinAnsi bzw.
+ * CP1252). Deutsche Umlaute, ß und die meisten westeuropäischen Akzente sind
+ * dabei; alles darüber hinaus – „ź“, „ł“, kyrillisch, griechisch – nicht.
+ */
+const WINANSI = new Set<string>([
+  // 0x20–0x7E (ASCII) und 0xA0–0xFF (Latin-1)
+  ...Array.from({ length: 0x7f - 0x20 }, (_, i) => String.fromCharCode(0x20 + i)),
+  ...Array.from({ length: 0x100 - 0xa0 }, (_, i) => String.fromCharCode(0xa0 + i)),
+  // 0x80–0x9F: die Sonderzeichen, die CP1252 gegenüber Latin-1 zusätzlich hat
+  ...'€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ',
+]);
+
+/**
+ * Buchstaben ohne Akzent, den man abtrennen könnte – hier hilft nur eine
+ * Ersetzung von Hand.
+ */
+const ERSATZ: Record<string, string> = {
+  Đ: 'D', đ: 'd', Ð: 'D', Ħ: 'H', ħ: 'h', Ł: 'L', ł: 'l', Ŋ: 'N', ŋ: 'n',
+  Ŧ: 'T', ŧ: 't', ı: 'i', İ: 'I', ĸ: 'k', ẞ: 'SS', Ə: 'E', ə: 'e', ſ: 's',
+};
+
+/**
+ * Text so umschreiben, dass ihn eine Standard-PDF-Schrift setzen kann.
+ *
+ * pdf-lib bricht sonst mit „WinAnsi cannot encode …“ ab – und ein Abbruch
+ * mitten im Stapel ist schlimmer als ein Name ohne diakritisches Zeichen.
+ * Deshalb: erst versuchen, das Zeichen zu zerlegen und nur den Akzent
+ * wegzulassen (`ź` → `z`, `č` → `c`), dann die Tabelle oben (`ł` → `l`), und
+ * erst wenn beides nichts hergibt, ein `?`.
+ *
+ * Umlaute und ß bleiben unangetastet – die kann WinAnsi darstellen.
+ */
+export function winAnsiText(text: string): string {
+  const darstellbar = (kandidat: string) =>
+    kandidat !== '' && [...kandidat].every((zeichen) => WINANSI.has(zeichen));
+
+  let ergebnis = '';
+  for (const zeichen of text) {
+    if (WINANSI.has(zeichen)) {
+      ergebnis += zeichen;
+      continue;
+    }
+    // Erst den Akzent abtrennen, dann die Tabelle, dann aufgeben. `ł` zerfällt
+    // nicht – die Zerlegung liefert das Zeichen unverändert zurück und ist
+    // damit genauso wenig darstellbar wie vorher.
+    const ohneAkzent = zeichen.normalize('NFD').replace(/\p{M}/gu, '');
+    const ersatz = [ohneAkzent, ERSATZ[zeichen] ?? ''].find(darstellbar);
+    ergebnis += ersatz ?? '?';
+  }
+  return ergebnis;
+}
+
+/** Zeichen eines Textes, die eine Standard-PDF-Schrift nicht darstellen kann. */
+export function nichtDarstellbareZeichen(text: string): string[] {
+  return [...new Set([...text].filter((zeichen) => !WINANSI.has(zeichen)))];
+}
+
+async function textPdf(rohAbsaetze: string[]): Promise<Uint8Array> {
+  const absaetze = rohAbsaetze.map(winAnsiText);
   const doc = await PDFDocument.create();
   const page = doc.addPage([A4.width, A4.height]);
   const font = await doc.embedFont(StandardFonts.Helvetica);

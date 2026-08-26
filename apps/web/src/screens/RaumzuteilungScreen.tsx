@@ -8,6 +8,7 @@ import {
   erstelleRaumzuteilung,
   erstelleZip,
   mitGroesse,
+  nichtDarstellbareZeichen,
   ohneFreieBelegung,
   parseBelegung,
   parseRaeume,
@@ -34,6 +35,7 @@ import {
   verschiebeBereich,
   verteileAufRaumschemata,
   Verteilmodus,
+  winAnsiText,
   ZellTyp,
   Zulassung,
 } from '@exam-manager/core';
@@ -45,6 +47,7 @@ import {
   LabeledTextInput,
   PaletteElement,
   ProjektDownload,
+  ProjektQuelle,
   Raumplan,
   ScreenContainer,
   Section,
@@ -256,6 +259,7 @@ export function RaumzuteilungScreen() {
   const [ansicht, setAnsicht] = useState<Ansicht>('aushang');
   const [dateiname, setDateiname] = useState('studierendeZuRaumUndZeitZuordnung.csv');
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
+  const [pdfHinweis, setPdfHinweis] = useState<string | null>(null);
 
   // Sitzplan im Raum.
   const [schemata, setSchemata] = useState<Raumschema[]>([]);
@@ -295,7 +299,6 @@ export function RaumzuteilungScreen() {
 
   // Eingaben aus dem Projektordner, solange nichts eigenes geladen wurde.
   const projekt = useProjekt();
-  const [ausProjekt, setAusProjekt] = useState<string | null>(null);
   useEffect(() => {
     if (teilnehmer.length > 0 || zeilen.length > 0) return;
     const liste = projekt.datei('teilnehmer');
@@ -308,11 +311,6 @@ export function RaumzuteilungScreen() {
       if (raumDatei?.text) setZeilen(parseRaeume(raumDatei.text).map(raumZuZeile));
       if (schemaDatei?.text) uebernehmeSchemata(parseRaumschemata(schemaDatei.text));
       if (belegungDatei?.text) uebernehmeBelegung(parseBelegung(belegungDatei.text));
-      setAusProjekt(
-        `Aus dem Projektordner: ${[liste?.pfad, raumDatei?.pfad, schemaDatei?.pfad, belegungDatei?.pfad]
-          .filter(Boolean)
-          .join(', ')}`,
-      );
     } catch (e) {
       setFehler(`Projektdateien konnten nicht gelesen werden: ${String(e)}`);
     }
@@ -587,6 +585,7 @@ export function RaumzuteilungScreen() {
   const pdfsHerunterladen = async () => {
     if (!angezeigteSitzplaetze) return;
     setFehler(null);
+    setPdfHinweis(null);
     setPdfLaeuft(true);
     try {
       const dateien = new Map<string, Uint8Array | string>();
@@ -594,6 +593,18 @@ export function RaumzuteilungScreen() {
         dateien.set(`${platz.matrikelnummer}.pdf`, await sitzplatzPdf(platz));
       }
       downloadZip('sitzplatz_pdfs.zip', await erstelleZip(dateien));
+      // Die eingebaute PDF-Schrift kennt nicht jedes Sonderzeichen; statt am
+      // ersten abzubrechen, schreibt sie es um – wer betroffen ist, gehört
+      // auf den Bildschirm.
+      const umgeschrieben = angezeigteSitzplaetze
+        .map((platz) => `${platz.vorname} ${platz.nachname}`)
+        .filter((name) => nichtDarstellbareZeichen(name).length > 0)
+        .map((name) => `${name} → ${winAnsiText(name)}`);
+      if (umgeschrieben.length > 0) {
+        setPdfHinweis(
+          `Sonderzeichen, die die PDF-Schrift nicht kennt, wurden in ${umgeschrieben.length} Namen ersetzt: ${umgeschrieben.join('; ')}`,
+        );
+      }
     } catch (e) {
       setFehler(`PDFs konnten nicht erzeugt werden: ${String(e)}`);
     } finally {
@@ -625,7 +636,7 @@ export function RaumzuteilungScreen() {
           testID="raum-beispiel"
         />
         {teilnehmerStatus ? <StatusText kind="info">{teilnehmerStatus}</StatusText> : null}
-        {ausProjekt ? <StatusText kind="info" testID="raum-projekt">{ausProjekt}</StatusText> : null}
+        <ProjektQuelle rolle="teilnehmer" testID="raum-quelle-teilnehmer" />
       </Section>
 
       <Section title="Räume">
@@ -643,6 +654,8 @@ export function RaumzuteilungScreen() {
           testID="raum-hinzufuegen"
         />
         <FilePickerButton label="Räume-CSV laden" accept=".csv" onFiles={raeumeLaden} />
+        <ProjektQuelle rolle="raeume" testID="raum-quelle-raeume" />
+        <ProjektQuelle rolle="raumschema" testID="raum-quelle-schema" />
         <AppButton
           title="Räume als CSV speichern"
           variant="secondary"
@@ -950,6 +963,9 @@ export function RaumzuteilungScreen() {
             disabled={pdfLaeuft}
             testID="raum-download-pdfs"
           />
+          {pdfHinweis ? (
+            <StatusText kind="info" testID="raum-pdf-sonderzeichen">{pdfHinweis}</StatusText>
+          ) : null}
         </Section>
       ) : null}
 

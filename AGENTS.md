@@ -135,6 +135,12 @@ Konventionen des Datensatzes:
   nichts geladen ist – eine Auswahl von Hand wird nie überschrieben.
 - Der Download-Knopf steht als `ProjektDownload` in `src/components/` und
   gehört auf **jeden** Screen; ein neuer Screen bekommt ihn mit.
+- `ProjektQuelle` gehört unter **jede** Dateiauswahl, deren Eingabe auch aus
+  dem Projekt kommen kann: Sie nennt die Datei, die der Schritt von dort
+  standardmäßig nimmt (bei mehreren Kandidaten die erste alphabetisch, und
+  welche dadurch liegen bleiben) oder sagt, dass im erwarteten Ordner nichts
+  liegt. Ohne diese Zeile ist von außen nicht zu sehen, woher die Zahlen
+  stammen.
 - Bewusst **kein** localStorage: Der Ordner enthält Personendaten, die nach dem
   Schließen der Seite nicht im Browserprofil zurückbleiben sollen. Ein Neuladen
   leert den Stand, das ist so gewollt und auf der Startseite erklärt.
@@ -196,6 +202,17 @@ Layout, das man mitpflegen müsste (Vorbild: Speiseplan-Druck von
 rocket-meals). Für seitenweise Ausgabe `{...SEITENUMBRUCH}` an den View
 hängen. Personenbezogene PDFs (Zulassung, Sitzplatz) entstehen weiterhin mit
 pdf-lib in `packages/core/src/pdf.ts`, weil sie ohne Browser laufen müssen.
+
+Diese PDFs benutzen die eingebaute Helvetica, und die kann nur WinAnsi
+(CP1252) – Umlaute und ß ja, `ź`, `ł` oder Kyrillisch nein. pdf-lib bricht
+sonst mit „WinAnsi cannot encode …“ ab, und zwar mitten im Stapel: Ein
+einziger Name kostet dann alle PDFs. `winAnsiText()` schreibt solche Zeichen
+deshalb um – erst den Akzent abtrennen (`ź` → `z`), dann die Tabelle `ERSATZ`
+(`ł` → `l`), zuletzt `?`. Wer die Zeichenliste anfasst, hat den Test „schreibt
+jedes Zeichen, das es durchlässt, auch wirklich ins PDF“ als Kontrolle: Er
+jagt jedes Zeichen bis U+201F durch pdf-lib. Die Screens melden über
+`nichtDarstellbareZeichen()`, welche Namen betroffen sind – ein Name, der im
+PDF anders steht als in der Liste, darf nicht stillschweigend passieren.
 
 ## Automatische Prüfungen
 

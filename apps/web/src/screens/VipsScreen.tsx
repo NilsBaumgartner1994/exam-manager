@@ -15,6 +15,7 @@ import {
   LabeledNumberInput,
   LabeledTextInput,
   ProjektDownload,
+  ProjektQuelle,
   ScreenContainer,
   Section,
   StatusText,
@@ -34,7 +35,6 @@ export function VipsScreen() {
   const [notenlisteCsv, setNotenlisteCsv] = useState<string | null>(null);
   const [teilnehmerCsv, setTeilnehmerCsv] = useState<string | null>(null);
   const [beispielGeladen, setBeispielGeladen] = useState(false);
-  const [ausProjekt, setAusProjekt] = useState<string | null>(null);
 
   // Liegt ein Projektordner vor, kommen die Eingaben von dort – solange noch
   // nichts eigenes geladen wurde.
@@ -46,9 +46,6 @@ export function VipsScreen() {
     if (!noten?.text && !studip?.text) return;
     if (noten?.text) setNotenlisteCsv(noten.text);
     if (studip?.text) setTeilnehmerCsv(studip.text);
-    setAusProjekt(
-      `Aus dem Projektordner: ${[noten?.pfad, studip?.pfad].filter(Boolean).join(', ')}`,
-    );
   }, [projekt, notenlisteCsv, teilnehmerCsv]);
 
   // Kriterien.
@@ -105,12 +102,14 @@ export function VipsScreen() {
             onFiles={async (files) => setNotenlisteCsv(await readFileAsText(files[0]))}
             testID="vips-notenliste"
           />
+          <ProjektQuelle rolle="notenliste" testID="vips-quelle-notenliste" />
           <FilePickerButton
             label="Teilnehmendenexport.csv auswählen"
             accept=".csv"
             onFiles={async (files) => setTeilnehmerCsv(await readFileAsText(files[0]))}
             testID="vips-teilnehmer"
           />
+          <ProjektQuelle rolle="studipExport" testID="vips-quelle-studip" />
           <AppButton
             title="Beispieldaten laden"
             variant="secondary"
@@ -118,7 +117,6 @@ export function VipsScreen() {
             testID="vips-beispiel"
           />
           {beispielGeladen ? <StatusText kind="info">Beispieldaten geladen.</StatusText> : null}
-          {ausProjekt ? <StatusText kind="info" testID="vips-projekt">{ausProjekt}</StatusText> : null}
           <Text style={styles.hinweis}>
             Aus dem Projektordner kommen die Notenliste aus{' '}
             <Text style={styles.pfad}>0_Input_Vips_Notenliste/</Text> und der Stud.IP-Export aus{' '}

@@ -233,6 +233,10 @@ Und die vier Schritte selbst:
    gesammelt als ZIP (für die Stud.IP-„Klausureinsicht“). Im Projekt landen
    sie in `2_Zulassungs_PDFs_Export/`; **PDFs eines früheren Laufs werden
    dabei entfernt** – sie gehören zu einem Stand, den es nicht mehr gibt.
+   Die eingebaute PDF-Schrift kann nur WinAnsi: Umlaute und ß stehen darin,
+   `ź` oder `ł` nicht. Statt am ersten solchen Namen abzubrechen, schreibt die
+   App ihn um (`Woźniak` → `Wozniak`) und nennt jeden betroffenen Namen im
+   Ergebnis.
 3. **Klausur-Anmeldungen prüfen** – HIS-Export (`check.xlsx`) gegen den
    Zulassungsbestand prüfen; Zugelassene/Nicht-Zugelassene anzeigen und als
    CSV herunterladen.
@@ -274,6 +278,11 @@ Und die vier Schritte selbst:
    Lesereihenfolge des Rasters), nicht zur Person: Wer umgesetzt wird, bekommt
    die Nummer des neuen Tisches. Raster und Belegung lassen sich als CSV
    speichern und wieder laden.
+
+Liegt ein Projektordner vor, steht unter jeder Dateiauswahl, **welche Datei
+von dort standardmäßig genutzt wird** – bei mehreren Kandidaten auch, welche
+dadurch liegen bleiben, und wenn im erwarteten Ordner nichts liegt, steht das
+ebenfalls dort.
 
 Jeder Screen hat einen Button **„Beispieldaten laden“**, der den
 anonymisierten Datensatz dieses Repos lädt – zum Ausprobieren und für den

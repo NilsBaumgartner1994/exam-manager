@@ -4,6 +4,7 @@ export { FilePickerButton } from './FilePickerButton';
 export { LabeledNumberInput, LabeledTextInput } from './LabeledInput';
 export { PaletteElement } from './PaletteElement';
 export { ProjektDownload } from './ProjektDownload';
+export { ProjektQuelle } from './ProjektQuelle';
 export { Raumplan, type PlanWerkzeug } from './Raumplan';
 export { ScreenContainer } from './ScreenContainer';
 export { Section } from './Section';

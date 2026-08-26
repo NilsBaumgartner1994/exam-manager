@@ -1,72 +1,72 @@
 {
   "report_version": "^0.1.103",
-  "report_timestamp": "2026-08-26T12:09:59.373Z",
+  "report_timestamp": "2026-08-26T13:52:52.926Z",
   "target_language": "typescript",
   "report_summary": {
     "additional": {
       "invertedIndexSoftwareProjectStatistics": {
         "invertedFieldToClasses": {
           "median": 1.5,
-          "maximum": 14,
-          "average": 1.4285714285714286,
-          "amountSavedValuesForKeys": 200,
-          "amountKeys": 7
+          "maximum": 16,
+          "average": 1.4935064935064934,
+          "amountSavedValuesForKeys": 230,
+          "amountKeys": 8
         },
         "invertedParameterToMethods": {
-          "median": 2,
+          "median": 2.5,
           "maximum": 10,
-          "average": 2.2962962962962963,
-          "amountSavedValuesForKeys": 62,
+          "average": 2.25,
+          "amountSavedValuesForKeys": 63,
           "amountKeys": 6
         },
         "invertedParameterToClasses": {
           "median": 1.5,
-          "maximum": 14,
-          "average": 1.4285714285714286,
-          "amountSavedValuesForKeys": 200,
-          "amountKeys": 7
+          "maximum": 16,
+          "average": 1.4935064935064934,
+          "amountSavedValuesForKeys": 230,
+          "amountKeys": 8
         }
       },
       "timer_information": {
-        "ast_generation_time_ms": 467,
+        "ast_generation_time_ms": 617,
         "detection_time_ms": 12,
         "machine_information": {
           "os": "Linux",
           "os_release": "6.17.0-1022-azure",
           "os_platform": "linux",
           "os_arch": "x64",
-          "os_uptime": 58.84,
-          "os_memory_free": 14827266048,
-          "os_memory_total": 16766410752,
+          "os_uptime": 244.11,
+          "os_memory_free": 14991519744,
+          "os_memory_total": 16766414848,
           "os_cpu_cores": 4,
           "os_cpu_model": "AMD EPYC 9V74 80-Core Processor",
           "os_cpu_speed": 0
         }
       }
     },
-    "amount_classes_or_interfaces_with_data_clumps": 10,
-    "amount_files_with_data_clumps": 6,
+    "amount_classes_or_interfaces_with_data_clumps": 13,
+    "amount_files_with_data_clumps": 9,
     "amount_methods_with_data_clumps": 3,
-    "fields_to_fields_data_clump": 24,
+    "fields_to_fields_data_clump": 30,
     "parameters_to_fields_data_clump": 2,
     "parameters_to_parameters_data_clump": 4,
-    "amount_data_clumps": 30
+    "amount_data_clumps": 36
   },
   "project_info": {
     "project_url": "https://github.com/NilsBaumgartner1994/exam-manager",
     "project_name": "exam-manager",
-    "project_version": "ad0e1c5f5d80e598b7a7e0c8ce5a80070716b630",
-    "project_commit_hash": "ad0e1c5f5d80e598b7a7e0c8ce5a80070716b630",
+    "project_version": "05f7a329778559f827b0f617f071ab3131edff02",
+    "project_commit_hash": "05f7a329778559f827b0f617f071ab3131edff02",
     "project_tag": null,
-    "project_commit_date": "1787746163",
+    "project_commit_date": "1787752322",
     "additional": {
       "relative_path_to_source_folder_in_project": ""
     },
-    "number_of_files": 29,
-    "number_of_classes_or_interfaces": 63,
-    "number_of_methods": 49,
-    "number_of_data_fields": 200,
-    "number_of_method_parameters": 62
+    "number_of_files": 32,
+    "number_of_classes_or_interfaces": 70,
+    "number_of_methods": 51,
+    "number_of_data_fields": 230,
+    "number_of_method_parameters": 63
   },
   "detector": {
     "name": "data-clumps-doctor",
@@ -119,16 +119,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 146,
+              "startLine": 150,
               "startColumn": 41,
-              "endLine": 146,
+              "endLine": 150,
               "endColumn": 54
             }
           },
           "position": {
-            "startLine": 87,
+            "startLine": 89,
             "startColumn": 25,
-            "endLine": 87,
+            "endLine": 89,
             "endColumn": 38
           }
         },
@@ -144,16 +144,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 146,
+              "startLine": 150,
               "startColumn": 56,
-              "endLine": 146,
+              "endLine": 150,
               "endColumn": 70
             }
           },
           "position": {
-            "startLine": 87,
+            "startLine": 89,
             "startColumn": 40,
-            "endLine": 87,
+            "endLine": 89,
             "endColumn": 54
           }
         },
@@ -169,16 +169,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 146,
+              "startLine": 150,
               "startColumn": 72,
-              "endLine": 146,
+              "endLine": 150,
               "endColumn": 84
             }
           },
           "position": {
-            "startLine": 87,
+            "startLine": 89,
             "startColumn": 56,
-            "endLine": 87,
+            "endLine": 89,
             "endColumn": 68
           }
         }
@@ -216,16 +216,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 146,
+              "startLine": 150,
               "startColumn": 27,
-              "endLine": 146,
+              "endLine": 150,
               "endColumn": 39
             }
           },
           "position": {
-            "startLine": 143,
+            "startLine": 147,
             "startColumn": 16,
-            "endLine": 143,
+            "endLine": 147,
             "endColumn": 28
           }
         },
@@ -241,16 +241,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 146,
+              "startLine": 150,
               "startColumn": 41,
-              "endLine": 146,
+              "endLine": 150,
               "endColumn": 54
             }
           },
           "position": {
-            "startLine": 143,
+            "startLine": 147,
             "startColumn": 30,
-            "endLine": 143,
+            "endLine": 147,
             "endColumn": 43
           }
         },
@@ -266,16 +266,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 146,
+              "startLine": 150,
               "startColumn": 56,
-              "endLine": 146,
+              "endLine": 150,
               "endColumn": 70
             }
           },
           "position": {
-            "startLine": 143,
+            "startLine": 147,
             "startColumn": 45,
-            "endLine": 143,
+            "endLine": 147,
             "endColumn": 59
           }
         }
@@ -313,16 +313,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 30,
+              "startLine": 54,
               "startColumn": 3,
-              "endLine": 30,
+              "endLine": 54,
               "endColumn": 16
             }
           },
           "position": {
-            "startLine": 143,
+            "startLine": 147,
             "startColumn": 16,
-            "endLine": 143,
+            "endLine": 147,
             "endColumn": 28
           }
         },
@@ -338,16 +338,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 31,
+              "startLine": 55,
               "startColumn": 3,
-              "endLine": 31,
+              "endLine": 55,
               "endColumn": 17
             }
           },
           "position": {
-            "startLine": 143,
+            "startLine": 147,
             "startColumn": 30,
-            "endLine": 143,
+            "endLine": 147,
             "endColumn": 43
           }
         },
@@ -363,16 +363,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 32,
+              "startLine": 56,
               "startColumn": 3,
-              "endLine": 32,
+              "endLine": 56,
               "endColumn": 18
             }
           },
           "position": {
-            "startLine": 143,
+            "startLine": 147,
             "startColumn": 45,
-            "endLine": 143,
+            "endLine": 147,
             "endColumn": 59
           }
         }
@@ -410,16 +410,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 143,
+              "startLine": 147,
               "startColumn": 16,
-              "endLine": 143,
+              "endLine": 147,
               "endColumn": 28
             }
           },
           "position": {
-            "startLine": 146,
+            "startLine": 150,
             "startColumn": 27,
-            "endLine": 146,
+            "endLine": 150,
             "endColumn": 39
           }
         },
@@ -435,16 +435,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 143,
+              "startLine": 147,
               "startColumn": 30,
-              "endLine": 143,
+              "endLine": 147,
               "endColumn": 43
             }
           },
           "position": {
-            "startLine": 146,
+            "startLine": 150,
             "startColumn": 41,
-            "endLine": 146,
+            "endLine": 150,
             "endColumn": 54
           }
         },
@@ -460,16 +460,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 143,
+              "startLine": 147,
               "startColumn": 45,
-              "endLine": 143,
+              "endLine": 147,
               "endColumn": 59
             }
           },
           "position": {
-            "startLine": 146,
+            "startLine": 150,
             "startColumn": 56,
-            "endLine": 146,
+            "endLine": 150,
             "endColumn": 70
           }
         }
@@ -507,16 +507,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 87,
+              "startLine": 89,
               "startColumn": 25,
-              "endLine": 87,
+              "endLine": 89,
               "endColumn": 38
             }
           },
           "position": {
-            "startLine": 146,
+            "startLine": 150,
             "startColumn": 41,
-            "endLine": 146,
+            "endLine": 150,
             "endColumn": 54
           }
         },
@@ -532,16 +532,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 87,
+              "startLine": 89,
               "startColumn": 40,
-              "endLine": 87,
+              "endLine": 89,
               "endColumn": 54
             }
           },
           "position": {
-            "startLine": 146,
+            "startLine": 150,
             "startColumn": 56,
-            "endLine": 146,
+            "endLine": 150,
             "endColumn": 70
           }
         },
@@ -557,16 +557,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 87,
+              "startLine": 89,
               "startColumn": 56,
-              "endLine": 87,
+              "endLine": 89,
               "endColumn": 68
             }
           },
           "position": {
-            "startLine": 146,
+            "startLine": 150,
             "startColumn": 72,
-            "endLine": 146,
+            "endLine": 150,
             "endColumn": 84
           }
         }
@@ -604,16 +604,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 30,
+              "startLine": 54,
               "startColumn": 3,
-              "endLine": 30,
+              "endLine": 54,
               "endColumn": 16
             }
           },
           "position": {
-            "startLine": 146,
+            "startLine": 150,
             "startColumn": 27,
-            "endLine": 146,
+            "endLine": 150,
             "endColumn": 39
           }
         },
@@ -629,16 +629,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 31,
+              "startLine": 55,
               "startColumn": 3,
-              "endLine": 31,
+              "endLine": 55,
               "endColumn": 17
             }
           },
           "position": {
-            "startLine": 146,
+            "startLine": 150,
             "startColumn": 41,
-            "endLine": 146,
+            "endLine": 150,
             "endColumn": 54
           }
         },
@@ -654,16 +654,16 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 32,
+              "startLine": 56,
               "startColumn": 3,
-              "endLine": 32,
+              "endLine": 56,
               "endColumn": 18
             }
           },
           "position": {
-            "startLine": 146,
+            "startLine": 150,
             "startColumn": 56,
-            "endLine": 146,
+            "endLine": 150,
             "endColumn": 70
           }
         }
@@ -673,9 +673,203 @@
         "cluster_type": 3
       }
     },
-    "fields_to_fields_data_clump-apps/web/src/components/Raumplan.tsx-apps/web/src/components/Raumplan.tsx/interface/Props-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-schemaschluesselbelegungnummernpersonenausgewaehltbearbeitentestID": {
+    "fields_to_fields_data_clump-apps/web/src/components/BlattModal.tsx-apps/web/src/components/BlattModal.tsx/interface/Props-apps/web/src/components/PaletteElement.tsx/interface/Props-titeluntertiteltestID": {
       "type": "data_clump",
-      "key": "fields_to_fields_data_clump-apps/web/src/components/Raumplan.tsx-apps/web/src/components/Raumplan.tsx/interface/Props-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-schemaschluesselbelegungnummernpersonenausgewaehltbearbeitentestID",
+      "key": "fields_to_fields_data_clump-apps/web/src/components/BlattModal.tsx-apps/web/src/components/BlattModal.tsx/interface/Props-apps/web/src/components/PaletteElement.tsx/interface/Props-titeluntertiteltestID",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/BlattModal.tsx",
+      "from_class_or_interface_key": "apps/web/src/components/BlattModal.tsx/interface/Props",
+      "from_class_or_interface_name": "Props",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "apps/web/src/components/PaletteElement.tsx",
+      "to_class_or_interface_key": "apps/web/src/components/PaletteElement.tsx/interface/Props",
+      "to_class_or_interface_name": "Props",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/titel": {
+          "key": "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/titel",
+          "name": "titel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/titel",
+            "name": "titel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 6,
+              "startColumn": 3,
+              "endLine": 6,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 8,
+            "startColumn": 3,
+            "endLine": 8,
+            "endColumn": 17
+          }
+        },
+        "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/untertitel": {
+          "key": "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/untertitel",
+          "name": "untertitel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/untertitel",
+            "name": "untertitel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 8,
+              "startColumn": 3,
+              "endLine": 8,
+              "endColumn": 23
+            }
+          },
+          "position": {
+            "startLine": 10,
+            "startColumn": 3,
+            "endLine": 10,
+            "endColumn": 23
+          }
+        },
+        "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/testID": {
+          "key": "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/testID",
+          "name": "testID",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/testID",
+            "name": "testID",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 16,
+              "startColumn": 3,
+              "endLine": 16,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 13,
+            "startColumn": 3,
+            "endLine": 13,
+            "endColumn": 19
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 2
+      }
+    },
+    "fields_to_fields_data_clump-apps/web/src/components/PaletteElement.tsx-apps/web/src/components/PaletteElement.tsx/interface/Props-apps/web/src/components/BlattModal.tsx/interface/Props-titeluntertiteltestID": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-apps/web/src/components/PaletteElement.tsx-apps/web/src/components/PaletteElement.tsx/interface/Props-apps/web/src/components/BlattModal.tsx/interface/Props-titeluntertiteltestID",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/PaletteElement.tsx",
+      "from_class_or_interface_key": "apps/web/src/components/PaletteElement.tsx/interface/Props",
+      "from_class_or_interface_name": "Props",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "apps/web/src/components/BlattModal.tsx",
+      "to_class_or_interface_key": "apps/web/src/components/BlattModal.tsx/interface/Props",
+      "to_class_or_interface_name": "Props",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/titel": {
+          "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/titel",
+          "name": "titel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/titel",
+            "name": "titel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 8,
+              "startColumn": 3,
+              "endLine": 8,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 6,
+            "startColumn": 3,
+            "endLine": 6,
+            "endColumn": 17
+          }
+        },
+        "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/untertitel": {
+          "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/untertitel",
+          "name": "untertitel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/untertitel",
+            "name": "untertitel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 10,
+              "startColumn": 3,
+              "endLine": 10,
+              "endColumn": 23
+            }
+          },
+          "position": {
+            "startLine": 8,
+            "startColumn": 3,
+            "endLine": 8,
+            "endColumn": 23
+          }
+        },
+        "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/testID": {
+          "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/testID",
+          "name": "testID",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/testID",
+            "name": "testID",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 13,
+              "startColumn": 3,
+              "endLine": 13,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 16,
+            "startColumn": 3,
+            "endLine": 16,
+            "endColumn": 19
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 2,
+        "cluster_type": 2
+      }
+    },
+    "fields_to_fields_data_clump-apps/web/src/components/Raumplan.tsx-apps/web/src/components/Raumplan.tsx/interface/Props-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-schemaschluesselbelegungnummernpersonenausgewaehltbearbeitenanzeigetestID": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-apps/web/src/components/Raumplan.tsx-apps/web/src/components/Raumplan.tsx/interface/Props-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-schemaschluesselbelegungnummernpersonenausgewaehltbearbeitenanzeigetestID",
       "probability": 1,
       "from_file_path": "apps/web/src/components/Raumplan.tsx",
       "from_class_or_interface_key": "apps/web/src/components/Raumplan.tsx/interface/Props",
@@ -701,16 +895,16 @@
             "type": "Raumschema",
             "modifiers": [],
             "position": {
-              "startLine": 513,
+              "startLine": 517,
               "startColumn": 3,
-              "endLine": 513,
+              "endLine": 517,
               "endColumn": 22
             }
           },
           "position": {
-            "startLine": 41,
+            "startLine": 43,
             "startColumn": 3,
-            "endLine": 41,
+            "endLine": 43,
             "endColumn": 22
           }
         },
@@ -726,16 +920,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 519,
+              "startLine": 523,
               "startColumn": 3,
-              "endLine": 519,
+              "endLine": 523,
               "endColumn": 23
             }
           },
           "position": {
-            "startLine": 48,
+            "startLine": 50,
             "startColumn": 3,
-            "endLine": 48,
+            "endLine": 50,
             "endColumn": 23
           }
         },
@@ -751,16 +945,16 @@
             "type": "Platzbelegung[]",
             "modifiers": [],
             "position": {
-              "startLine": 528,
+              "startLine": 532,
               "startColumn": 3,
-              "endLine": 528,
+              "endLine": 532,
               "endColumn": 30
             }
           },
           "position": {
-            "startLine": 52,
+            "startLine": 54,
             "startColumn": 3,
-            "endLine": 52,
+            "endLine": 54,
             "endColumn": 29
           }
         },
@@ -776,16 +970,16 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 529,
+              "startLine": 533,
               "startColumn": 3,
-              "endLine": 529,
+              "endLine": 533,
               "endColumn": 33
             }
           },
           "position": {
-            "startLine": 54,
+            "startLine": 56,
             "startColumn": 3,
-            "endLine": 54,
+            "endLine": 56,
             "endColumn": 32
           }
         },
@@ -801,16 +995,16 @@
             "type": "Map<string, Sitzplatz>",
             "modifiers": [],
             "position": {
-              "startLine": 530,
+              "startLine": 534,
               "startColumn": 3,
-              "endLine": 530,
+              "endLine": 534,
               "endColumn": 37
             }
           },
           "position": {
-            "startLine": 56,
+            "startLine": 58,
             "startColumn": 3,
-            "endLine": 56,
+            "endLine": 58,
             "endColumn": 36
           }
         },
@@ -826,16 +1020,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 531,
+              "startLine": 537,
               "startColumn": 3,
-              "endLine": 531,
+              "endLine": 537,
               "endColumn": 31
             }
           },
           "position": {
-            "startLine": 58,
+            "startLine": 60,
             "startColumn": 3,
-            "endLine": 58,
+            "endLine": 60,
             "endColumn": 31
           }
         },
@@ -851,17 +1045,42 @@
             "type": "boolean",
             "modifiers": [],
             "position": {
-              "startLine": 523,
+              "startLine": 527,
               "startColumn": 3,
-              "endLine": 523,
+              "endLine": 527,
               "endColumn": 23
             }
           },
           "position": {
-            "startLine": 77,
+            "startLine": 79,
             "startColumn": 3,
-            "endLine": 77,
+            "endLine": 79,
             "endColumn": 24
+          }
+        },
+        "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/anzeige": {
+          "key": "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/anzeige",
+          "name": "anzeige",
+          "type": "PlanAnzeige",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/anzeige",
+            "name": "anzeige",
+            "type": "PlanAnzeige",
+            "modifiers": [],
+            "position": {
+              "startLine": 536,
+              "startColumn": 3,
+              "endLine": 536,
+              "endColumn": 25
+            }
+          },
+          "position": {
+            "startLine": 102,
+            "startColumn": 3,
+            "endLine": 102,
+            "endColumn": 25
           }
         },
         "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/testID": {
@@ -876,16 +1095,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 534,
+              "startLine": 540,
               "startColumn": 3,
-              "endLine": 534,
+              "endLine": 540,
               "endColumn": 19
             }
           },
           "position": {
-            "startLine": 98,
+            "startLine": 108,
             "startColumn": 3,
-            "endLine": 98,
+            "endLine": 108,
             "endColumn": 19
           }
         }
@@ -895,9 +1114,106 @@
         "cluster_type": 3
       }
     },
-    "fields_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-apps/web/src/components/Raumplan.tsx/interface/Props-schemaschluesselbearbeitenbelegungnummernpersonenausgewaehlttestID": {
+    "fields_to_fields_data_clump-apps/web/src/components/Raumplan.tsx-apps/web/src/components/Raumplan.tsx/interface/Props-packages/core/src/pdf.ts/interface/SitzplanPdfOptionen-schluesseldrehungennummern": {
       "type": "data_clump",
-      "key": "fields_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-apps/web/src/components/Raumplan.tsx/interface/Props-schemaschluesselbearbeitenbelegungnummernpersonenausgewaehlttestID",
+      "key": "fields_to_fields_data_clump-apps/web/src/components/Raumplan.tsx-apps/web/src/components/Raumplan.tsx/interface/Props-packages/core/src/pdf.ts/interface/SitzplanPdfOptionen-schluesseldrehungennummern",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/Raumplan.tsx",
+      "from_class_or_interface_key": "apps/web/src/components/Raumplan.tsx/interface/Props",
+      "from_class_or_interface_name": "Props",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/pdf.ts",
+      "to_class_or_interface_key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen",
+      "to_class_or_interface_name": "SitzplanPdfOptionen",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/schluessel": {
+          "key": "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/schluessel",
+          "name": "schluessel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/schluessel",
+            "name": "schluessel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 176,
+              "startColumn": 3,
+              "endLine": 176,
+              "endColumn": 23
+            }
+          },
+          "position": {
+            "startLine": 50,
+            "startColumn": 3,
+            "endLine": 50,
+            "endColumn": 23
+          }
+        },
+        "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/drehungen": {
+          "key": "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/drehungen",
+          "name": "drehungen",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/drehungen",
+            "name": "drehungen",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 178,
+              "startColumn": 3,
+              "endLine": 178,
+              "endColumn": 22
+            }
+          },
+          "position": {
+            "startLine": 52,
+            "startColumn": 3,
+            "endLine": 52,
+            "endColumn": 21
+          }
+        },
+        "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/nummern": {
+          "key": "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/nummern",
+          "name": "nummern",
+          "type": "Map<string, number>",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/nummern",
+            "name": "nummern",
+            "type": "Map<string, number>",
+            "modifiers": [],
+            "position": {
+              "startLine": 172,
+              "startColumn": 3,
+              "endLine": 172,
+              "endColumn": 33
+            }
+          },
+          "position": {
+            "startLine": 56,
+            "startColumn": 3,
+            "endLine": 56,
+            "endColumn": 32
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-apps/web/src/components/Raumplan.tsx/interface/Props-schemaschluesselbearbeitenbelegungnummernpersonenanzeigeausgewaehlttestID": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-apps/web/src/components/Raumplan.tsx/interface/Props-schemaschluesselbearbeitenbelegungnummernpersonenanzeigeausgewaehlttestID",
       "probability": 1,
       "from_file_path": "apps/web/src/components/RaumplanEditor.tsx",
       "from_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps",
@@ -923,16 +1239,16 @@
             "type": "Raumschema",
             "modifiers": [],
             "position": {
-              "startLine": 41,
+              "startLine": 43,
               "startColumn": 3,
-              "endLine": 41,
+              "endLine": 43,
               "endColumn": 22
             }
           },
           "position": {
-            "startLine": 513,
+            "startLine": 517,
             "startColumn": 3,
-            "endLine": 513,
+            "endLine": 517,
             "endColumn": 22
           }
         },
@@ -948,16 +1264,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 48,
+              "startLine": 50,
               "startColumn": 3,
-              "endLine": 48,
+              "endLine": 50,
               "endColumn": 23
             }
           },
           "position": {
-            "startLine": 519,
+            "startLine": 523,
             "startColumn": 3,
-            "endLine": 519,
+            "endLine": 523,
             "endColumn": 23
           }
         },
@@ -973,16 +1289,16 @@
             "type": "boolean",
             "modifiers": [],
             "position": {
-              "startLine": 77,
+              "startLine": 79,
               "startColumn": 3,
-              "endLine": 77,
+              "endLine": 79,
               "endColumn": 24
             }
           },
           "position": {
-            "startLine": 523,
+            "startLine": 527,
             "startColumn": 3,
-            "endLine": 523,
+            "endLine": 527,
             "endColumn": 23
           }
         },
@@ -998,16 +1314,16 @@
             "type": "Platzbelegung[]",
             "modifiers": [],
             "position": {
-              "startLine": 52,
+              "startLine": 54,
               "startColumn": 3,
-              "endLine": 52,
+              "endLine": 54,
               "endColumn": 29
             }
           },
           "position": {
-            "startLine": 528,
+            "startLine": 532,
             "startColumn": 3,
-            "endLine": 528,
+            "endLine": 532,
             "endColumn": 30
           }
         },
@@ -1023,16 +1339,16 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 54,
+              "startLine": 56,
               "startColumn": 3,
-              "endLine": 54,
+              "endLine": 56,
               "endColumn": 32
             }
           },
           "position": {
-            "startLine": 529,
+            "startLine": 533,
             "startColumn": 3,
-            "endLine": 529,
+            "endLine": 533,
             "endColumn": 33
           }
         },
@@ -1048,17 +1364,42 @@
             "type": "Map<string, Sitzplatz>",
             "modifiers": [],
             "position": {
-              "startLine": 56,
+              "startLine": 58,
               "startColumn": 3,
-              "endLine": 56,
+              "endLine": 58,
               "endColumn": 36
             }
           },
           "position": {
-            "startLine": 530,
+            "startLine": 534,
             "startColumn": 3,
-            "endLine": 530,
+            "endLine": 534,
             "endColumn": 37
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/anzeige": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/anzeige",
+          "name": "anzeige",
+          "type": "PlanAnzeige",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/anzeige",
+            "name": "anzeige",
+            "type": "PlanAnzeige",
+            "modifiers": [],
+            "position": {
+              "startLine": 102,
+              "startColumn": 3,
+              "endLine": 102,
+              "endColumn": 25
+            }
+          },
+          "position": {
+            "startLine": 536,
+            "startColumn": 3,
+            "endLine": 536,
+            "endColumn": 25
           }
         },
         "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/ausgewaehlt": {
@@ -1073,16 +1414,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 58,
+              "startLine": 60,
               "startColumn": 3,
-              "endLine": 58,
+              "endLine": 60,
               "endColumn": 31
             }
           },
           "position": {
-            "startLine": 531,
+            "startLine": 537,
             "startColumn": 3,
-            "endLine": 531,
+            "endLine": 537,
             "endColumn": 31
           }
         },
@@ -1098,17 +1439,114 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 98,
+              "startLine": 108,
               "startColumn": 3,
-              "endLine": 98,
+              "endLine": 108,
               "endColumn": 19
             }
           },
           "position": {
-            "startLine": 534,
+            "startLine": 540,
             "startColumn": 3,
-            "endLine": 534,
+            "endLine": 540,
             "endColumn": 19
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-packages/core/src/pdf.ts/interface/SitzplanPdfOptionen-schluesseltitelnummern": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-packages/core/src/pdf.ts/interface/SitzplanPdfOptionen-schluesseltitelnummern",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "from_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps",
+      "from_class_or_interface_name": "KarteProps",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/pdf.ts",
+      "to_class_or_interface_key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen",
+      "to_class_or_interface_name": "SitzplanPdfOptionen",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/schluessel": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/schluessel",
+          "name": "schluessel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/schluessel",
+            "name": "schluessel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 176,
+              "startColumn": 3,
+              "endLine": 176,
+              "endColumn": 23
+            }
+          },
+          "position": {
+            "startLine": 523,
+            "startColumn": 3,
+            "endLine": 523,
+            "endColumn": 23
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/titel": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/titel",
+          "name": "titel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/titel",
+            "name": "titel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 166,
+              "startColumn": 3,
+              "endLine": 166,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 525,
+            "startColumn": 3,
+            "endLine": 525,
+            "endColumn": 18
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/nummern": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/nummern",
+          "name": "nummern",
+          "type": "Map<string, number>",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/nummern",
+            "name": "nummern",
+            "type": "Map<string, number>",
+            "modifiers": [],
+            "position": {
+              "startLine": 172,
+              "startColumn": 3,
+              "endLine": 172,
+              "endColumn": 33
+            }
+          },
+          "position": {
+            "startLine": 533,
+            "startColumn": 3,
+            "endLine": 533,
+            "endColumn": 33
           }
         }
       },
@@ -1210,7 +1648,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 2,
+        "cluster_id": 3,
         "cluster_type": 2
       }
     },
@@ -1307,8 +1745,202 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 2,
+        "cluster_id": 3,
         "cluster_type": 2
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/pdf.ts-packages/core/src/pdf.ts/interface/SitzplanPdfOptionen-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-titelnummernschluessel": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/pdf.ts-packages/core/src/pdf.ts/interface/SitzplanPdfOptionen-apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps-titelnummernschluessel",
+      "probability": 1,
+      "from_file_path": "packages/core/src/pdf.ts",
+      "from_class_or_interface_key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen",
+      "from_class_or_interface_name": "SitzplanPdfOptionen",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "to_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps",
+      "to_class_or_interface_name": "KarteProps",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/titel": {
+          "key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/titel",
+          "name": "titel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/titel",
+            "name": "titel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 525,
+              "startColumn": 3,
+              "endLine": 525,
+              "endColumn": 18
+            }
+          },
+          "position": {
+            "startLine": 166,
+            "startColumn": 3,
+            "endLine": 166,
+            "endColumn": 17
+          }
+        },
+        "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/nummern": {
+          "key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/nummern",
+          "name": "nummern",
+          "type": "Map<string, number>",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/nummern",
+            "name": "nummern",
+            "type": "Map<string, number>",
+            "modifiers": [],
+            "position": {
+              "startLine": 533,
+              "startColumn": 3,
+              "endLine": 533,
+              "endColumn": 33
+            }
+          },
+          "position": {
+            "startLine": 172,
+            "startColumn": 3,
+            "endLine": 172,
+            "endColumn": 33
+          }
+        },
+        "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/schluessel": {
+          "key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/schluessel",
+          "name": "schluessel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/RaumplanEditor.tsx/interface/KarteProps/memberField/schluessel",
+            "name": "schluessel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 523,
+              "startColumn": 3,
+              "endLine": 523,
+              "endColumn": 23
+            }
+          },
+          "position": {
+            "startLine": 176,
+            "startColumn": 3,
+            "endLine": 176,
+            "endColumn": 23
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/pdf.ts-packages/core/src/pdf.ts/interface/SitzplanPdfOptionen-apps/web/src/components/Raumplan.tsx/interface/Props-nummernschluesseldrehungen": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/pdf.ts-packages/core/src/pdf.ts/interface/SitzplanPdfOptionen-apps/web/src/components/Raumplan.tsx/interface/Props-nummernschluesseldrehungen",
+      "probability": 1,
+      "from_file_path": "packages/core/src/pdf.ts",
+      "from_class_or_interface_key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen",
+      "from_class_or_interface_name": "SitzplanPdfOptionen",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "apps/web/src/components/Raumplan.tsx",
+      "to_class_or_interface_key": "apps/web/src/components/Raumplan.tsx/interface/Props",
+      "to_class_or_interface_name": "Props",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/nummern": {
+          "key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/nummern",
+          "name": "nummern",
+          "type": "Map<string, number>",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/nummern",
+            "name": "nummern",
+            "type": "Map<string, number>",
+            "modifiers": [],
+            "position": {
+              "startLine": 56,
+              "startColumn": 3,
+              "endLine": 56,
+              "endColumn": 32
+            }
+          },
+          "position": {
+            "startLine": 172,
+            "startColumn": 3,
+            "endLine": 172,
+            "endColumn": 33
+          }
+        },
+        "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/schluessel": {
+          "key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/schluessel",
+          "name": "schluessel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/schluessel",
+            "name": "schluessel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 50,
+              "startColumn": 3,
+              "endLine": 50,
+              "endColumn": 23
+            }
+          },
+          "position": {
+            "startLine": 176,
+            "startColumn": 3,
+            "endLine": 176,
+            "endColumn": 23
+          }
+        },
+        "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/drehungen": {
+          "key": "packages/core/src/pdf.ts/interface/SitzplanPdfOptionen/memberField/drehungen",
+          "name": "drehungen",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "apps/web/src/components/Raumplan.tsx/interface/Props/memberField/drehungen",
+            "name": "drehungen",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 52,
+              "startColumn": 3,
+              "endLine": 52,
+              "endColumn": 21
+            }
+          },
+          "position": {
+            "startLine": 178,
+            "startColumn": 3,
+            "endLine": 178,
+            "endColumn": 22
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
       }
     },
     "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Anmeldung-packages/core/src/types.ts/interface/NotenlistenEintrag-nachnamevornamematrikelnummer": {
@@ -1404,7 +2036,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -1501,7 +2133,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -1598,7 +2230,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -1695,7 +2327,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -1792,7 +2424,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -1889,7 +2521,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -1986,7 +2618,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -2083,7 +2715,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -2180,7 +2812,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -2277,7 +2909,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -2399,7 +3031,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -2521,7 +3153,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -2618,7 +3250,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -2715,7 +3347,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -2837,7 +3469,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -2959,7 +3591,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -3056,7 +3688,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -3153,7 +3785,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -3275,7 +3907,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     },
@@ -3397,7 +4029,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 3,
+        "cluster_id": 4,
         "cluster_type": 3
       }
     }

@@ -4,6 +4,8 @@
 [![Deploy Web (GitHub Pages)](https://github.com/NilsBaumgartner1994/exam-manager/actions/workflows/deploy-web.yml/badge.svg)](https://github.com/NilsBaumgartner1994/exam-manager/actions/workflows/deploy-web.yml)
 [![Data Clumps](reports/data-clumps-doctor/badges/data-clumps.svg)](https://github.com/NilsBaumgartner1994/exam-manager/actions/workflows/data-clumps.yml)
 
+[https://nilsbaumgartner1994.github.io/exam-manager/](https://nilsbaumgartner1994.github.io/exam-manager/)
+
 Werkzeuge rund um die Verwaltung einer Universitätsklausur: Prüfungsanmeldungen
 einlesen, Klausurzulassungen über mehrere Jahre verwalten, Studierende
 informieren und Räume samt Sitzplätzen zuteilen.

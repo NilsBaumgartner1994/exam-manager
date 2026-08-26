@@ -363,6 +363,24 @@ PDF anders steht als in der Liste, darf nicht stillschweigend passieren.
   ausführen und mit denselben Zahlen vergleichen; erzeugte PDF-Ordner
   (`pdfs/`, `studipKlausurzulassungPdfs/`) danach wieder entfernen.
 
+## Direkt auf `main` arbeiten
+
+Fertige Änderungen gehen **direkt nach `main`** – auch die von KI-Agenten. Ein
+Branch und ein Pull Request sind nicht nötig: Das Repository hat einen
+Betreuer, und der Umweg kostet hier mehr, als er einbringt. Der Push auf
+`main` baut zugleich die GitHub-Pages-Seite neu (siehe „Automatische
+Prüfungen“), fertig heißt also wirklich fertig:
+
+- **Vorher** `yarn test` und `yarn typecheck` lokal grün, und was an der
+  Oberfläche geändert wurde, einmal im Browser angesehen.
+- **Vorher** `git pull --rebase origin main` – auf `main` committen andere
+  (und der Data-Clumps-Workflow) ebenfalls.
+- **Nicht** auf `main` force-pushen und dort keine fremde Historie
+  umschreiben: Was einmal gepusht ist, bleibt stehen; Fehler werden mit einem
+  neuen Commit korrigiert.
+- Wer trotzdem lieber über einen Branch geht (halbfertige Arbeit, etwas zum
+  Draufschauen), darf das – nur bleibt `main` der Normalfall.
+
 ## Datensatz oder Formate ändern
 
 Reihenfolge: `python3 tools/generate_sample_data.py` → Pipeline aus der README

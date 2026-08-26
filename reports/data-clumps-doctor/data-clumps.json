@@ -1,45 +1,45 @@
 {
   "report_version": "^0.1.103",
-  "report_timestamp": "2026-08-26T06:41:47.586Z",
+  "report_timestamp": "2026-08-26T07:17:06.980Z",
   "target_language": "typescript",
   "report_summary": {
     "additional": {
       "invertedIndexSoftwareProjectStatistics": {
         "invertedFieldToClasses": {
-          "median": 1.5,
-          "maximum": 11,
-          "average": 1.4313725490196079,
-          "amountSavedValuesForKeys": 146,
+          "median": 1,
+          "maximum": 12,
+          "average": 1.4299065420560748,
+          "amountSavedValuesForKeys": 153,
           "amountKeys": 6
         },
         "invertedParameterToMethods": {
           "median": 1.5,
-          "maximum": 3,
-          "average": 1.5833333333333333,
-          "amountSavedValuesForKeys": 19,
+          "maximum": 4,
+          "average": 1.5,
+          "amountSavedValuesForKeys": 21,
           "amountKeys": 3
         },
         "invertedParameterToClasses": {
-          "median": 1.5,
-          "maximum": 11,
-          "average": 1.4313725490196079,
-          "amountSavedValuesForKeys": 146,
+          "median": 1,
+          "maximum": 12,
+          "average": 1.4299065420560748,
+          "amountSavedValuesForKeys": 153,
           "amountKeys": 6
         }
       },
       "timer_information": {
-        "ast_generation_time_ms": 540,
-        "detection_time_ms": 9,
+        "ast_generation_time_ms": 557,
+        "detection_time_ms": 8,
         "machine_information": {
           "os": "Linux",
           "os_release": "6.17.0-1022-azure",
           "os_platform": "linux",
           "os_arch": "x64",
-          "os_uptime": 63.92,
-          "os_memory_free": 14911176704,
+          "os_uptime": 61.99,
+          "os_memory_free": 14936199168,
           "os_memory_total": 16766414848,
           "os_cpu_cores": 4,
-          "os_cpu_model": "AMD EPYC 9V74 80-Core Processor",
+          "os_cpu_model": "AMD EPYC 7763 64-Core Processor",
           "os_cpu_speed": 0
         }
       }
@@ -55,18 +55,18 @@
   "project_info": {
     "project_url": "https://github.com/NilsBaumgartner1994/exam-manager",
     "project_name": "exam-manager",
-    "project_version": "c95fb065153373b55f4077510aecf848d32f3f25",
-    "project_commit_hash": "c95fb065153373b55f4077510aecf848d32f3f25",
+    "project_version": "3343424b2d908d53897b1c47143fad5f317af828",
+    "project_commit_hash": "3343424b2d908d53897b1c47143fad5f317af828",
     "project_tag": null,
-    "project_commit_date": "1787726466",
+    "project_commit_date": "1787728581",
     "additional": {
       "relative_path_to_source_folder_in_project": ""
     },
-    "number_of_files": 25,
-    "number_of_classes_or_interfaces": 48,
-    "number_of_methods": 19,
-    "number_of_data_fields": 146,
-    "number_of_method_parameters": 19
+    "number_of_files": 26,
+    "number_of_classes_or_interfaces": 50,
+    "number_of_methods": 20,
+    "number_of_data_fields": 153,
+    "number_of_method_parameters": 21
   },
   "detector": {
     "name": "data-clumps-doctor",

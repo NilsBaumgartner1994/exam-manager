@@ -180,11 +180,31 @@ export interface SitzplanPdfOptionen {
 }
 
 /**
- * Der Sitzplan eines Raums als PDF – dasselbe Raster wie am Bildschirm,
- * einschließlich Drehung, Textfeldern und dem, was die Anzeige-Häkchen in die
- * Kästen schreiben.
+ * Die Sitzpläne als PDF – dasselbe Raster wie am Bildschirm, einschließlich
+ * Drehung, Textfeldern und dem, was die Anzeige-Häkchen in die Kästen
+ * schreiben. Jeder Raumeinsatz beginnt auf einer **neuen Seite**, wie bei den
+ * Listen aus `tabellenPdf()`: So kommt aus Schritt 4 eine Datei heraus und
+ * kein Stapel einzelner Dateien.
  */
-export async function sitzplanPdf(optionen: SitzplanPdfOptionen): Promise<Uint8Array> {
+export async function sitzplaenePdf(plaene: SitzplanPdfOptionen[]): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fett = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  for (const optionen of plaene) zeichneSitzplan(doc, font, fett, optionen);
+
+  // Eine PDF ohne Seiten lässt sich nicht öffnen – lieber ein leeres Blatt.
+  if (doc.getPageCount() === 0) doc.addPage([A4_QUER.width, A4_QUER.height]);
+  return doc.save();
+}
+
+/** Einen Sitzplan auf eine eigene Seite des Dokuments zeichnen. */
+function zeichneSitzplan(
+  doc: PDFDocument,
+  font: import('pdf-lib').PDFFont,
+  fett: import('pdf-lib').PDFFont,
+  optionen: SitzplanPdfOptionen,
+): void {
   const {
     schema,
     titel,
@@ -197,10 +217,7 @@ export async function sitzplanPdf(optionen: SitzplanPdfOptionen): Promise<Uint8A
     anzeige = PLAN_ANZEIGE_STANDARD,
   } = optionen;
 
-  const doc = await PDFDocument.create();
   const seite = doc.addPage([A4_QUER.width, A4_QUER.height]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const fett = await doc.embedFont(StandardFonts.HelveticaBold);
 
   seite.drawText(winAnsiText(titel), {
     x: MARGIN, y: A4_QUER.height - MARGIN, size: 16, font: fett, color: rgb(0, 0, 0),
@@ -214,7 +231,7 @@ export async function sitzplanPdf(optionen: SitzplanPdfOptionen): Promise<Uint8A
   const raster = anzeigeRaster(schema, drehungen);
   const zeilen = raster.length;
   const spalten = raster[0]?.length ?? 0;
-  if (zeilen === 0 || spalten === 0) return doc.save();
+  if (zeilen === 0 || spalten === 0) return;
 
   const obenFrei = MARGIN + (untertitel ? 44 : 30);
   const platzBreite = A4_QUER.width - 2 * MARGIN;
@@ -295,8 +312,6 @@ export async function sitzplanPdf(optionen: SitzplanPdfOptionen): Promise<Uint8A
       color: rgb(0.12, 0.16, 0.2),
     });
   }
-
-  return doc.save();
 }
 
 /** Was in einem Kasten steht – dieselbe Reihenfolge wie am Bildschirm. */

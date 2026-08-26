@@ -273,11 +273,11 @@ Konventionen des Datensatzes:
   ein Platz zur Seite zählt doppelt (`SPALTEN_GEWICHT`), und wer genau
   hintereinander sitzt, bekommt einen Zuschlag (`RUECKEN_BONUS`) – man sieht
   dem Vordermann in den Rücken, schräg dagegen aufs Blatt.
-- **PDFs entstehen im Core, nicht im Druckdialog:** `sitzplanPdf()` zeichnet
-  das Raster eines Raums, `tabellenPdf()` setzt Listen (je Abschnitt eine
-  Seite). So fällt je Raum ein Sitzplan heraus und daneben Aushang,
-  Dozenten- und Tutorenliste als eigene Dateien – mit `druckeAnsicht` wäre für
-  jede davon ein eigener Druckdialog nötig.
+- **PDFs entstehen im Core, nicht im Druckdialog:** `sitzplaenePdf()` zeichnet
+  das Raster der Räume (je Raumeinsatz eine neue Seite), `tabellenPdf()` setzt
+  Listen (je Abschnitt eine Seite). So fällt eine Sitzplan-PDF heraus und
+  daneben Aushang, Dozenten- und Tutorenliste als eigene Dateien – mit
+  `druckeAnsicht` wäre für jede davon ein eigener Druckdialog nötig.
 - Wer im Screen die Belegung ändert, geht über `belegungSetzen()` – das setzt
   Verdrängte auf freie Tische nach und hält die Warnung „Ohne Tisch im
   Sitzplan“ aktuell.

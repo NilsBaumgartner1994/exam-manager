@@ -1,8 +1,9 @@
+import { PDFDocument } from 'pdf-lib';
 import {
   erstelleZip,
   nichtDarstellbareZeichen,
   parseRaumschemata,
-  sitzplanPdf,
+  sitzplaenePdf,
   sitzplatzPdf,
   sitzplatznummern,
   tabellenPdf,
@@ -91,7 +92,7 @@ describe('Sitzplan und Listen als PDF (Screen 4)', () => {
 
   it('zeichnet den Sitzplan eines Raums', async () => {
     const { belegung } = verteileImRaum(schema, ['1000005'], []);
-    const pdf = await sitzplanPdf({
+    const pdf = await sitzplaenePdf([{
       schema,
       titel: '94/E01 · 2. Durchgang',
       untertitel: '01.02.2026 – Gruppe 2',
@@ -115,14 +116,29 @@ describe('Sitzplan und Listen als PDF (Screen 4)', () => {
           },
         ],
       ]),
-    });
+    }]);
     expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
     expect(pdf.length).toBeGreaterThan(500);
   });
 
   it('zeichnet den Sitzplan auch gedreht und ohne Belegung', async () => {
-    const pdf = await sitzplanPdf({ schema, titel: '94/E01', drehungen: 1 });
+    const pdf = await sitzplaenePdf([{ schema, titel: '94/E01', drehungen: 1 }]);
     expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
+  });
+
+  it('setzt mehrere Sitzpläne in eine PDF – je Raumeinsatz eine Seite', async () => {
+    const pdf = await sitzplaenePdf([
+      { schema, titel: '94/E01' },
+      { schema, titel: '94/E01 · 2. Durchgang', untertitel: '01.02.2026' },
+      { schema, titel: '94/E02', drehungen: 2 },
+    ]);
+    expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
+    expect((await PDFDocument.load(pdf)).getPageCount()).toBe(3);
+  });
+
+  it('gibt auch ohne Sitzpläne eine PDF mit einer Seite zurück', async () => {
+    const pdf = await sitzplaenePdf([]);
+    expect((await PDFDocument.load(pdf)).getPageCount()).toBe(1);
   });
 
   it('setzt Listen mit einer Seite je Abschnitt', async () => {

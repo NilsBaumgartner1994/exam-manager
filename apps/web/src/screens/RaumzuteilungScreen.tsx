@@ -31,12 +31,11 @@ import {
   raeumeToCsv,
   raumSchluessel,
   raumschemaDateien,
-  raumDateiname,
   schalteReserve,
   schalteVorgabe,
   setzePerson,
   setzeVorgabe,
-  sitzplanPdf,
+  sitzplaenePdf,
   Sitzverteilung,
   Sitzplatz,
   sitzplaetzeMitBelegung,
@@ -835,18 +834,6 @@ export function RaumzuteilungScreen() {
   const einsatzTitel = (raum: Raum) =>
     (raum.durchgang ?? 1) > 1 ? `${raum.raum} · ${raum.durchgang}. Durchgang` : raum.raum;
 
-  /** Eine Datei anbieten; mehrere kommen als ZIP – der Browser lädt nur eine. */
-  const gibDateien = async (dateien: Map<string, Uint8Array>, zipName: string) => {
-    const namen = [...dateien.keys()];
-    if (namen.length === 0) return;
-    if (namen.length === 1) {
-      downloadFile(namen[0], dateien.get(namen[0])!, 'application/pdf');
-    } else {
-      downloadZip(zipName, await erstelleZip(new Map<string, Uint8Array | string>(dateien)));
-    }
-    setHinweis(`${namen.length} PDF${namen.length === 1 ? '' : 's'}: ${namen.join(', ')}`);
-  };
-
   const mitPdfLauf = async (was: string, tun: () => Promise<void>) => {
     setFehler(null);
     setHinweis(null);
@@ -860,17 +847,18 @@ export function RaumzuteilungScreen() {
     }
   };
 
-  /** Je Raumeinsatz ein Sitzplan-PDF – genau das Bild, das am Schirm steht. */
+  /**
+   * Die Sitzpläne als **eine** PDF – je Raumeinsatz eine neue Seite, wie beim
+   * Aushang und den Aufsichtslisten. Gezeichnet wird das Bild vom Schirm.
+   */
   const sitzplaeneAlsPdf = () =>
     mitPdfLauf('Der Sitzplan', async () => {
-      const dateien = new Map<string, Uint8Array>();
-      for (const raum of raeume) {
-        const schema = schemata.find((s) => s.raum === raum.raum);
-        if (!schema) continue;
-        const schluessel = raumSchluessel(raum);
-        dateien.set(
-          `sitzplan_${raumDateiname(schluessel)}.pdf`,
-          await sitzplanPdf({
+      const plaene = raeume
+        .map((raum) => ({ raum, schema: schemata.find((s) => s.raum === raum.raum) }))
+        .filter((eintrag): eintrag is { raum: Raum; schema: Raumschema } => eintrag.schema !== undefined)
+        .map(({ raum, schema }) => {
+          const schluessel = raumSchluessel(raum);
+          return {
             schema,
             schluessel,
             titel: einsatzTitel(raum),
@@ -880,10 +868,11 @@ export function RaumzuteilungScreen() {
             personen: personenJeMatrikel,
             drehungen: editor.drehungen[raum.raum] ?? 0,
             anzeige,
-          }),
-        );
-      }
-      await gibDateien(dateien, 'sitzplaene.zip');
+          };
+        });
+      if (plaene.length === 0) return;
+      downloadFile('sitzplaene.pdf', await sitzplaenePdf(plaene), 'application/pdf');
+      setHinweis(`Sitzpläne als PDF: ${plaene.length} Seite${plaene.length === 1 ? '' : 'n'}.`);
     });
 
   /** Aushang: je Raumeinsatz eine Seite, nach Namenskürzel sortiert. */

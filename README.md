@@ -319,8 +319,8 @@ Und die vier Schritte selbst:
      Matrikelnummer, Sitzplatznummer, „Pult“ beschriften. Sie gelten für den
      Bildschirm **und** für die PDFs; auf dem Aushang steht die Sitzplatznummer
      immer.
-   - **PDFs** – „Sitzpläne als PDF“ erzeugt je Raum eine Datei (mehrere kommen
-     als ZIP), dazu getrennt „Aushang als PDF“ (eine Seite je Raum),
+   - **PDFs** – „Sitzpläne als PDF“ erzeugt eine Datei mit einer Seite je Raum,
+     dazu getrennt „Aushang als PDF“ (eine Seite je Raum),
      „Dozentenliste als PDF“ (nach Sitzplatz) und „Tutorenliste als PDF“ (nach
      Nachname). Gezeichnet wird dasselbe Raster wie am Bildschirm.
    - **Raum bearbeiten** – links liegt die Palette (Auswählen, Sitzplatz,

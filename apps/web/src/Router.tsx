@@ -21,7 +21,14 @@ import { colors, spacing } from './theme';
 
 export type Route = keyof RootStackParamList;
 
-const ROUTES: Route[] = ['Home', 'Vips', 'ZulassungsPdfs', 'KlausurTeilnehmer', 'Raumzuteilung'];
+const ROUTES: Route[] = [
+  'Home',
+  'Vips',
+  'ZulassungsPdfs',
+  'KlausurTeilnehmer',
+  'Raumzuteilung',
+  'Raeume',
+];
 
 const NavContext = createContext<{ route: Route; navigate: (route: Route) => void }>({
   route: 'Home',

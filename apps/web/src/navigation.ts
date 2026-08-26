@@ -5,6 +5,7 @@ export type RootStackParamList = {
   ZulassungsPdfs: undefined;
   KlausurTeilnehmer: undefined;
   Raumzuteilung: undefined;
+  Raeume: undefined;
 };
 
 export interface ScreenInfo {
@@ -38,5 +39,11 @@ export const SCREENS: ScreenInfo[] = [
     titel: '4. Raumzuteilung & Sitzplan',
     beschreibung:
       'Teilnehmende auf Räume verteilen, Sitzplan erstellen und Ansichten für Aushang, Lehrende und Tutor:innen erzeugen.',
+  },
+  {
+    route: 'Raeume',
+    titel: '5. Räume & Raumpläne',
+    beschreibung:
+      'Räume und ihre leeren Raster pflegen – ohne Teilnehmende. Gilt für jede Klausur und ist die Vorlage für Schritt 4.',
   },
 ];

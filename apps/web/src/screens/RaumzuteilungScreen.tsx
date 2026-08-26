@@ -1,15 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import {
-  anzeigeBereich,
   Bereich,
-  bereichAendern,
   bereichAus,
-  bereichName,
   belegungToCsv,
   erstelleRaumzuteilung,
   erstelleZip,
-  mitGroesse,
   nichtDarstellbareZeichen,
   ohneFreieBelegung,
   parseBelegung,
@@ -23,9 +19,7 @@ import {
   raumschemataToCsv,
   schalteReserve,
   schalteVorgabe,
-  setzeBeschriftungsText,
   setzePerson,
-  setzeZelle,
   Sitzplatz,
   sitzplaetzeMitBelegung,
   sitzplaetzeToCsv,
@@ -34,14 +28,10 @@ import {
   sortByNachname,
   standardRaumschema,
   tischzellen,
-  trenneZellen,
-  verbindeZellen,
   verschiebeBelegung,
-  verschiebeBereich,
   verteileAufRaumschemata,
   Verteilmodus,
   winAnsiText,
-  ZellTyp,
   Zulassung,
 } from '@exam-manager/core';
 import {
@@ -50,40 +40,28 @@ import {
   FilePickerButton,
   LabeledNumberInput,
   LabeledTextInput,
-  PaletteElement,
+  PlanZoomLeiste,
   ProjektDownload,
   ProjektQuelle,
+  RaumListe,
+  RaumPalette,
   Raumplan,
+  RaumplanFlaeche,
+  RaumplanKarte,
+  raumZuZeile,
   ScreenContainer,
   Section,
   StatusText,
+  useRaumplanEditor,
+  zeileZuRaum,
+  type RaumZeile,
+  type Verschiebung,
 } from '../components';
 import { downloadCsv, downloadZip, readFileAsText } from '../files';
 import { druckeAnsicht, SEITENUMBRUCH } from '../print';
 import { useProjekt } from '../projekt';
-import { useResponsiveLayout } from '../responsive';
 import { BEISPIEL_KLAUSUR_TEILNEHMER, BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMA } from '../sampleData';
-import { colors, radius, spacing } from '../theme';
-
-/** Editierbare Raum-Zeile – Plätze als Text, damit das Feld frei tippbar bleibt. */
-interface RaumZeile {
-  raum: string;
-  plaetzeText: string;
-  reservierteZeit: string;
-}
-
-function raumZuZeile(raum: Raum): RaumZeile {
-  return { raum: raum.raum, plaetzeText: String(raum.plaetze), reservierteZeit: raum.reservierteZeit };
-}
-
-function zeileZuRaum(zeile: RaumZeile): Raum {
-  const plaetze = Number(zeile.plaetzeText.trim().replace(',', '.'));
-  return {
-    raum: zeile.raum.trim(),
-    plaetze: Number.isFinite(plaetze) ? plaetze : 0,
-    reservierteZeit: zeile.reservierteZeit.trim(),
-  };
-}
+import { colors, spacing } from '../theme';
 
 const ANSICHTEN = [
   { key: 'aushang', titel: 'Aushang', testID: 'raum-ansicht-aushang' },
@@ -103,87 +81,6 @@ const PLAN_MODI = [
 ] as const;
 
 type PlanModus = (typeof PLAN_MODI)[number]['key'];
-
-/**
- * Werkzeug im Bearbeiten-Modus: auswählen/verschieben, ein Element malen oder
- * ein Textfeld über verbundenen Zellen aufziehen.
- */
-type Werkzeug = 'auswahl' | 'text' | ZellTyp;
-
-const PALETTE: { werkzeug: Werkzeug; titel: string; untertitel: string }[] = [
-  { werkzeug: 'auswahl', titel: 'Auswählen', untertitel: 'wählen & schieben' },
-  { werkzeug: 'tisch', titel: 'Tisch', untertitel: 'T' },
-  { werkzeug: 'wand', titel: 'Wand', untertitel: 'W' },
-  { werkzeug: 'tuer', titel: 'Tür', untertitel: 'D' },
-  { werkzeug: 'pult', titel: 'Pult', untertitel: 'P' },
-  { werkzeug: 'text', titel: 'Text', untertitel: 'Zellen verbinden' },
-  { werkzeug: 'leer', titel: 'Radierer', untertitel: 'frei' },
-];
-
-/** Zoomstufen des Sitzplans: 1 = ganzer Raum im Fenster. */
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 6;
-const ZOOM_SCHRITT = 1.35;
-
-/**
- * Zelle unter einem Bildschirmpunkt finden – für das Ablegen eines Elements
- * aus der Palette. Jede Zelle des Raumplans trägt ihren `platzSchluessel`
- * als `data-zelle`; der Raumname kann Sonderzeichen enthalten, deshalb wird
- * von hinten getrennt.
- */
-function zelleUnterPunkt(x: number, y: number): { raum: string; zeile: number; spalte: number } | null {
-  const element = document.elementFromPoint(x, y)?.closest('[data-zelle]');
-  const wert = element?.getAttribute('data-zelle');
-  if (!wert) return null;
-  const teile = wert.split('|');
-  const spalte = Number(teile.pop());
-  const zeile = Number(teile.pop());
-  const raum = teile.join('|');
-  if (!Number.isFinite(zeile) || !Number.isFinite(spalte)) return null;
-  return { raum, zeile, spalte };
-}
-
-/** Eine Eingabezeile des Raum-Editors. */
-function RaumEditorZeile({
-  zeile,
-  onChange,
-  onRemove,
-}: {
-  zeile: RaumZeile;
-  onChange: (zeile: RaumZeile) => void;
-  onRemove: () => void;
-}) {
-  const { isCompact } = useResponsiveLayout();
-  // Gestapelt wäre flexBasis die Höhe – dort bekommen die Felder volle Breite.
-  const voll = styles.raumInputVoll;
-  return (
-    <View style={[styles.raumZeile, isCompact && styles.raumZeileGestapelt]}>
-      <TextInput
-        style={[styles.raumInput, isCompact ? voll : styles.raumInputName]}
-        value={zeile.raum}
-        onChangeText={(raum) => onChange({ ...zeile, raum })}
-        placeholder="Raum-Name"
-        placeholderTextColor={colors.textMuted}
-      />
-      <TextInput
-        style={[styles.raumInput, isCompact ? voll : styles.raumInputPlaetze]}
-        value={zeile.plaetzeText}
-        inputMode="numeric"
-        onChangeText={(plaetzeText) => onChange({ ...zeile, plaetzeText })}
-        placeholder="Plätze"
-        placeholderTextColor={colors.textMuted}
-      />
-      <TextInput
-        style={[styles.raumInput, isCompact ? voll : styles.raumInputZeit]}
-        value={zeile.reservierteZeit}
-        onChangeText={(reservierteZeit) => onChange({ ...zeile, reservierteZeit })}
-        placeholder="Reservierte Zeit"
-        placeholderTextColor={colors.textMuted}
-      />
-      <AppButton title="Entfernen" variant="secondary" onPress={onRemove} />
-    </View>
-  );
-}
 
 /**
  * Ansicht "Räume" – zugleich die Druckvorlage der Aushänge: pro Raum eine
@@ -280,13 +177,8 @@ export function RaumzuteilungScreen() {
   const [belegung, setBelegung] = useState<Platzbelegung[]>([]);
   const [drehungen, setDrehungen] = useState<Record<string, number>>({});
   const [planModus, setPlanModus] = useState<PlanModus>('verschieben');
-  const [werkzeug, setWerkzeug] = useState<Werkzeug>('tisch');
-  const [auswahl, setAuswahl] = useState<{ raum: string; bereich: Bereich } | null>(null);
-  const [zielZelle, setZielZelle] = useState<{ raum: string; zeile: number; spalte: number } | null>(null);
   const [ausgewaehlt, setAusgewaehlt] = useState<{ raum: string; matrikelnummer: string } | null>(null);
   const [ohnePlanPlatz, setOhnePlanPlatz] = useState<Sitzplatz[]>([]);
-  // 1 = ganzer Raum im Fenster; zum Lesen der Namen zoomt man hinein.
-  const [zoom, setZoom] = useState(1);
 
   const aushangRef = useRef<View>(null);
 
@@ -310,7 +202,6 @@ export function RaumzuteilungScreen() {
     setBelegung(neu);
   };
 
-  const { isCompact } = useResponsiveLayout();
   const raeume = zeilen.map(zeileZuRaum);
 
   // Eingaben aus dem Projektordner, solange nichts eigenes geladen wurde.
@@ -347,6 +238,17 @@ export function RaumzuteilungScreen() {
     if (schemata.length === 0 || belegung.length === 0) return sitzplaetze;
     return sitzplaetzeMitBelegung(sitzplaetze, belegung, nummern);
   }, [sitzplaetze, schemata, belegung, nummern]);
+
+  /** Belegung je Raum – einmal gruppiert, damit `React.memo` in den Zellen greift. */
+  const belegungJeRaum = useMemo(() => {
+    const gruppen = new Map<string, Platzbelegung[]>();
+    for (const platz of belegung) {
+      const liste = gruppen.get(platz.raum);
+      if (liste) liste.push(platz);
+      else gruppen.set(platz.raum, [platz]);
+    }
+    return gruppen;
+  }, [belegung]);
 
   const personenJeMatrikel = useMemo(
     () => new Map((angezeigteSitzplaetze ?? []).map((platz) => [platz.matrikelnummer, platz])),
@@ -408,19 +310,40 @@ export function RaumzuteilungScreen() {
   };
 
   /**
-   * Schema eines Raums ändern und die Belegung nachziehen. `basisBelegung`
-   * erlaubt es, die Belegung mitzubewegen (etwa beim Verschieben eines Blocks).
+   * Schema eines Raums ändern und die Belegung nachziehen. Wandert ein ganzer
+   * Block, wandern die Personen darin mit – sonst stünden die Tische woanders
+   * als ihre Belegung.
    */
   const schemaAendern = (
     raum: string,
     aendern: (schema: Raumschema) => Raumschema,
-    basisBelegung: Platzbelegung[] = belegungRef.current,
+    verschiebung?: Verschiebung,
   ) => {
     const neu = schemataRef.current.map((s) => (s.raum === raum ? aendern(s) : s));
     uebernehmeSchemata(neu);
+    const basisBelegung = verschiebung
+      ? verschiebeBelegung(
+          belegungRef.current,
+          raum,
+          verschiebung.bereich,
+          verschiebung.dZeile,
+          verschiebung.dSpalte,
+        )
+      : belegungRef.current;
     if (sitzplaetze) belegungAktualisieren(neu, sitzplaetze, basisBelegung);
     else uebernehmeBelegung(basisBelegung);
   };
+
+  /** Nur das Schema schreiben – für Änderungen, an denen keine Belegung hängt. */
+  const nurSchemaAendern = (raum: string, aendern: (schema: Raumschema) => Raumschema) => {
+    uebernehmeSchemata(schemataRef.current.map((s) => (s.raum === raum ? aendern(s) : s)));
+  };
+
+  const editor = useRaumplanEditor({
+    schemata: schemataRef,
+    aendere: schemaAendern,
+    aendereOhneBelegung: nurSchemaAendern,
+  });
 
   const zuteilungErstellen = () => {
     setFehler(null);
@@ -482,53 +405,9 @@ export function RaumzuteilungScreen() {
     else uebernehmeBelegung(neu);
   };
 
-  /** Ein Element auf eine Zelle setzen und sie auswählen (Malen und Ablegen). */
-  const elementSetzen = (raum: string, zeile: number, spalte: number, typ: Werkzeug) => {
-    if (typ === 'auswahl') return;
-    const bereich = bereichAus({ zeile, spalte }, { zeile, spalte });
-    schemaAendern(raum, (schema) =>
-      typ === 'text' ? verbindeZellen(schema, bereich) : setzeZelle(schema, zeile, spalte, typ),
-    );
-    setAuswahl({ raum, bereich });
-  };
-
-  /** Ausgewählte Zellen zu einem Textfeld verbinden bzw. wieder trennen. */
-  const zellenVerbinden = () => {
-    if (!auswahl) return;
-    setHinweis(null);
-    schemaAendern(auswahl.raum, (schema) => verbindeZellen(schema, auswahl.bereich));
-    setWerkzeug('text');
-  };
-
-  const zellenTrennen = () => {
-    if (!auswahl) return;
-    setHinweis(null);
-    schemaAendern(auswahl.raum, (schema) => trenneZellen(schema, auswahl.bereich));
-  };
-
-  /**
-   * Nur der Text eines Feldes ändert sich – am Raster und damit an der
-   * Belegung ändert das nichts. Deshalb bewusst nicht über `schemaAendern`:
-   * Sonst liefe bei jedem Tastendruck die Verteilung über alle Räume neu.
-   */
-  const beschriftungSchreiben = (raum: string, zeile: number, spalte: number, text: string) => {
-    uebernehmeSchemata(
-      schemataRef.current.map((schema) =>
-        schema.raum === raum ? setzeBeschriftungsText(schema, zeile, spalte, text) : schema,
-      ),
-    );
-  };
-
   /** Zelle im Sitzplan angetippt – was passiert, hängt vom Modus ab. */
   const zellePress = (schema: Raumschema, zeile: number, spalte: number) => {
     setHinweis(null);
-    if (planModus === 'bearbeiten') {
-      // „Auswählen“ und „Text“ ziehen einen Bereich auf – das erledigt onAufziehen.
-      if (werkzeug !== 'auswahl' && werkzeug !== 'text') {
-        elementSetzen(schema.raum, zeile, spalte, werkzeug);
-      }
-      return;
-    }
     if (planModus === 'reserve') {
       belegungSetzen(schalteReserve(belegungRef.current, schema.raum, zeile, spalte));
       return;
@@ -557,70 +436,6 @@ export function RaumzuteilungScreen() {
     if (platz.matrikelnummer !== '') {
       setAusgewaehlt({ raum: schema.raum, matrikelnummer: platz.matrikelnummer });
     }
-  };
-
-  /**
-   * Auswahl über mehrere Felder aufziehen (Griff an der unteren Ecke).
-   * Gefüllt wird mit dem Element der bisherigen Auswahl – so wird aus einem
-   * Tisch eine Tischreihe und aus einer Wandzelle eine ganze Wand.
-   */
-  const bereichAufziehen = (raum: string, neuerBereich: Bereich) => {
-    const alteAuswahl = auswahl && auswahl.raum === raum ? auswahl.bereich : neuerBereich;
-    const schema = schemataRef.current.find((s) => s.raum === raum);
-    if (!schema) return;
-    if (werkzeug === 'text') {
-      // Mit dem Textwerkzeug wird aufgezogen, was verbunden werden soll.
-      schemaAendern(raum, (aktuell) => verbindeZellen(aktuell, neuerBereich));
-      setAuswahl({ raum, bereich: neuerBereich });
-      return;
-    }
-    const typ =
-      werkzeug !== 'auswahl'
-        ? werkzeug
-        : schema.zellen[alteAuswahl.zeile]?.[alteAuswahl.spalte] ?? 'leer';
-    schemaAendern(raum, (aktuell) => bereichAendern(aktuell, alteAuswahl, neuerBereich, typ));
-    setAuswahl({ raum, bereich: neuerBereich });
-  };
-
-  /** Ausgewählten Block verschieben – die Belegung wandert mit. */
-  const bereichVerschieben = (raum: string, dZeile: number, dSpalte: number) => {
-    if (!auswahl || auswahl.raum !== raum || (dZeile === 0 && dSpalte === 0)) return;
-    const bereich = auswahl.bereich;
-    schemaAendern(
-      raum,
-      (schema) => verschiebeBereich(schema, bereich, dZeile, dSpalte),
-      verschiebeBelegung(belegungRef.current, raum, bereich, dZeile, dSpalte),
-    );
-    setAuswahl({
-      raum,
-      bereich: { ...bereich, zeile: bereich.zeile + dZeile, spalte: bereich.spalte + dSpalte },
-    });
-  };
-
-  /** Element aus der Palette über dem Plan bewegen bzw. ablegen. */
-  const paletteZiehen = (x: number, y: number) => setZielZelle(zelleUnterPunkt(x, y));
-
-  const paletteAblegen = (typ: Werkzeug) => (x: number, y: number) => {
-    setZielZelle(null);
-    setWerkzeug(typ);
-    const ziel = zelleUnterPunkt(x, y);
-    if (!ziel || typ === 'auswahl') return;
-    if (!schemataRef.current.some((schema) => schema.raum === ziel.raum)) return;
-    elementSetzen(ziel.raum, ziel.zeile, ziel.spalte, typ);
-  };
-
-  const drehen = (raum: string, richtung: 1 | -1) => {
-    setDrehungen({ ...drehungen, [raum]: (((drehungen[raum] ?? 0) + richtung) % 4 + 4) % 4 });
-  };
-
-  const groesseAendern = (schema: Raumschema, dZeilen: number, dSpalten: number) => {
-    schemaAendern(schema.raum, (aktuell) =>
-      mitGroesse(
-        aktuell,
-        aktuell.zellen.length + dZeilen,
-        (aktuell.zellen[0]?.length ?? 1) + dSpalten,
-      ),
-    );
   };
 
   const aushaengeDrucken = () => {
@@ -696,19 +511,11 @@ export function RaumzuteilungScreen() {
       </Section>
 
       <Section title="Räume">
-        {zeilen.map((zeile, i) => (
-          <RaumEditorZeile
-            key={i}
-            zeile={zeile}
-            onChange={(neu) => setZeilen(zeilen.map((alt, j) => (j === i ? neu : alt)))}
-            onRemove={() => setZeilen(zeilen.filter((_, j) => j !== i))}
-          />
-        ))}
-        <AppButton
-          title="Raum hinzufügen"
-          onPress={() => setZeilen([...zeilen, { raum: '', plaetzeText: '', reservierteZeit: '' }])}
-          testID="raum-hinzufuegen"
-        />
+        <Text style={styles.hinweis}>
+          Die Räume selbst und ihre leeren Raster gehören zu keiner einzelnen Klausur – bearbeitet
+          werden sie in Schritt 5, hier stehen sie zum Nachbessern.
+        </Text>
+        <RaumListe zeilen={zeilen} onChange={setZeilen} />
         <FilePickerButton label="Räume-CSV laden" accept=".csv" onFiles={raeumeLaden} />
         <ProjektQuelle rolle="raeume" testID="raum-quelle-raeume" />
         <ProjektQuelle rolle="raumschema" testID="raum-quelle-schema" />
@@ -786,29 +593,7 @@ export function RaumzuteilungScreen() {
           </View>
           <Text style={styles.hinweis}>{modusHinweis}</Text>
 
-          {/* Ohne Zoom passt jeder Raum ganz ins Fenster – auch 47 × 34 Felder.
-              Zum Lesen der Namen zoomt man hinein, dann scrollt der Plan. */}
-          <View style={styles.buttonZeile}>
-            <Text style={styles.hinweis}>Ansicht: {Math.round(zoom * 100)} %</Text>
-            <AppButton
-              title="−"
-              variant="secondary"
-              onPress={() => setZoom((wert) => Math.max(ZOOM_MIN, wert / ZOOM_SCHRITT))}
-              testID="raum-zoom-kleiner"
-            />
-            <AppButton
-              title="+"
-              variant="secondary"
-              onPress={() => setZoom((wert) => Math.min(ZOOM_MAX, wert * ZOOM_SCHRITT))}
-              testID="raum-zoom-groesser"
-            />
-            <AppButton
-              title="Einpassen"
-              variant="secondary"
-              onPress={() => setZoom(1)}
-              testID="raum-zoom-einpassen"
-            />
-          </View>
+          <PlanZoomLeiste editor={editor} />
 
           {ausgewaehlt ? (
             <StatusText kind="info">
@@ -822,109 +607,35 @@ export function RaumzuteilungScreen() {
             </StatusText>
           ) : null}
 
-          <View style={[styles.editorZeile, isCompact && styles.editorZeileGestapelt]}>
-            {planModus === 'bearbeiten' ? (
-              <View style={[styles.palette, isCompact && styles.paletteBreit]} testID="raum-palette">
-                <Text style={styles.palettenTitel}>Elemente</Text>
-                {PALETTE.map((eintrag) => (
-                  <PaletteElement
-                    key={eintrag.werkzeug}
-                    titel={eintrag.titel}
-                    untertitel={eintrag.untertitel}
-                    aktiv={werkzeug === eintrag.werkzeug}
-                    onTippen={() => setWerkzeug(eintrag.werkzeug)}
-                    onZiehen={paletteZiehen}
-                    onAblegen={paletteAblegen(eintrag.werkzeug)}
-                    testID={`raum-zelle-${eintrag.werkzeug}`}
-                  />
-                ))}
-                <Text style={styles.hinweis}>
-                  Auf eine Zelle ziehen setzt das Element dort. Antippen wählt es aus, dann im Plan
-                  über Zellen ziehen – praktisch für eine ganze Wand.
-                </Text>
-              </View>
-            ) : null}
-
-            <View style={styles.plaene}>
-          {schemata.map((schema) => {
-            const tische = tischzellen(schema).length;
-            const belegt = belegung.filter((p) => p.raum === schema.raum && p.matrikelnummer !== '').length;
-            const reserven = belegung.filter((p) => p.raum === schema.raum && p.reserviert).length;
-            const eigeneAuswahl = auswahl?.raum === schema.raum ? auswahl.bereich : null;
-            return (
-              <View key={schema.raum} style={styles.planBlock}>
-                <Text style={styles.raumUeberschrift}>
-                  {schema.raum} ({belegt}/{tische} belegt
-                  {reserven > 0 ? `, ${reserven} Reserve` : ''}) · Raster{' '}
-                  {schema.zellen[0]?.length ?? 0} Spalten × {schema.zellen.length} Zeilen
-                  {eigeneAuswahl
-                    ? ` · Auswahl ${bereichName(
-                        anzeigeBereich(eigeneAuswahl, schema, drehungen[schema.raum] ?? 0),
-                      )}`
-                    : ''}
-                </Text>
-                <View style={styles.buttonZeile}>
-                  <AppButton
-                    title="↺ 90°"
-                    variant="secondary"
-                    onPress={() => drehen(schema.raum, -1)}
-                    testID={`raum-drehen-links-${schema.raum}`}
-                  />
-                  <AppButton
-                    title="↻ 90°"
-                    variant="secondary"
-                    onPress={() => drehen(schema.raum, 1)}
-                    testID={`raum-drehen-rechts-${schema.raum}`}
-                  />
-                  {planModus === 'bearbeiten' ? (
-                    <>
-                      <AppButton title="+ Zeile" variant="secondary" onPress={() => groesseAendern(schema, 1, 0)} />
-                      <AppButton title="− Zeile" variant="secondary" onPress={() => groesseAendern(schema, -1, 0)} />
-                      <AppButton title="+ Spalte" variant="secondary" onPress={() => groesseAendern(schema, 0, 1)} />
-                      <AppButton title="− Spalte" variant="secondary" onPress={() => groesseAendern(schema, 0, -1)} />
-                      <AppButton
-                        title="Zellen verbinden"
-                        variant="secondary"
-                        onPress={zellenVerbinden}
-                        disabled={!eigeneAuswahl}
-                        testID={`raum-verbinden-${schema.raum}`}
-                      />
-                      <AppButton
-                        title="Zellen trennen"
-                        variant="secondary"
-                        onPress={zellenTrennen}
-                        disabled={!eigeneAuswahl}
-                        testID={`raum-trennen-${schema.raum}`}
-                      />
-                    </>
-                  ) : null}
-                </View>
-                <Raumplan
+          <RaumplanFlaeche
+            palette={
+              planModus === 'bearbeiten' ? (
+                <RaumPalette editor={editor} testID="raum-palette" />
+              ) : null
+            }
+          >
+            {schemata.map((schema) => {
+              const tische = tischzellen(schema).length;
+              const belegt = belegung.filter(
+                (p) => p.raum === schema.raum && p.matrikelnummer !== '',
+              ).length;
+              const reserven = belegung.filter((p) => p.raum === schema.raum && p.reserviert).length;
+              return (
+                <RaumplanKarte
+                  key={schema.raum}
+                  editor={editor}
                   schema={schema}
-                  drehungen={drehungen[schema.raum] ?? 0}
-                  belegung={belegung.filter((platz) => platz.raum === schema.raum)}
+                  bearbeiten={planModus === 'bearbeiten'}
+                  kopfZusatz={`${belegt}/${tische} belegt${reserven > 0 ? `, ${reserven} Reserve` : ''}`}
+                  belegung={belegungJeRaum.get(schema.raum) ?? []}
                   nummern={nummern}
                   personen={personenJeMatrikel}
                   ausgewaehlt={ausgewaehlt?.raum === schema.raum ? ausgewaehlt.matrikelnummer : null}
                   onZellePress={(zeile, spalte) => zellePress(schema, zeile, spalte)}
-                  zoom={zoom}
-                  bearbeiten={planModus === 'bearbeiten'}
-                  werkzeug={werkzeug === 'auswahl' || werkzeug === 'text' ? 'auswahl' : 'malen'}
-                  auswahl={eigeneAuswahl}
-                  onAuswahl={(bereich) => setAuswahl({ raum: schema.raum, bereich })}
-                  onAufziehen={(bereich) => bereichAufziehen(schema.raum, bereich)}
-                  onVerschieben={(dZeile, dSpalte) => bereichVerschieben(schema.raum, dZeile, dSpalte)}
-                  onBeschriftungText={(zeile, spalte, text) =>
-                    beschriftungSchreiben(schema.raum, zeile, spalte, text)
-                  }
-                  zielZelle={zielZelle?.raum === schema.raum ? zielZelle : null}
-                  testID={`raum-plan-${schema.raum}`}
                 />
-              </View>
-            );
-          })}
-            </View>
-          </View>
+              );
+            })}
+          </RaumplanFlaeche>
 
           <View style={styles.buttonZeile}>
             <AppButton title="Sitzplan neu verteilen" variant="secondary" onPress={neuVerteilen} testID="raum-neu-verteilen" />
@@ -1089,39 +800,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  raumZeile: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  raumZeileGestapelt: { flexDirection: 'column', alignItems: 'stretch' },
-  raumInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm + 2,
-    fontSize: 15,
-    color: colors.text,
-    backgroundColor: colors.surface,
-  },
-  // Keine festen Breiten: flexBasis ist nur die Umbruchgrenze, die Felder
-  // teilen sich die tatsächliche Breite über flexGrow.
-  raumInputName: { flexGrow: 2, flexShrink: 1, flexBasis: 120, minWidth: 0 },
-  raumInputPlaetze: { flexGrow: 1, flexShrink: 1, flexBasis: 80, minWidth: 0 },
-  raumInputZeit: { flexGrow: 3, flexShrink: 1, flexBasis: 180, minWidth: 0 },
-  raumInputVoll: { width: '100%' },
   raumTabellen: { gap: spacing.md },
   raumTabelle: { gap: spacing.xs },
   raumUeberschrift: { fontSize: 15, fontWeight: '600', color: colors.text },
-  planBlock: { gap: spacing.sm },
-  // Palette und Pläne nebeneinander; auf schmalen Fenstern untereinander.
-  editorZeile: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
-  editorZeileGestapelt: { flexDirection: 'column' },
-  palette: { gap: spacing.sm, flexShrink: 0, maxWidth: 200 },
-  paletteBreit: { flexDirection: 'row', flexWrap: 'wrap', maxWidth: '100%', alignItems: 'center' },
-  palettenTitel: { fontSize: 14, fontWeight: '700', color: colors.text },
-  plaene: { flexGrow: 1, flexShrink: 1, minWidth: 0, gap: spacing.md },
   hinweis: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
 });

@@ -1,6 +1,6 @@
 # Maestro-E2E-Test
 
-Kompletter Durchlauf durch alle vier Screens der Web-App – jeweils mit den
+Kompletter Durchlauf durch alle fünf Screens der Web-App – jeweils mit den
 eingebauten Beispieldaten (Datei-Uploads lassen sich im Browser nicht
 automatisieren, deshalb hat jeder Screen den Button „Beispieldaten laden“).
 

@@ -4,6 +4,7 @@ import { ProjektProvider } from './src/projekt';
 import { Router } from './src/Router';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { KlausurTeilnehmerScreen } from './src/screens/KlausurTeilnehmerScreen';
+import { RaeumeScreen } from './src/screens/RaeumeScreen';
 import { RaumzuteilungScreen } from './src/screens/RaumzuteilungScreen';
 import { VipsScreen } from './src/screens/VipsScreen';
 import { ZulassungsPdfsScreen } from './src/screens/ZulassungsPdfsScreen';
@@ -26,6 +27,7 @@ export default function App() {
           ZulassungsPdfs: { titel: titel('ZulassungsPdfs'), component: () => <ZulassungsPdfsScreen /> },
           KlausurTeilnehmer: { titel: titel('KlausurTeilnehmer'), component: () => <KlausurTeilnehmerScreen /> },
           Raumzuteilung: { titel: titel('Raumzuteilung'), component: () => <RaumzuteilungScreen /> },
+          Raeume: { titel: titel('Raeume'), component: () => <RaeumeScreen /> },
         }}
       />
       <StatusBar style="auto" />

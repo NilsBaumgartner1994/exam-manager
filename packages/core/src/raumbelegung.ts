@@ -145,10 +145,24 @@ export function verschiebeBelegung(
   dZeile: number,
   dSpalte: number,
 ): Platzbelegung[] {
-  return belegung.map((platz) =>
-    platz.raum === raum && imBereich(bereich, platz.zeile, platz.spalte)
+  const bewegt = (platz: Platzbelegung) =>
+    platz.raum === raum && imBereich(bereich, platz.zeile, platz.spalte);
+  const verschoben = belegung.map((platz) =>
+    bewegt(platz)
       ? { ...platz, zeile: platz.zeile + dZeile, spalte: platz.spalte + dSpalte }
       : platz,
+  );
+  // Wer auf einen Tisch geschoben wird, der schon einen Eintrag hatte,
+  // überschreibt ihn: Sonst lägen zwei Einträge auf demselben Platz und es
+  // entschiede der Zufall der Reihenfolge, welcher gilt.
+  const ziele = new Set(
+    verschoben
+      .filter((_, i) => bewegt(belegung[i]))
+      .map((platz) => platzSchluessel(platz.raum, platz.zeile, platz.spalte)),
+  );
+  return verschoben.filter(
+    (platz, i) =>
+      bewegt(belegung[i]) || !ziele.has(platzSchluessel(platz.raum, platz.zeile, platz.spalte)),
   );
 }
 

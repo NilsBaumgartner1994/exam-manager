@@ -311,6 +311,22 @@ describe('Raumbelegung', () => {
     expect(verschiebeBelegung(belegung, '94/E01', { zeile: 0, spalte: 0, hoehe: 9, breite: 9 }, 1, 1)).toEqual(belegung);
   });
 
+  it('überschreibt beim Verschieben, was am Zielplatz schon stand', () => {
+    // Ein Tisch wird auf einen anderen geschoben: Danach gilt der bewegte
+    // Eintrag – sonst hinge die Person an einem Platz, den es so nicht gibt.
+    const { belegung } = verteileImRaum(schemata[1], ['a'], []);
+    const verschoben = verschiebeBelegung(
+      belegung,
+      '94/E03',
+      { zeile: 0, spalte: 1, hoehe: 1, breite: 1 },
+      0,
+      1,
+    );
+    const amZiel = verschoben.filter((p) => p.zeile === 0 && p.spalte === 2);
+    expect(amZiel).toHaveLength(1);
+    expect(amZiel[0].matrikelnummer).toBe('a');
+  });
+
   it('schaltet Reserve und Vorgabe um', () => {
     const { belegung } = verteileImRaum(schemata[1], ['a'], []);
     const reserviert = schalteReserve(belegung, '94/E03', 0, 2);

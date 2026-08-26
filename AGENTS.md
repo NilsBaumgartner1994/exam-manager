@@ -152,6 +152,26 @@ Konventionen des Datensatzes:
   die Zielpfade mit – `packages/core/test/projekt.test.ts` prüft, dass jede
   Datei im Beispielprojekt von `erkenneRolle` wiedergefunden wird.
 
+## Räume: zwei Screens, ein Editor
+
+- Räume und ihre leeren Raster gehören zu **keiner** einzelnen Klausur: Im
+  Projektordner liegen sie in `Raeume/`, außerhalb der nummerierten
+  Schritt-Ordner. Screen 5 (`RaeumeScreen`) bearbeitet sie für sich, Screen 4
+  legt die Belegung darüber.
+- Damit beide dasselbe tun, liegt das Bearbeiten in Bausteinen und nicht in
+  einem der Screens: `components/RaumListe.tsx` (die Raumliste als Formular)
+  und `components/RaumplanEditor.tsx` (`useRaumplanEditor` mit Werkzeug,
+  Auswahl, Zoom und Drehung, dazu `RaumPalette`, `PlanZoomLeiste`,
+  `RaumplanKarte`, `RaumplanFlaeche`).
+- Was die beiden Screens unterscheidet, steckt allein in der Anbindung
+  `aendere`: Screen 4 zieht dort die Belegung nach (und beim Verschieben eines
+  Blocks die Personen darin mit), Screen 5 schreibt nur das Schema. Wer eine
+  neue Bearbeitungsfunktion baut, baut sie in den Baustein – sonst kann sie
+  einer der beiden Screens nicht.
+- `aendereOhneBelegung` ist kein Schönheitsfehler: Am Text eines Feldes hängt
+  keine Belegung, und sonst liefe bei jedem Tastendruck die Verteilung über
+  alle Räume neu.
+
 ## Sitzplan im Raum (Screen 4)
 
 - `packages/core/src/raumschema.ts` hält das Raster eines Raums (Tische, Tür,

@@ -187,7 +187,7 @@ yarn typecheck   # TypeScript-Prüfung beider Pakete
 
 ### Screens
 
-Die Startseite zeigt vier Kacheln entlang des Workflows – und darunter den
+Die Startseite zeigt fünf Kacheln entlang des Workflows – und darunter den
 optionalen **Projektordner**:
 
 0. **Projektordner (optional)** – ein Ordner, der alle Dateien einer Klausur
@@ -301,6 +301,26 @@ Und die vier Schritte selbst:
    die Nummer des neuen Tisches. Raster und Belegung lassen sich als CSV
    speichern und wieder laden.
 
+5. **Räume & Raumpläne** – dieselben Raster, aber **ohne Teilnehmende**: Räume
+   anlegen, ihre Grundrisse zeichnen und beides speichern. Ein Raum überlebt
+   die einzelne Klausur – derselbe Hörsaal wird jedes Semester wieder
+   gebraucht, sein Grundriss ändert sich fast nie –, deshalb liegen Raumliste
+   und Raster im Projektordner zusammen in `Raeume/`, außerhalb der
+   nummerierten Schritt-Ordner. Schritt 4 nimmt sie von dort als Vorlage und
+   legt nur noch die Belegung darüber.
+
+   Der Editor ist derselbe wie in Schritt 4 (Palette, verbundene Zellen, Zoom,
+   Drehen); dazu kommen:
+
+   - **Fehlende Raster anlegen** – für jeden Raum der Liste ohne Raster einen
+     Vorschlag erzeugen (Tische in Zweierblöcken mit Gang, Pult vorne, Tür
+     hinten). Von Hand zu zeichnen ist nur noch, was davon abweicht.
+   - **Plätze übernehmen** – die Platzzahl der Raumliste aus dem Raster setzen
+     (die Tische zählen). Weicht beides ab, steht das in der Überschrift des
+     Raums – sonst meldet Schritt 4 später Teilnehmende „ohne Tisch“.
+   - **Raster entfernen** – das Raster eines Raums verwerfen, ohne den Raum
+     aus der Liste zu nehmen.
+
 Liegt ein Projektordner vor, steht unter jeder Dateiauswahl, **welche Datei
 von dort standardmäßig genutzt wird** – bei mehreren Kandidaten auch, welche
 dadurch liegen bleiben, und wenn im erwarteten Ordner nichts liegt, steht das
@@ -316,7 +336,7 @@ E2E-Test (`.maestro/durchlauf.yaml`, siehe `.maestro/README.md`).
 packages/core   Fachlogik als reines TypeScript – läuft im Browser UND in Node
                 (CSV/Excel-Parsing, VIPS-Auswertung, Zulassungsprüfung,
                 Raumzuteilung, PDF/ZIP-Erzeugung) + Jest-Tests
-apps/web        Expo-Web-App (React Native Web) mit den vier Screens
+apps/web        Expo-Web-App (React Native Web) mit den fünf Screens
 ```
 
 Die Trennung ist Absicht: `packages/core` hat keine UI-Abhängigkeiten und kann
@@ -378,7 +398,7 @@ EXPO_BASE_URL=/exam-manager yarn export:web       # mit Pages-Basispfad
 
 1. **Anonymisierung & Dokumentation** – erledigt: Beispieldatensatz, READMEs.
 2. **TypeScript-Web-Tool** – in Arbeit: Workspace, Fachlogik in
-   `packages/core` (mit Jest-Tests), Expo-Web-App mit den vier Screens,
+   `packages/core` (mit Jest-Tests), Expo-Web-App mit den fünf Screens,
    GitHub-Pages-Deployment, Maestro-E2E-Test.
 3. **Python-Skripte ablösen** – sobald die App den kompletten Workflow
    abdeckt, bleiben die Skripte nur noch als Referenz erhalten.

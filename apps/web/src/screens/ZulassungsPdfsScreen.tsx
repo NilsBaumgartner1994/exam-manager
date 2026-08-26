@@ -4,8 +4,10 @@ import {
   erstelleZip,
   istZulassungsDatei,
   ladeZulassungsBestand,
+  nichtDarstellbareZeichen,
   parseStudipExport,
   teilnehmerMitZulassung,
+  winAnsiText,
   Zulassung,
   zulassungsPdf,
 } from '@exam-manager/core';
@@ -14,6 +16,8 @@ import {
   DataTable,
   FilePickerButton,
   LabeledTextInput,
+  ProjektDownload,
+  ProjektQuelle,
   ScreenContainer,
   Section,
   StatusText,
@@ -27,6 +31,24 @@ import { colors, spacing } from '../theme';
 interface Ergebnis {
   zulassungen: Zulassung[];
   zip: Uint8Array;
+  /** Wie viele PDFs vorher im Projektordner lagen und ersetzt wurden. */
+  ersetzt: number;
+  /** Namen, die im PDF ohne ihre Sonderzeichen stehen (siehe unten). */
+  umgeschrieben: string[];
+}
+
+/**
+ * Namen, die eine Standard-PDF-Schrift nicht buchstabengetreu setzen kann.
+ *
+ * Statt am ersten „ź“ abzubrechen, schreibt die PDF-Erzeugung solche Zeichen um
+ * (`ź` → `z`). Wer betroffen ist, gehört auf den Bildschirm – im PDF steht dann
+ * eben nicht ganz der Name aus der Liste.
+ */
+function umgeschriebeneNamen(zulassungen: Zulassung[]): string[] {
+  return zulassungen
+    .map((zulassung) => `${zulassung.vorname} ${zulassung.nachname}`)
+    .filter((name) => nichtDarstellbareZeichen(name).length > 0)
+    .map((name) => `${name} → ${winAnsiText(name)}`);
 }
 
 /**
@@ -43,7 +65,6 @@ export function ZulassungsPdfsScreen() {
   const [laeuft, setLaeuft] = useState(false);
   const [ergebnis, setErgebnis] = useState<Ergebnis | null>(null);
   const [dateiname, setDateiname] = useState('zulassungs_pdfs.zip');
-  const [ausProjekt, setAusProjekt] = useState<string | null>(null);
 
   // Eingaben aus dem Projektordner, solange nichts eigenes geladen wurde.
   const projekt = useProjekt();
@@ -54,10 +75,6 @@ export function ZulassungsPdfsScreen() {
     if (listen.length === 0 && !studip?.text) return;
     if (listen.length > 0) setZulassungsListen(listen.map((datei) => datei.text ?? ''));
     if (studip?.text) setTeilnehmerCsv(studip.text);
-    setAusProjekt(
-      `Aus dem Projektordner: ${listen.length} Zulassungslisten` +
-        (studip ? `, ${studip.pfad}` : ''),
-    );
   }, [projekt, zulassungsListen, teilnehmerCsv]);
 
   const ladeZulassungsOrdner = async (files: File[]) => {
@@ -99,7 +116,12 @@ export function ZulassungsPdfsScreen() {
         dateien.set(`${zulassung.matrikelnummer}.pdf`, await zulassungsPdf(zulassung));
       }
       const zip = await erstelleZip(dateien);
-      setErgebnis({ zulassungen, zip });
+      // Der PDF-Ordner des Projekts wird komplett ersetzt: Ein PDF aus einem
+      // früheren Lauf gehört zu einem Stand, den es nicht mehr gibt – wer die
+      // Zulassung verloren hat, behielte sonst sein altes Schreiben.
+      const ersetzt = projekt.dateienMit('zulassungsPdf').length;
+      projekt.ersetze('zulassungsPdf', dateien);
+      setErgebnis({ zulassungen, zip, ersetzt, umgeschrieben: umgeschriebeneNamen(zulassungen) });
       setStatus(null);
     } catch (fehler) {
       setStatus({ kind: 'error', text: fehler instanceof Error ? fehler.message : String(fehler) });
@@ -121,22 +143,27 @@ export function ZulassungsPdfsScreen() {
           onFiles={ladeZulassungsOrdner}
           testID="zulassungspdfs-ordner"
         />
+        <ProjektQuelle rolle="zulassungsbestand" alle testID="pdfs-quelle-zulassungen" />
         <FilePickerButton
           label="Teilnehmendenexport.csv auswählen"
           accept=".csv"
           onFiles={ladeTeilnehmerExport}
           testID="zulassungspdfs-teilnehmer"
         />
+        <ProjektQuelle rolle="studipExport" testID="pdfs-quelle-studip" />
         <AppButton
           title="Beispieldaten laden"
           variant="secondary"
           onPress={ladeBeispieldaten}
           testID="zulassungspdfs-beispiel"
         />
-        {ausProjekt ? (
-          <StatusText kind="info" testID="pdfs-projekt">{ausProjekt}</StatusText>
-        ) : null}
         {status ? <StatusText kind={status.kind}>{status.text}</StatusText> : null}
+        <Text style={styles.hinweis}>
+          Aus dem Projektordner kommen die Zulassungslisten aus Zulassungen/ (inklusive der in
+          Schritt 1 abgelegten) und der Stud.IP-Export aus
+          0_Input_Kurs_Teilnehmer_Studip_Liste/. Ohne Projektordner lassen sich beide hier von Hand
+          auswählen.
+        </Text>
       </Section>
 
       <AppButton
@@ -150,6 +177,17 @@ export function ZulassungsPdfsScreen() {
         <Section title="Ergebnis">
           <StatusText kind="success" testID="zulassungspdfs-ergebnis">
             {`${ergebnis.zulassungen.length} Zulassungs-PDFs erzeugt.`}
+          </StatusText>
+          {ergebnis.umgeschrieben.length > 0 ? (
+            <StatusText kind="info" testID="zulassungspdfs-sonderzeichen">
+              {`Die eingebaute PDF-Schrift kennt nicht jedes Sonderzeichen; in ${ergebnis.umgeschrieben.length} Namen wurde es ersetzt: ${ergebnis.umgeschrieben.join('; ')}`}
+            </StatusText>
+          ) : null}
+          <StatusText kind="info" testID="zulassungspdfs-projekt-ordner">
+            {`Im Projekt liegen sie in 2_Zulassungs_PDFs_Export/` +
+              (ergebnis.ersetzt > 0
+                ? ` – ${ergebnis.ersetzt} PDFs aus einem früheren Lauf wurden dabei entfernt.`
+                : '.')}
           </StatusText>
           <DataTable
             columns={[
@@ -189,6 +227,13 @@ export function ZulassungsPdfsScreen() {
           </Text>
         </Section>
       ) : null}
+
+      <Section title="Projekt">
+        <ProjektDownload
+          hinweis="Enthält die neu erzeugten Zulassungs-PDFs in 2_Zulassungs_PDFs_Export/."
+          testID="pdfs-projekt-download"
+        />
+      </Section>
     </ScreenContainer>
   );
 }

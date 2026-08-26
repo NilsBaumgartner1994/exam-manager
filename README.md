@@ -63,11 +63,18 @@ die Pipeline):
 
 ```bash
 python3 tools/generate_sample_data.py
+python3 tools/build_sample_project.py   # daraus: Beispielprojekt/
 ```
+
+`Beispielprojekt/` ist ein fertiger Projektordner für die Web-App: Jede
+Eingabedatei liegt dort in dem Ordner, in dem die App sie sucht (siehe
+[Web-App](#screens)). Zum Ausprobieren auf der Startseite einfach diesen
+Ordner auswählen.
 
 ## Ordnerstruktur
 
 ```
+Beispielprojekt/                   Beispiel-Projektordner für die Web-App (siehe unten)
 Zulassungen/                       Zulassungsbestand aller Jahre + Prüfung der Anmeldungen
 Zuslassungliste_Erstellen/
   1_check_bestandene_vips/         Wer hat dieses Jahr die Übungen bestanden?
@@ -75,6 +82,7 @@ Zuslassungliste_Erstellen/
   3_rundmail_an_alle/              Vorlage für die Rundmail
   4_MailRaumZuordnung/             Teilnehmendenliste, Raum- und Sitzplatzzuteilung
 tools/generate_sample_data.py      Erzeugt den anonymisierten Beispiel-Datensatz
+tools/build_sample_project.py      Baut daraus Beispielprojekt/ zusammen
 WORKFLOW.md                        Der Ablauf einer Klausur von A bis Z
 ```
 
@@ -182,14 +190,38 @@ yarn typecheck   # TypeScript-Prüfung beider Pakete
 Die Startseite zeigt vier Kacheln entlang des Workflows – und darunter den
 optionalen **Projektordner**:
 
-0. **Projektordner (optional)** – Liegen alle Dateien einer Klausur in einem
-   Ordner, lässt er sich einmal auswählen; die App erkennt an Dateiname und
-   Kopfzeile, was welche Datei ist (Notenliste, Stud.IP-Export,
-   Zulassungslisten, HIS-Export, Räume, Raumschema, Belegung …) und füllt die
-   vier Schritte damit. Ergebnisse schreiben die Schritte in den Projektstand
-   zurück, der sich als **ZIP herunterladen** lässt – damit ersetzt man den
-   eigenen Ordner. Wer neu anfängt, lädt die **Projektvorlage als ZIP**
-   herunter: ein leerer Ordner mit der erwarteten Struktur und `LIESMICH.md`.
+0. **Projektordner (optional)** – ein Ordner, der alle Dateien einer Klausur
+   an einem Ort hält. **Der Ordner entscheidet, was gelesen wird:** Eine Datei
+   zählt nur, wenn sie am vorgesehenen Platz mit der passenden Endung liegt –
+   eine Notenliste im Hauptordner oder ein Stud.IP-Export in `Zulassungen/`
+   bleibt bewusst „nicht zugeordnet“. Lieber eine Datei sichtbar ignorieren
+   als die falsche auswerten.
+
+   ```
+   0_Input_Klausuranmeldungen/            *.xlsx              Anmeldungen des Prüfungsamts
+   0_Input_Kurs_Teilnehmer_Studip_Liste/  *.csv               Teilnehmendenexport aus Stud.IP
+   0_Input_Vips_Notenliste/               *.csv               Notenliste aus VIPS
+   Zulassungen/                           *zulassungen*.csv   je Jahr eine Liste der Zugelassenen
+   Raeume/                                *.csv               raeume.csv, raumschema.csv (blanko)
+   2_Zulassungs_PDFs_Export/              *.pdf               erzeugte Zulassungs-PDFs (Schritt 2)
+   3_Klausur_Teilnehmende_Export/         *.csv               Angemeldete mit/ohne Zulassung (Schritt 3)
+   4_Raumzuteilung_Export/                *.csv               Sitzplan und Belegung (Schritt 4)
+   ```
+
+   Die `0_Input_…`-Ordner nehmen auf, was von außen kommt; die nummerierten
+   Export-Ordner füllt die App. `Zulassungen/` und `Raeume/` sind unnummeriert,
+   weil sie über eine einzelne Klausur hinaus gelten – die Raumraster sind
+   deshalb **blanko**, ohne platzierte Studierende, und lassen sich für jeden
+   Sitzplan wiederverwenden.
+
+   Einmal ausgewählt, holen sich die Schritte ihre Eingaben von selbst und
+   schreiben ihre Ergebnisse zurück. **Auf jedem Screen** gibt es den Button
+   „Aktualisiertes Projekt herunterladen“: Er packt den kompletten Stand als
+   ZIP – auch Dateien, die zu keiner Regel passen, bleiben unverändert
+   enthalten. Damit ersetzt man den eigenen Ordner. Wer neu anfängt, lädt die
+   **Projektvorlage als ZIP** herunter: die leere Struktur mit `LIESMICH.md`
+   je Ordner. `Beispielprojekt/` in diesem Repository ist ein gefüllter
+   Ordner zum direkten Ausprobieren.
 
    Der Ordner bleibt nur im Speicher der geöffneten Seite: Ein Neuladen leert
    ihn, gespeichert wird bewusst nichts, und der Browser darf auch nicht in
@@ -197,13 +229,23 @@ optionalen **Projektordner**:
 
 Und die vier Schritte selbst:
 
-1. **VIPS-Punkte auswerten** – Notenliste + Teilnehmendenexport hochladen,
-   Kriterien eingeben (Min. Punkte pro Blatt, Anzahl Blätter), Ergebnis als
-   Zulassungs-CSV herunterladen (Dateiname frei wählbar, Default
-   `<Veranstaltung>_<Jahr>_zulassungen.csv`).
-2. **Zulassungs-PDFs generieren** – Zulassungsordner + Teilnehmendenexport
-   laden, je Person mit Zulassung ein `<Matrikelnummer>.pdf` erzeugen und
-   gesammelt als ZIP herunterladen (für die Stud.IP-„Klausureinsicht“).
+1. **VIPS-Punkte auswerten** – Notenliste und Teilnehmendenexport kommen aus
+   `0_Input_Vips_Notenliste/` und `0_Input_Kurs_Teilnehmer_Studip_Liste/` des
+   Projektordners (oder von Hand), Kriterien eingeben (Min. Punkte pro Blatt,
+   Anzahl Blätter). Unten: **„Zugelassene Studierende in den
+   Zulassungen-Ordner ablegen“** – die neue Jahresliste landet im Projekt
+   unter `Zulassungen/` und wird zugleich heruntergeladen – und **„Weiter zu
+   2. Zulassungs-PDFs generieren“**.
+2. **Zulassungs-PDFs generieren** – nimmt die Zulassungslisten und den
+   Stud.IP-Export direkt aus dem Projektordner (inklusive der Liste aus
+   Schritt 1) und erzeugt je Person mit Zulassung ein `<Matrikelnummer>.pdf`,
+   gesammelt als ZIP (für die Stud.IP-„Klausureinsicht“). Im Projekt landen
+   sie in `2_Zulassungs_PDFs_Export/`; **PDFs eines früheren Laufs werden
+   dabei entfernt** – sie gehören zu einem Stand, den es nicht mehr gibt.
+   Die eingebaute PDF-Schrift kann nur WinAnsi: Umlaute und ß stehen darin,
+   `ź` oder `ł` nicht. Statt am ersten solchen Namen abzubrechen, schreibt die
+   App ihn um (`Woźniak` → `Wozniak`) und nennt jeden betroffenen Namen im
+   Ergebnis.
 3. **Klausur-Anmeldungen prüfen** – HIS-Export (`check.xlsx`) gegen den
    Zulassungsbestand prüfen; Zugelassene/Nicht-Zugelassene anzeigen und als
    CSV herunterladen.
@@ -258,6 +300,11 @@ Und die vier Schritte selbst:
    Lesereihenfolge des Rasters), nicht zur Person: Wer umgesetzt wird, bekommt
    die Nummer des neuen Tisches. Raster und Belegung lassen sich als CSV
    speichern und wieder laden.
+
+Liegt ein Projektordner vor, steht unter jeder Dateiauswahl, **welche Datei
+von dort standardmäßig genutzt wird** – bei mehreren Kandidaten auch, welche
+dadurch liegen bleiben, und wenn im erwarteten Ordner nichts liegt, steht das
+ebenfalls dort.
 
 Jeder Screen hat einen Button **„Beispieldaten laden“**, der den
 anonymisierten Datensatz dieses Repos lädt – zum Ausprobieren und für den

@@ -11,6 +11,9 @@ notAllowedStudents.csv
 mitZulassungOhneMail.csv
 **/studipKlausurzulassungPdfs/
 **/pdfs/
+# Der Beispiel-Projektordner zeigt nur die Struktur – erzeugte PDFs enthalten
+# Personendaten und gehören nicht ins Repository.
+Beispielprojekt/2_Zulassungs_PDFs_Export/*.pdf
 
 # Node / TypeScript (kommt in Schritt 2)
 node_modules/

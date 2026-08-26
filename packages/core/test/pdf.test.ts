@@ -1,4 +1,10 @@
-import { erstelleZip, sitzplatzPdf, zulassungsPdf } from '../src';
+import {
+  erstelleZip,
+  nichtDarstellbareZeichen,
+  sitzplatzPdf,
+  winAnsiText,
+  zulassungsPdf,
+} from '../src';
 
 const ZULASSUNG = {
   nachname: 'Schrödinger', vorname: 'Erwin', matrikelnummer: '1000005', email: 'erwin@test.de',
@@ -27,5 +33,50 @@ describe('PDF und ZIP (Screen 2 + 4)', () => {
     // ZIP-Magic "PK"
     expect(zip[0]).toBe(0x50);
     expect(zip[1]).toBe(0x4b);
+  });
+});
+
+describe('Sonderzeichen in Namen', () => {
+  it('erzeugt ein PDF für Namen, an denen pdf-lib sonst abbricht', async () => {
+    // „WinAnsi cannot encode ź (0x017a)“ – der Fehler, der einen ganzen
+    // Stapel scheitern ließ.
+    const pdf = await zulassungsPdf({
+      nachname: 'Woźniak', vorname: 'Michał', matrikelnummer: '1000011', email: 'michal@test.de',
+    });
+    expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
+  });
+
+  it('lässt Umlaute und westeuropäische Akzente stehen', () => {
+    expect(winAnsiText('Schrödinger Müller Straße')).toBe('Schrödinger Müller Straße');
+    expect(winAnsiText('Émile Cañas Ångström')).toBe('Émile Cañas Ångström');
+  });
+
+  it('nimmt nur den Akzent weg, wenn das Zeichen fehlt', () => {
+    expect(winAnsiText('Woźniak')).toBe('Wozniak');
+    // á und ž bleiben – CP1252 kennt beide; ř, Č und ć nicht.
+    expect(winAnsiText('Dvořák Čapek Ružić')).toBe('Dvorák Capek Ružic');
+    expect(winAnsiText('Michał Łukasz')).toBe('Michal Lukasz');
+  });
+
+  it('setzt ein Fragezeichen, wo gar nichts passt', () => {
+    expect(winAnsiText('Иванов')).toBe('??????');
+    expect(winAnsiText('李')).toBe('?');
+  });
+
+  it('meldet, welche Zeichen ersetzt werden mussten', () => {
+    expect(nichtDarstellbareZeichen('Woźniak')).toEqual(['ź']);
+    expect(nichtDarstellbareZeichen('Schrödinger')).toEqual([]);
+  });
+
+  it('schreibt jedes Zeichen, das es durchlässt, auch wirklich ins PDF', async () => {
+    // Der Test, der die Zeichenliste ehrlich hält: Alles, was winAnsiText
+    // stehen lässt, muss pdf-lib auch setzen können.
+    const alle = Array.from({ length: 0x2020 }, (_, i) => String.fromCharCode(i))
+      .map((zeichen) => winAnsiText(zeichen))
+      .join('');
+    const pdf = await zulassungsPdf({
+      nachname: alle, vorname: '', matrikelnummer: '1', email: '',
+    });
+    expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
   });
 });

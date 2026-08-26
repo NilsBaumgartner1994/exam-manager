@@ -161,7 +161,7 @@ Konventionen des Datensatzes:
 - Damit beide dasselbe tun, liegt das Bearbeiten in Bausteinen und nicht in
   einem der Screens: `components/RaumListe.tsx` (die Raumliste als Formular)
   und `components/RaumplanEditor.tsx` (`useRaumplanEditor` mit Werkzeug,
-  Auswahl, Zoom und Drehung, dazu `RaumPalette`, `PlanZoomLeiste`,
+  Auswahl, Ansicht, Verlauf und Drehung, dazu `RaumPalette`, `PlanLeiste`,
   `RaumplanKarte`, `RaumplanFlaeche`).
 - Was die beiden Screens unterscheidet, steckt allein in der Anbindung
   `aendere`: Screen 4 zieht dort die Belegung nach (und beim Verschieben eines
@@ -171,12 +171,28 @@ Konventionen des Datensatzes:
 - `aendereOhneBelegung` ist kein Schönheitsfehler: Am Text eines Feldes hängt
   keine Belegung, und sonst liefe bei jedem Tastendruck die Verteilung über
   alle Räume neu.
+- **Rückgängig/Wiederholen liegt auch im Baustein**, und zwar als
+  Momentaufnahme des ganzen Standes (`PlanZustand`): Der Screen gibt
+  `zustand`/`setzeZustand` mit, Screen 4 nimmt die Belegung dazu – Raster und
+  Belegung gehören zusammen, einzeln zurückgesetzt stünde hinterher das eine
+  ohne das andere. Wer im Screen etwas am Plan ändert, das nicht durch ein
+  Werkzeug des Editors läuft (Platzieren, Reserve, Vorgabe, Raster anlegen
+  oder entfernen), ruft vorher `editor.merkeStand()` – sonst führt ein
+  Rückgängig weiter zurück, als der Nutzer erwartet. Innerhalb eines Zugs
+  fasst eine `marke` zusammen, was ein Schritt ist (ein Malzug über viele
+  Zellen, alles Getippte in ein Textfeld); beendet wird er von `zugBeendet`,
+  das `Raumplan` beim Loslassen meldet.
 
 ## Sitzplan im Raum (Screen 4)
 
 - `packages/core/src/raumschema.ts` hält das Raster eines Raums (Tische, Tür,
   Wand, Pult) und die Drehung der Ansicht, `raumbelegung.ts` die Frage, wer an
   welchem Tisch sitzt (Reserveplätze, Vorgaben, Umsetzen).
+- **`tisch` und `pult` sind beides Tische**, der Unterschied ist der Zweck:
+  `tisch` ist ein Sitzplatz (wird nummeriert und belegt, `tischzellen()`
+  zählt ihn), `pult` ein Tisch ohne Sitzplatz. In der Oberfläche heißen sie
+  deshalb „Sitzplatz“ und „Pult“ und sind in zwei Holztönen gezeichnet –
+  gleiche Familie, unterschiedliche Helligkeit.
 - Zwei Regeln, an denen sich alles andere ausrichtet:
   1. **Die Sitzplatznummer gehört zum Tisch**, nicht zur Person – vergeben in
      Lesereihenfolge des gespeicherten Rasters, über alle Räume fortlaufend.
@@ -198,16 +214,26 @@ Konventionen des Datensatzes:
   Bereich mit Text (`verbindeZellen`/`trenneZellen`/`setzeBeschriftungsText`)
   und steht in eigenen CSV-Zeilen `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>`.
   So bleibt das Raster ein Rechteck aus Ein-Zeichen-Kürzeln und der Text darf
-  beliebig lang sein. Die Zellen unter einem Feld werden geleert, und jedes
-  Malen darüber löst das Feld auf – was im Raster steht, ist immer sichtbar.
+  beliebig lang sein. Ein Feld legt sich **über** das Raster, statt es zu
+  ersetzen: Die Zellen darunter bleiben, damit sich auch eine Tür
+  („Haupteingang“) oder eine Tischreihe („Aufsicht“) beschriften lässt.
+  Deshalb ist das Feld beim Bearbeiten nur halb deckend und zeigt sonst allein
+  seinen Text auf heller Unterlage. Weg ist es mit `trenneZellen` oder dem
+  Radierer – nur `fuelleBereich(..., 'leer')` nimmt Textfelder mit.
 - **Adressen wie in Excel:** `spaltenName` (A, B, …, AA), `zeilenName` (ab 1),
   `bereichName` (`B3:E7`). Die Köpfe beschriften die *gedrehte* Ansicht; was
   über dem Raster liegt (Auswahl, Textfelder), rechnet `anzeigeBereich` mit
   derselben Drehung um wie `anzeigeRaster`.
 - **Die Zellgröße ist nicht fest:** `rastermasse()` in `Raumplan.tsx` passt
-  Zellen, Abstand, Kopfgröße und Schriftgrößen an Fenster und Raumgröße an –
-  ohne Zoom passt auch ein Hörsaal mit 47 × 34 Feldern auf einen
-  1920 × 1080-Schirm. Bei so vielen Zellen zählt jede Neuberechnung: Die
+  Zellen, Abstand, Kopfgröße und Schriftgrößen an Fenster und Raumgröße an.
+  Drei Ansichten (`PlanAnsicht`): `breite` (Voreinstellung – die volle Breite
+  wird genutzt, in die Höhe wird gescrollt), `einpassen` (auch ein Hörsaal mit
+  47 × 34 Feldern am Stück auf einem 1920 × 1080-Schirm) und `frei`
+  (Zellgröße in Pixeln, wie das Zoomen in ein Bild; der erste Zoomschritt
+  setzt auf der gerade gezeichneten Größe auf, die `onZellGroesse` meldet).
+  Zellgröße und Fuge hängen voneinander ab – erst schätzen, dann mit der
+  passenden Fuge rechnen, sonst bleibt bei 47 Spalten ein Streifen ungenutzt.
+  Bei so vielen Zellen zählt jede Neuberechnung: Die
   Zellen sind `React.memo` und bekommen deshalb stabile Rückrufe (Position als
   Argument statt frisch erzeugter Closure) und gemerkte Werte (`useMemo` für
   Raster und Belegungskarte).

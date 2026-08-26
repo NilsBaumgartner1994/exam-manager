@@ -99,7 +99,7 @@ Alle CSV-Dateien: Trennzeichen `;`, UTF-8, Zeilenende `\n`.
 | VIPS-Notenliste | `Nachname;Vorname;Kennung;Matrikelnr.;<Aufgabenblatt …>;Summe` (Zeile 2 = Maximalpunktzahl, Datei mit BOM) |
 | Stud.IP-Export | `Status;Anrede;Titel;Vorname;Nachname;…;E-Mail;Anmeldedatum;Matrikelnummer;Studiengänge;Position` (alle Felder in `"`) |
 | Raumliste | `Raum;Plätze;ReservierteZeit` |
-| Raumschema (`raumschema.csv`) | Raster statt Kopfzeile: `Raum;<Name>` beginnt einen Raum, jede weitere Zeile ist eine Reihe im Raum. Zellen: `T` Tisch, `D` Tür, `W` Wand, `P` Pult, `.` frei. Freier Text über verbundenen Zellen steht in eigenen Zeilen: `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>` |
+| Raumschema (`raumschema.csv`) | Raster statt Kopfzeile: `Raum;<Name>` beginnt einen Raum, jede weitere Zeile ist eine Reihe im Raum. Zellen: `T` Sitzplatz (Tisch für Studierende), `P` Pult (Tisch ohne Sitzplatz), `D` Tür, `W` Wand, `.` frei. Freier Text über verbundenen Zellen steht in eigenen Zeilen: `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>` – er liegt über dem Raster, die Zellen darunter bleiben erhalten |
 | Raumbelegung (`raumbelegung.csv`) | `Raum;Zeile;Spalte;Sitzplatznummer;Matrikelnummer;Nachname;Vorname;Reserviert;Vorgabe` (Sitzplatznummer, Nachname und Vorname stehen nur zur Lesbarkeit darin und werden beim Einlesen ignoriert) |
 
 Ein Raumschema bildet den Aufbau des Raumes direkt ab und lässt sich deshalb
@@ -266,31 +266,47 @@ Und die vier Schritte selbst:
      einen freien Tisch nach (bleibt keiner übrig, nennt die App die Person).
    - **Vorgabe** – eine Person fest auf ihren Platz binden; sie bleibt dort
      auch bei „Sitzplan neu verteilen“.
-   - **Raum bearbeiten** – links liegt die Palette (Auswählen, Tisch, Wand,
-     Tür, Pult, Text, Radierer). Ein Element auf eine Zelle **ziehen** setzt es
-     dort; **antippen** wählt es aus und man malt damit im Plan (über Zellen
-     ziehen zeichnet z. B. eine ganze Wand). Mit **Auswählen** verschiebt man
-     einen Block – die Belegung wandert mit –, und am blauen **Griff an der
-     unteren Ecke** zieht man ihn wie in einer Tabellenkalkulation über
-     mehrere Felder auf oder wieder zusammen. Zeilen und Spalten lassen sich
-     zusätzlich über die Knöpfe hinzufügen und entfernen.
+   - **Raum bearbeiten** – links liegt die Palette (Auswählen, Sitzplatz,
+     Pult, Wand, Tür, Text, Radierer). Ein Element auf eine Zelle **ziehen**
+     setzt es dort; **antippen** wählt es aus und man malt damit im Plan (über
+     Zellen ziehen zeichnet z. B. eine ganze Wand). Mit **Auswählen**
+     verschiebt man einen Block – die Belegung wandert mit –, und am blauen
+     **Griff an der unteren Ecke** zieht man ihn wie in einer
+     Tabellenkalkulation über mehrere Felder auf oder wieder zusammen. Zeilen
+     und Spalten lassen sich zusätzlich über die Knöpfe hinzufügen und
+     entfernen.
+   - **Sitzplatz oder Pult?** Beides sind Tische, in hellem bzw. dunklerem
+     Holzton. Ein **Sitzplatz** (`T`) ist ein Tisch, an dem jemand geprüft
+     wird: Nur diese werden nummeriert und belegt, und nur sie zählt die
+     Platzzahl des Raums. Das **Pult** (`P`) ist der einfache Tisch für alles
+     andere – Aufsicht, Ablage, Materialtisch.
+   - **Rückgängig / Wiederholen** – jeder Schritt im Plan lässt sich zurück-
+     nehmen: die Knöpfe über den Plänen oder <kbd>Strg</kbd>/<kbd>⌘</kbd> +
+     <kbd>Z</kbd> (vorwärts mit <kbd>Umschalt</kbd> + <kbd>Z</kbd> bzw.
+     <kbd>Y</kbd>). Das gilt auch fürs Platzieren, für Reserven und Vorgaben –
+     Raster und Belegung gehen immer zusammen einen Schritt zurück.
    - **Text und verbundene Zellen** – mit dem Werkzeug **Text** zieht man über
      mehrere Felder ein Feld auf, in das sich frei schreiben lässt (z. B.
-     „Tafel“, „Aufsicht“ oder ein Hinweis für die Aufsicht). Dasselbe leisten
-     die Knöpfe **Zellen verbinden** und **Zellen trennen** für die aktuelle
-     Auswahl. Die Zellen unter einem Textfeld werden frei, damit kein Tisch
-     unsichtbar darunter verschwindet; wer wieder etwas hineinmalt, löst das
-     Feld auf.
+     „Tafel“, „Haupteingang“ oder ein Hinweis für die Aufsicht). Dasselbe
+     leisten die Knöpfe **Zellen verbinden** und **Zellen trennen** für die
+     aktuelle Auswahl. Das Feld legt sich **über** den Plan, statt ihn zu
+     ersetzen: So lässt sich auch eine Tür, ein Pult oder eine ganze
+     Tischreihe beschriften – die Zellen darunter bleiben, was sie sind. Weg
+     ist ein Feld mit **Zellen trennen** oder dem Radierer.
    - **Raster sehen** – jedes Feld hat eine dünne Linie, oben stehen die
      Spalten als `A`, `B`, `C` … und links die Zeilen als `1`, `2`, `3` – wie
      in einer Tabellenkalkulation. Die Überschrift nennt die Rastergröße und
      die Adresse der Auswahl (etwa `B3:E7`). So ist zu erkennen, wie groß der
      Raum ist und wo sich klicken lässt – auch dort, wo noch nichts steht.
      Der Aushang verzichtet darauf.
-   - **Größe der Ansicht** – ohne Zoom passt jeder Raum ganz ins Fenster, auch
-     ein Hörsaal mit 47 × 34 Feldern auf einem 1920 × 1080-Schirm. Zum Lesen
-     der Namen zoomt man mit **+** hinein (dann scrollt der Plan), **Einpassen**
-     stellt die Übersicht wieder her.
+   - **Größe der Ansicht** – drei Möglichkeiten, weil je nach Raum eine andere
+     passt: **Auf Breite** (Voreinstellung) nutzt die volle Breite und scrollt
+     in die Höhe – ein schmaler Seminarraum wäre sonst winzig, obwohl daneben
+     alles frei ist. **Ganzer Raum** passt auch einen Hörsaal mit 47 × 34
+     Feldern am Stück auf einen 1920 × 1080-Schirm. Mit **−** und **+** stellt
+     man die Zellgröße selbst ein wie beim Zoomen in ein Bild; die Leiste
+     nennt sie dann in Pixeln. Der Zoom setzt auf der gerade sichtbaren Größe
+     auf, springt also nicht.
    - **Drehen** – die Ansicht je Raum um 90° drehen (vier Richtungen), damit
      sie zur eigenen Blickrichtung im Raum passt. Gedreht wird nur die
      Darstellung; die gespeicherten Positionen und die Sitzplatznummern
@@ -309,8 +325,8 @@ Und die vier Schritte selbst:
    nummerierten Schritt-Ordner. Schritt 4 nimmt sie von dort als Vorlage und
    legt nur noch die Belegung darüber.
 
-   Der Editor ist derselbe wie in Schritt 4 (Palette, verbundene Zellen, Zoom,
-   Drehen); dazu kommen:
+   Der Editor ist derselbe wie in Schritt 4 (Palette, verbundene Zellen,
+   Ansicht/Zoom, Rückgängig, Drehen); dazu kommen:
 
    - **Fehlende Raster anlegen** – für jeden Raum der Liste ohne Raster einen
      Vorschlag erzeugen (Tische in Zweierblöcken mit Gang, Pult vorne, Tür

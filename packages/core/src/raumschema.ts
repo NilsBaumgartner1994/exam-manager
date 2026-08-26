@@ -48,8 +48,10 @@ const KUERZEL_ZU_TYP: Record<string, ZellTyp> = {
 
 /**
  * Freier Text über einem rechteckigen Bereich – „verbundene Zellen“ wie in
- * einer Tabellenkalkulation. Das Raster darunter bleibt leer; der Text liegt
- * als eigenes Element darüber und kann deshalb beliebig lang sein.
+ * einer Tabellenkalkulation. Der Text liegt als eigenes Element über dem
+ * Raster und kann deshalb beliebig lang sein. Was darunter steht, bleibt
+ * stehen: So lässt sich auch eine Tür („Haupteingang“) oder eine Tischreihe
+ * („Aufsicht“) beschriften.
  */
 export interface Beschriftung extends Bereich {
   text: string;
@@ -401,8 +403,12 @@ export function beschriftungenIn(schema: Raumschema, bereich: Bereich): Beschrif
 /**
  * Zellen verbinden: Über den Bereich kommt ein Textfeld. Bereits vorhandene
  * Textfelder darin gehen darin auf – ihre Texte werden zusammengezogen, damit
- * beim Verbinden nichts verloren geht. Die Zellen darunter werden frei, sonst
- * verschwänden Tische unsichtbar unter dem Feld.
+ * beim Verbinden nichts verloren geht.
+ *
+ * Was im Raster steht, bleibt stehen: Ein Textfeld beschriftet auch eine Tür
+ * („Haupteingang“), ein Pult oder eine Tischreihe („Aufsicht“). Es liegt über
+ * den Zellen, statt sie zu ersetzen – ein beschrifteter Tisch bleibt also ein
+ * Sitzplatz. Frei macht eine Fläche nur der Radierer.
  */
 export function verbindeZellen(schema: Raumschema, bereich: Bereich, text?: string): Raumschema {
   const bisherige = beschriftungenIn(schema, bereich);
@@ -410,9 +416,7 @@ export function verbindeZellen(schema: Raumschema, bereich: Bereich, text?: stri
     text ?? bisherige.map((b) => b.text.trim()).filter((wert) => wert !== '').join(' ');
   return {
     raum: schema.raum,
-    zellen: schema.zellen.map((reihe, z) =>
-      reihe.map((alt, s) => (imBereich(bereich, z, s) ? ('leer' as ZellTyp) : alt)),
-    ),
+    zellen: schema.zellen,
     beschriftungen: [
       ...schema.beschriftungen.filter((b) => !bereicheUeberlappen(b, bereich)),
       { ...bereich, text: zusammen },
@@ -446,8 +450,10 @@ export function setzeBeschriftungsText(
 }
 
 /**
- * Alle Zellen eines Bereichs auf einen Typ setzen. Textfelder, die dabei
- * überbaut würden, fallen weg – was im Raster steht, ist immer sichtbar.
+ * Alle Zellen eines Bereichs auf einen Typ setzen. Textfelder bleiben dabei
+ * liegen – sie beschriften ja gerade das, was darunter steht. Nur der
+ * Radierer (`leer`) räumt auch sie weg: Wer eine Fläche frei macht, will
+ * dort nichts stehen lassen.
  */
 export function fuelleBereich(schema: Raumschema, bereich: Bereich, typ: ZellTyp): Raumschema {
   return {
@@ -455,8 +461,14 @@ export function fuelleBereich(schema: Raumschema, bereich: Bereich, typ: ZellTyp
     zellen: schema.zellen.map((reihe, z) =>
       reihe.map((alt, s) => (imBereich(bereich, z, s) ? typ : alt)),
     ),
-    beschriftungen: schema.beschriftungen.filter((b) => !bereicheUeberlappen(b, bereich)),
+    beschriftungen: ohneBeschriftungenIm(schema.beschriftungen, typ === 'leer' ? bereich : null),
   };
+}
+
+/** Textfelder in einem Bereich entfernen (`null` lässt alle stehen). */
+function ohneBeschriftungenIm(beschriftungen: Beschriftung[], bereich: Bereich | null): Beschriftung[] {
+  if (!bereich) return beschriftungen;
+  return beschriftungen.filter((b) => !bereicheUeberlappen(b, bereich));
 }
 
 /**
@@ -519,7 +531,8 @@ export function bereichAendern(
     zellen: schema.zellen.map((reihe, z) =>
       reihe.map((zellTyp, s) => (imBereich(alt, z, s) && !imBereich(neu, z, s) ? 'leer' : zellTyp)),
     ),
-    beschriftungen: schema.beschriftungen.filter((b) => !bereicheUeberlappen(b, alt)),
+    // Wie beim Füllen: Nur der Radierer nimmt die Textfelder mit.
+    beschriftungen: ohneBeschriftungenIm(schema.beschriftungen, typ === 'leer' ? alt : null),
   };
   return fuelleBereich(geleert, neu, typ);
 }

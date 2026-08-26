@@ -5,7 +5,14 @@ export { LabeledNumberInput, LabeledTextInput } from './LabeledInput';
 export { PaletteElement } from './PaletteElement';
 export { ProjektDownload } from './ProjektDownload';
 export { ProjektQuelle } from './ProjektQuelle';
-export { Raumplan, type PlanWerkzeug } from './Raumplan';
+export {
+  PLAN_ANSICHT,
+  PLAN_ANSICHT_EDITOR,
+  Raumplan,
+  type Ansichtsmodus,
+  type PlanAnsicht,
+  type PlanWerkzeug,
+} from './Raumplan';
 export {
   LEERE_RAUM_ZEILE,
   RaumListe,
@@ -14,11 +21,12 @@ export {
   type RaumZeile,
 } from './RaumListe';
 export {
-  PlanZoomLeiste,
+  PlanLeiste,
   RaumPalette,
   RaumplanFlaeche,
   RaumplanKarte,
   useRaumplanEditor,
+  type PlanZustand,
   type RaumplanEditor,
   type Verschiebung,
   type Werkzeug,

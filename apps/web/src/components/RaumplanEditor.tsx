@@ -1,4 +1,4 @@
-import { MutableRefObject, ReactNode, useState } from 'react';
+import { MutableRefObject, ReactNode, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   anzeigeBereich,
@@ -22,7 +22,14 @@ import { useResponsiveLayout } from '../responsive';
 import { colors, spacing } from '../theme';
 import { AppButton } from './AppButton';
 import { PaletteElement } from './PaletteElement';
-import { Raumplan } from './Raumplan';
+import {
+  PLAN_ANSICHT_EDITOR,
+  Raumplan,
+  ZELLE_FREI_MAX,
+  ZELLE_FREI_MIN,
+  type Ansichtsmodus,
+  type PlanAnsicht,
+} from './Raumplan';
 
 /**
  * Werkzeug im Bearbeiten-Modus: auswählen/verschieben, ein Element malen oder
@@ -30,20 +37,29 @@ import { Raumplan } from './Raumplan';
  */
 export type Werkzeug = 'auswahl' | 'text' | ZellTyp;
 
+/**
+ * Die Elemente der Palette.
+ *
+ * „Sitzplatz“ und „Pult“ sind beides Tische – der Unterschied ist, ob dort
+ * jemand geprüft wird: Nur Sitzplätze werden nummeriert und bekommen in
+ * Schritt 4 Studierende. Das Pult ist der einfache Tisch für alles andere
+ * (Aufsicht, Ablage, Materialtisch).
+ */
 export const PALETTE: { werkzeug: Werkzeug; titel: string; untertitel: string }[] = [
   { werkzeug: 'auswahl', titel: 'Auswählen', untertitel: 'wählen & schieben' },
-  { werkzeug: 'tisch', titel: 'Tisch', untertitel: 'T' },
+  { werkzeug: 'tisch', titel: 'Sitzplatz', untertitel: 'Tisch für Studierende · T' },
+  { werkzeug: 'pult', titel: 'Pult', untertitel: 'Tisch ohne Sitzplatz · P' },
   { werkzeug: 'wand', titel: 'Wand', untertitel: 'W' },
   { werkzeug: 'tuer', titel: 'Tür', untertitel: 'D' },
-  { werkzeug: 'pult', titel: 'Pult', untertitel: 'P' },
-  { werkzeug: 'text', titel: 'Text', untertitel: 'Zellen verbinden' },
+  { werkzeug: 'text', titel: 'Text', untertitel: 'über Zellen legen' },
   { werkzeug: 'leer', titel: 'Radierer', untertitel: 'frei' },
 ];
 
-/** Zoomstufen des Plans: 1 = ganzer Raum im Fenster. */
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 6;
+/** Ein Schritt der Lupe: So viel größer bzw. kleiner wird eine Zelle. */
 const ZOOM_SCHRITT = 1.35;
+
+/** So viele Schritte lassen sich rückgängig machen. */
+const VERLAUF_TIEFE = 100;
 
 /** Ein Block, der als Ganzes wandert – Schritt 4 zieht daran die Belegung mit. */
 export interface Verschiebung {
@@ -74,6 +90,24 @@ export interface RaumplanAnbindung {
    * die Verteilung über alle Räume neu.
    */
   aendereOhneBelegung?: (raum: string, wandel: (schema: Raumschema) => Raumschema) => void;
+  /**
+   * Momentaufnahme des Standes für Rückgängig/Wiederholen. Ohne die beiden
+   * Rückrufe gibt es keinen Verlauf – der Editor weiß ja nicht, was am
+   * Bildschirm sonst noch am Raster hängt.
+   */
+  zustand?: () => PlanZustand;
+  setzeZustand?: (zustand: PlanZustand) => void;
+}
+
+/**
+ * Ein Stand, zu dem „Rückgängig“ zurückkehrt: die Raster und – wo eine geführt
+ * wird (Schritt 4) – die Belegung dazu. Beides gehört zusammen: Wandert ein
+ * Tischblock, wandern die Personen darin mit; einzeln zurückgesetzt stünde
+ * hinterher das eine ohne das andere.
+ */
+export interface PlanZustand {
+  schemata: Raumschema[];
+  belegung?: Platzbelegung[];
 }
 
 export interface RaumplanEditor {
@@ -83,9 +117,27 @@ export interface RaumplanEditor {
   setzeAuswahl: (auswahl: { raum: string; bereich: Bereich } | null) => void;
   auswahlIn: (raum: string) => Bereich | null;
   zielZelle: { raum: string; zeile: number; spalte: number } | null;
-  zoom: number;
+  /** Wie groß gezeichnet wird (eingepasst, auf Breite oder frei in Pixeln). */
+  ansicht: PlanAnsicht;
+  setzeAnsichtModus: (modus: Ansichtsmodus) => void;
+  /** Frei zoomen wie in einem Bild – ausgehend von der gerade sichtbaren Größe. */
   zoomAendern: (richtung: 1 | -1) => void;
-  zoomZuruecksetzen: () => void;
+  /** Ein Plan meldet, wie groß seine Zellen gerade sind (für den Zoom). */
+  merkeZellGroesse: (raum: string, groesse: number) => void;
+  /** Gibt es einen Verlauf? Ohne `zustand` in der Anbindung: nein. */
+  mitVerlauf: boolean;
+  kannRueckgaengig: boolean;
+  kannWiederholen: boolean;
+  rueckgaengig: () => void;
+  wiederholen: () => void;
+  /**
+   * Den jetzigen Stand vor einer Änderung merken. Der Editor tut das für seine
+   * eigenen Werkzeuge selbst; Screens rufen es für alles auf, was sie außer
+   * der Reihe am Plan ändern (Platzieren, Reserve, Vorgabe).
+   */
+  merkeStand: (marke?: string | null) => void;
+  /** Ein Zug im Plan ist zu Ende – der nächste wird wieder einzeln gemerkt. */
+  zugBeendet: () => void;
   drehungen: Record<string, number>;
   drehen: (raum: string, richtung: 1 | -1) => void;
   zellePress: (raum: string, zeile: number, spalte: number) => void;
@@ -118,7 +170,8 @@ function zelleUnterPunkt(x: number, y: number): { raum: string; zeile: number; s
 }
 
 /**
- * Das Bearbeiten eines Raumrasters: Werkzeug, Auswahl, Zoom und Drehung.
+ * Das Bearbeiten eines Raumrasters: Werkzeug, Auswahl, Ansicht, Drehung und
+ * der Verlauf für Rückgängig/Wiederholen.
  *
  * Zwei Screens bearbeiten dieselben Raster – Schritt 4 mit Studierenden darin,
  * Schritt 5 ohne. Was sie unterscheidet, steckt allein in `aendere`: Schritt 4
@@ -128,18 +181,101 @@ export function useRaumplanEditor({
   schemata,
   aendere,
   aendereOhneBelegung,
+  zustand,
+  setzeZustand,
 }: RaumplanAnbindung): RaumplanEditor {
   const [werkzeug, setzeWerkzeug] = useState<Werkzeug>('tisch');
   const [auswahl, setzeAuswahl] = useState<{ raum: string; bereich: Bereich } | null>(null);
   const [zielZelle, setzeZielZelle] = useState<{ raum: string; zeile: number; spalte: number } | null>(null);
   const [drehungen, setzeDrehungen] = useState<Record<string, number>>({});
-  const [zoom, setzeZoom] = useState(1);
+  const [ansicht, setzeAnsicht] = useState<PlanAnsicht>(PLAN_ANSICHT_EDITOR);
+
+  /** Was die Pläne gerade zeichnen – der freie Zoom setzt darauf auf. */
+  const gezeichneteGroesse = useRef<Record<string, number>>({});
+
+  /**
+   * Der Verlauf liegt im Ref, nicht im Zustand: Beim Malen kommen die
+   * Änderungen schneller, als React neu rendert. Für die Knöpfe (an/aus)
+   * genügt die Länge – die steht daneben im Zustand.
+   */
+  const verlauf = useRef<{ zurueck: PlanZustand[]; vor: PlanZustand[]; marke: string | null }>({
+    zurueck: [],
+    vor: [],
+    marke: null,
+  });
+  const [verlaufTiefe, setzeVerlaufTiefe] = useState({ zurueck: 0, vor: 0 });
+  const meldeTiefe = () =>
+    setzeVerlaufTiefe({ zurueck: verlauf.current.zurueck.length, vor: verlauf.current.vor.length });
+
+  /**
+   * Den Stand vor einer Änderung merken. Gleiche `marke` heißt „gehört noch
+   * zum selben Schritt“ – sonst wäre jeder Buchstabe in einem Textfeld und
+   * jede Zelle eines Malzugs ein eigenes Rückgängig.
+   */
+  const merkeStand = (marke: string | null = null) => {
+    if (!zustand) return;
+    const stand = verlauf.current;
+    if (marke !== null && marke === stand.marke) {
+      if (stand.vor.length === 0) return;
+      stand.vor = [];
+      meldeTiefe();
+      return;
+    }
+    stand.zurueck = [...stand.zurueck, zustand()].slice(-VERLAUF_TIEFE);
+    stand.vor = [];
+    stand.marke = marke;
+    meldeTiefe();
+  };
+
+  /** Einen Schritt zurück oder wieder vor – der jetzige Stand wandert dabei um. */
+  const gehe = (richtung: 'zurueck' | 'vor') => {
+    if (!zustand || !setzeZustand) return;
+    const stand = verlauf.current;
+    const quelle = richtung === 'zurueck' ? stand.zurueck : stand.vor;
+    if (quelle.length === 0) return;
+    const ziel = quelle[quelle.length - 1];
+    const jetzt = zustand();
+    if (richtung === 'zurueck') {
+      stand.zurueck = stand.zurueck.slice(0, -1);
+      stand.vor = [...stand.vor, jetzt];
+    } else {
+      stand.vor = stand.vor.slice(0, -1);
+      stand.zurueck = [...stand.zurueck, jetzt];
+    }
+    stand.marke = null;
+    setzeZustand(ziel);
+    // Der ausgewählte Bereich muss es im alten Stand nicht geben.
+    setzeAuswahl(null);
+    meldeTiefe();
+  };
+
+  // Strg/⌘ + Z und Strg/⌘ + Umschalt + Z (bzw. Y) wie überall sonst. In einem
+  // Textfeld gilt weiter das Rückgängig des Browsers für den Text selbst.
+  const tasten = useRef({ gehe });
+  tasten.current = { gehe };
+  useEffect(() => {
+    const aufTaste = (ereignis: KeyboardEvent) => {
+      if (!ereignis.ctrlKey && !ereignis.metaKey) return;
+      const ziel = ereignis.target as HTMLElement | null;
+      const art = ziel?.tagName;
+      if (art === 'INPUT' || art === 'TEXTAREA' || ziel?.isContentEditable) return;
+      const taste = ereignis.key.toLowerCase();
+      if (taste !== 'z' && taste !== 'y') return;
+      ereignis.preventDefault();
+      tasten.current.gehe(taste === 'y' || ereignis.shiftKey ? 'vor' : 'zurueck');
+    };
+    window.addEventListener('keydown', aufTaste);
+    return () => window.removeEventListener('keydown', aufTaste);
+  }, []);
 
   const nurSchema = aendereOhneBelegung ?? ((raum: string, wandel: (s: Raumschema) => Raumschema) => aendere(raum, wandel));
 
   /** Ein Element auf eine Zelle setzen und sie auswählen (Malen und Ablegen). */
   const elementSetzen = (raum: string, zeile: number, spalte: number, typ: Werkzeug) => {
     if (typ === 'auswahl') return;
+    // Ein Malzug über viele Zellen ist ein Schritt – bis der Zeiger losgelassen
+    // wird (`zugBeendet`).
+    merkeStand('malen');
     const bereich = bereichAus({ zeile, spalte }, { zeile, spalte });
     aendere(raum, (schema) =>
       typ === 'text' ? verbindeZellen(schema, bereich) : setzeZelle(schema, zeile, spalte, typ),
@@ -154,12 +290,39 @@ export function useRaumplanEditor({
     setzeAuswahl,
     auswahlIn: (raum) => (auswahl?.raum === raum ? auswahl.bereich : null),
     zielZelle,
-    zoom,
+    ansicht,
+    setzeAnsichtModus: (modus) => setzeAnsicht((alt) => ({ ...alt, modus })),
+    /**
+     * Beim ersten Zoomen aus einer eingepassten Ansicht heraus wird die gerade
+     * gezeichnete Zellgröße zur Ausgangsgröße – sonst spränge der Plan.
+     */
     zoomAendern: (richtung) =>
-      setzeZoom((wert) =>
-        richtung > 0 ? Math.min(ZOOM_MAX, wert * ZOOM_SCHRITT) : Math.max(ZOOM_MIN, wert / ZOOM_SCHRITT),
-      ),
-    zoomZuruecksetzen: () => setzeZoom(1),
+      setzeAnsicht((alt) => {
+        const gezeichnet = Object.values(gezeichneteGroesse.current);
+        const basis = alt.modus === 'frei' || gezeichnet.length === 0
+          ? alt.zellGroesse
+          : Math.max(...gezeichnet);
+        const gewuenscht = richtung > 0 ? basis * ZOOM_SCHRITT : basis / ZOOM_SCHRITT;
+        return {
+          modus: 'frei',
+          zellGroesse: Math.round(
+            Math.min(ZELLE_FREI_MAX, Math.max(ZELLE_FREI_MIN, gewuenscht)),
+          ),
+        };
+      }),
+    merkeZellGroesse: (raum, groesse) => {
+      gezeichneteGroesse.current[raum] = groesse;
+    },
+
+    mitVerlauf: !!zustand && !!setzeZustand,
+    kannRueckgaengig: verlaufTiefe.zurueck > 0,
+    kannWiederholen: verlaufTiefe.vor > 0,
+    rueckgaengig: () => gehe('zurueck'),
+    wiederholen: () => gehe('vor'),
+    merkeStand,
+    zugBeendet: () => {
+      verlauf.current.marke = null;
+    },
     drehungen,
     drehen: (raum, richtung) =>
       setzeDrehungen((alt) => ({ ...alt, [raum]: ((((alt[raum] ?? 0) + richtung) % 4) + 4) % 4 })),
@@ -178,6 +341,7 @@ export function useRaumplanEditor({
       const alteAuswahl = auswahl && auswahl.raum === raum ? auswahl.bereich : neuerBereich;
       const schema = schemata.current.find((s) => s.raum === raum);
       if (!schema) return;
+      merkeStand();
       if (werkzeug === 'text') {
         // Mit dem Textwerkzeug wird aufgezogen, was verbunden werden soll.
         aendere(raum, (aktuell) => verbindeZellen(aktuell, neuerBereich));
@@ -193,6 +357,7 @@ export function useRaumplanEditor({
 
     bereichVerschieben: (raum, dZeile, dSpalte) => {
       if (!auswahl || auswahl.raum !== raum || (dZeile === 0 && dSpalte === 0)) return;
+      merkeStand();
       const bereich = auswahl.bereich;
       aendere(raum, (schema) => verschiebeBereich(schema, bereich, dZeile, dSpalte), {
         bereich,
@@ -205,22 +370,30 @@ export function useRaumplanEditor({
       });
     },
 
-    beschriftungSchreiben: (raum, zeile, spalte, text) =>
-      nurSchema(raum, (schema) => setzeBeschriftungsText(schema, zeile, spalte, text)),
+    beschriftungSchreiben: (raum, zeile, spalte, text) => {
+      // Ein Tastendruck ist kein eigener Schritt: Alles, was in dasselbe Feld
+      // getippt wird, macht ein Rückgängig zusammen weg.
+      merkeStand(`text ${raum} ${zeile}|${spalte}`);
+      nurSchema(raum, (schema) => setzeBeschriftungsText(schema, zeile, spalte, text));
+    },
 
-    groesseAendern: (raum, dZeilen, dSpalten) =>
+    groesseAendern: (raum, dZeilen, dSpalten) => {
+      merkeStand();
       aendere(raum, (aktuell) =>
         mitGroesse(aktuell, aktuell.zellen.length + dZeilen, (aktuell.zellen[0]?.length ?? 1) + dSpalten),
-      ),
+      );
+    },
 
     zellenVerbinden: () => {
       if (!auswahl) return;
+      merkeStand();
       aendere(auswahl.raum, (schema) => verbindeZellen(schema, auswahl.bereich));
       setzeWerkzeug('text');
     },
 
     zellenTrennen: () => {
       if (!auswahl) return;
+      merkeStand();
       aendere(auswahl.raum, (schema) => trenneZellen(schema, auswahl.bereich));
     },
 
@@ -233,6 +406,8 @@ export function useRaumplanEditor({
       if (!ziel || typ === 'auswahl') return;
       if (!schemata.current.some((schema) => schema.raum === ziel.raum)) return;
       elementSetzen(ziel.raum, ziel.zeile, ziel.spalte, typ);
+      // Jedes Ablegen ist ein eigener Schritt im Verlauf.
+      verlauf.current.marke = null;
     },
   };
 }
@@ -263,28 +438,63 @@ export function RaumPalette({ editor, testID }: { editor: RaumplanEditor; testID
       ))}
       <Text style={styles.hinweis}>
         Auf eine Zelle ziehen setzt das Element dort. Antippen wählt es aus, dann im Plan über
-        Zellen ziehen – praktisch für eine ganze Wand.
+        Zellen ziehen – praktisch für eine ganze Wand. Ein Sitzplatz ist ein Tisch, an dem jemand
+        geprüft wird (nur die werden nummeriert und belegt); das Pult ist der einfache Tisch für
+        alles andere. Rückgängig geht mit Strg/⌘ + Z.
       </Text>
     </View>
   );
 }
 
 /**
- * Zoomleiste: Ohne Zoom passt jeder Raum ganz ins Fenster – auch 47 × 34
- * Felder. Zum Lesen der Namen zoomt man hinein, dann scrollt der Plan.
+ * Leiste über den Plänen: Wie groß gezeichnet wird und – wo es einen Verlauf
+ * gibt – Rückgängig/Wiederholen.
+ *
+ * Drei Ansichten, weil je nach Raum eine andere passt: „Auf Breite“ nutzt den
+ * Platz aus (ein schmaler Raum wäre eingepasst winzig, obwohl daneben alles
+ * frei ist), „Ganzer Raum“ zeigt auch 47 × 34 Felder am Stück, und mit − / +
+ * stellt man die Zellgröße selbst ein wie beim Zoomen in ein Bild.
  */
-export function PlanZoomLeiste({ editor }: { editor: RaumplanEditor }) {
+export function PlanLeiste({ editor }: { editor: RaumplanEditor }) {
+  const { ansicht } = editor;
   return (
     <View style={styles.buttonZeile}>
-      <Text style={styles.hinweis}>Ansicht: {Math.round(editor.zoom * 100)} %</Text>
-      <AppButton title="−" variant="secondary" onPress={() => editor.zoomAendern(-1)} testID="raum-zoom-kleiner" />
-      <AppButton title="+" variant="secondary" onPress={() => editor.zoomAendern(1)} testID="raum-zoom-groesser" />
+      <Text style={styles.hinweis}>Ansicht:</Text>
       <AppButton
-        title="Einpassen"
-        variant="secondary"
-        onPress={editor.zoomZuruecksetzen}
+        title="Auf Breite"
+        variant={ansicht.modus === 'breite' ? 'primary' : 'secondary'}
+        onPress={() => editor.setzeAnsichtModus('breite')}
+        testID="raum-zoom-breite"
+      />
+      <AppButton
+        title="Ganzer Raum"
+        variant={ansicht.modus === 'einpassen' ? 'primary' : 'secondary'}
+        onPress={() => editor.setzeAnsichtModus('einpassen')}
         testID="raum-zoom-einpassen"
       />
+      <AppButton title="−" variant="secondary" onPress={() => editor.zoomAendern(-1)} testID="raum-zoom-kleiner" />
+      <AppButton title="+" variant="secondary" onPress={() => editor.zoomAendern(1)} testID="raum-zoom-groesser" />
+      <Text style={styles.hinweis}>
+        {ansicht.modus === 'frei' ? `${ansicht.zellGroesse} px je Feld` : 'Felder passen sich an'}
+      </Text>
+      {editor.mitVerlauf ? (
+        <>
+          <AppButton
+            title="↶ Rückgängig"
+            variant="secondary"
+            onPress={editor.rueckgaengig}
+            disabled={!editor.kannRueckgaengig}
+            testID="raum-rueckgaengig"
+          />
+          <AppButton
+            title="↷ Wiederholen"
+            variant="secondary"
+            onPress={editor.wiederholen}
+            disabled={!editor.kannWiederholen}
+            testID="raum-wiederholen"
+          />
+        </>
+      ) : null}
     </View>
   );
 }
@@ -336,7 +546,7 @@ export function RaumplanKarte({
       <Text style={styles.raumUeberschrift}>
         {schema.raum}
         {kopfZusatz ? ` (${kopfZusatz})` : ''} · Raster {schema.zellen[0]?.length ?? 0} Spalten ×{' '}
-        {schema.zellen.length} Zeilen · {tischzellen(schema).length} Tische
+        {schema.zellen.length} Zeilen · {tischzellen(schema).length} Sitzplätze
         {auswahl ? ` · Auswahl ${bereichName(anzeigeBereich(auswahl, schema, drehungen))}` : ''}
       </Text>
       <View style={styles.buttonZeile}>
@@ -388,7 +598,8 @@ export function RaumplanKarte({
             ? (zeile, spalte) => editor.zellePress(schema.raum, zeile, spalte)
             : onZellePress
         }
-        zoom={editor.zoom}
+        ansicht={editor.ansicht}
+        onZellGroesse={(groesse) => editor.merkeZellGroesse(schema.raum, groesse)}
         bearbeiten={bearbeiten}
         werkzeug={editor.werkzeug === 'auswahl' || editor.werkzeug === 'text' ? 'auswahl' : 'malen'}
         auswahl={auswahl}
@@ -399,6 +610,7 @@ export function RaumplanKarte({
           editor.beschriftungSchreiben(schema.raum, zeile, spalte, text)
         }
         zielZelle={editor.zielZelle?.raum === schema.raum ? editor.zielZelle : null}
+        onZugEnde={editor.zugBeendet}
         testID={testID ?? `raum-plan-${schema.raum}`}
       />
     </View>

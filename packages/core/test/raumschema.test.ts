@@ -187,17 +187,21 @@ describe('Textfelder über verbundenen Zellen', () => {
     ]);
   });
 
-  it('macht die Zellen unter einem Textfeld frei und weicht Elementen', () => {
+  it('beschriftet, was im Raster steht, ohne es zu entfernen', () => {
     const schema = verbindeZellen(
       fuelleBereich(leeresRaumschema('X', 2, 3), { zeile: 0, spalte: 0, hoehe: 1, breite: 3 }, 'tisch'),
       { zeile: 0, spalte: 0, hoehe: 1, breite: 2 },
       'Aufsicht',
     );
-    // Unter dem Feld darf kein Tisch liegen bleiben – sonst wäre er unsichtbar.
-    expect(schema.zellen[0]).toEqual(['leer', 'leer', 'tisch']);
-    expect(tischzellen(schema)).toHaveLength(1);
-    // Wer wieder etwas hineinmalt, löst das Feld auf.
-    expect(setzeZelle(schema, 0, 1, 'wand').beschriftungen).toEqual([]);
+    // Die Tische bleiben Tische – ein beschrifteter Platz bleibt ein Platz.
+    expect(schema.zellen[0]).toEqual(['tisch', 'tisch', 'tisch']);
+    expect(tischzellen(schema)).toHaveLength(3);
+    // Auch ein Tür-Feld darf beschriftet werden.
+    expect(setzeZelle(schema, 0, 1, 'tuer').beschriftungen).toEqual([
+      { zeile: 0, spalte: 0, hoehe: 1, breite: 2, text: 'Aufsicht' },
+    ]);
+    // Nur der Radierer räumt das Feld mit weg.
+    expect(setzeZelle(schema, 0, 1, 'leer').beschriftungen).toEqual([]);
   });
 
   it('nimmt Textfelder beim Verschieben eines Blocks mit', () => {

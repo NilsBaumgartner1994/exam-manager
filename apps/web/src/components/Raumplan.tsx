@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutChangeEvent,
   PointerEvent,
@@ -46,10 +46,17 @@ interface Props {
   onZellePress?: (zeile: number, spalte: number) => void;
 
   /**
-   * Vergrößerung gegenüber der eingepassten Größe (1 = ganzer Raum sichtbar).
-   * Große Räume (47 × 34 Felder) passen dadurch auch auf einen 1920×1080-Schirm.
+   * Wie groß gezeichnet wird: eingepasst, auf die volle Breite oder frei in
+   * Pixeln. Große Räume (47 × 34 Felder) passen eingepasst auch auf einen
+   * 1920×1080-Schirm, schmale Räume nutzen auf Breite den Platz daneben.
    */
-  zoom?: number;
+  ansicht?: PlanAnsicht;
+  /**
+   * Meldet die tatsächlich gezeichnete Zellgröße. Der Zoom in Pixeln setzt
+   * darauf auf: Wer aus einer eingepassten Ansicht heraus vergrößert, will es
+   * ab dem, was er gerade sieht.
+   */
+  onZellGroesse?: (groesse: number) => void;
 
   // --- nur im Bearbeiten-Modus ---
   /** Zeigt Auswahl und Ziehgriff und schaltet das Ziehen frei. */
@@ -66,6 +73,11 @@ interface Props {
   onBeschriftungText?: (zeile: number, spalte: number, text: string) => void;
   /** Zelle, über der gerade ein Element aus der Palette schwebt. */
   zielZelle?: { zeile: number; spalte: number } | null;
+  /**
+   * Ein Zug ist zu Ende (losgelassen). Der Verlauf fasst daran einen Malzug
+   * über viele Zellen zu einem Schritt zusammen.
+   */
+  onZugEnde?: () => void;
 
   /** Aushang-Darstellung: nur Namenskürzel statt vollem Namen. */
   anonym?: boolean;
@@ -81,19 +93,56 @@ interface Zug {
   anker?: { zeile: number; spalte: number };
 }
 
-/** Grenzen der Zellgröße: klein genug für große Räume, groß genug zum Lesen. */
+/** Grenzen der Zellgröße beim Einpassen: für große Räume klein, zum Lesen groß. */
 const ZELLE_MIN = 14;
-const ZELLE_MAX = 84;
+const ZELLE_MAX = 120;
+/** Grenzen der frei eingestellten Zellgröße (Zoom in Pixeln). */
+export const ZELLE_FREI_MIN = 8;
+export const ZELLE_FREI_MAX = 240;
 /** Höhe, die neben dem Plan für Kopfzeile, Schaltflächen und Listen bleibt. */
 const HOEHE_FUER_DEN_REST = 340;
+
+/**
+ * Wie groß die Zellen gezeichnet werden:
+ *
+ * - `einpassen` – der ganze Raum passt ins Fenster (nichts zu scrollen),
+ * - `breite` – die volle Breite wird genutzt, in die Höhe wird gescrollt,
+ * - `frei` – feste Zellgröße in Pixeln, wie das Zoomen in ein Bild.
+ */
+export type Ansichtsmodus = 'einpassen' | 'breite' | 'frei';
+
+export interface PlanAnsicht {
+  modus: Ansichtsmodus;
+  /** Zellgröße in Pixeln – zählt nur im Modus `frei`. */
+  zellGroesse: number;
+}
+
+/**
+ * Voreinstellung eines eingebetteten Plans (Aushang, Druck): der ganze Raum
+ * am Stück – auf Papier gibt es kein Scrollen.
+ */
+export const PLAN_ANSICHT: PlanAnsicht = { modus: 'einpassen', zellGroesse: 32 };
+
+/**
+ * Voreinstellung im Editor: Die Breite wird genutzt. Ein schmaler Raum in
+ * einem breiten Fenster wäre eingepasst winzig, obwohl daneben alles frei ist.
+ */
+export const PLAN_ANSICHT_EDITOR: PlanAnsicht = { modus: 'breite', zellGroesse: 32 };
 
 function begrenze(wert: number, min: number, max: number): number {
   return Math.round(Math.min(Math.max(wert, min), max));
 }
 
+/** Fuge zwischen zwei Zellen – bei kleinen Zellen wäre mehr Fuge als Zelle. */
+function fugenbreite(zellGroesse: number): number {
+  return zellGroesse >= 40 ? 4 : zellGroesse >= 24 ? 2 : 1;
+}
+
 /**
- * Maße des Rasters zu einer Raumgröße: So groß, dass der ganze Raum in das
- * verfügbare Fenster passt (`zoom` = 1), aber nie größer als `ZELLE_MAX`.
+ * Maße des Rasters zu einer Raumgröße. Wie groß eine Zelle wird, sagt die
+ * Ansicht: eingepasst (ganzer Raum sichtbar), auf Breite (volle Breite, in
+ * die Höhe wird gescrollt) oder frei in Pixeln.
+ *
  * Abstand, Kopfgröße und Schriftgrößen hängen an der Zellgröße – sonst wäre
  * bei 47 Spalten mehr Fuge als Zelle zu sehen.
  */
@@ -102,15 +151,28 @@ export function rastermasse(
   anzahlSpalten: number,
   breite: number,
   hoehe: number,
-  zoom: number,
+  ansicht: PlanAnsicht = PLAN_ANSICHT,
 ) {
-  const proSpalte = breite / Math.max(1, anzahlSpalten);
+  // Die Zeilenköpfe stehen links neben dem Raster: gut eine Drittelzelle, die
+  // von der Breite abgeht, sonst ragt der Plan bei „Breite“ knapp heraus.
+  const proSpalte = breite / (Math.max(1, anzahlSpalten) + 0.4);
   const proZeile = hoehe / Math.max(1, anzahlZeilen);
-  const eingepasst = begrenze(Math.min(proSpalte, proZeile) - 4, ZELLE_MIN, ZELLE_MAX);
-  const groesse = begrenze(eingepasst * (zoom > 0 ? zoom : 1), 8, 240);
+  const platz = ansicht.modus === 'breite' ? proSpalte : Math.min(proSpalte, proZeile);
+  // Zellgröße und Fuge hängen voneinander ab (kleine Zellen bekommen eine
+  // schmalere Fuge). Erst mit der größten Fuge schätzen, dann mit der Fuge
+  // rechnen, die dazu gehört – sonst bliebe bei vielen Spalten ein Streifen
+  // ungenutzt (47 Spalten × 3 px sind über 140 px).
+  const geschaetzt = begrenze(platz - 4, ZELLE_MIN, ZELLE_MAX);
+  const gewuenscht = begrenze(platz - fugenbreite(geschaetzt), ZELLE_MIN, ZELLE_MAX);
+  const groesse =
+    ansicht.modus === 'frei'
+      ? begrenze(ansicht.zellGroesse, ZELLE_FREI_MIN, ZELLE_FREI_MAX)
+      : // Die endgültige Fuge kann eine Stufe breiter sein als die geschätzte;
+        // dann eine Spur kleiner, damit der Plan sicher hineinpasst.
+        Math.max(ZELLE_MIN, Math.min(gewuenscht, Math.floor(platz - fugenbreite(gewuenscht))));
   return {
     groesse,
-    abstand: groesse >= 40 ? 4 : groesse >= 24 ? 2 : 1,
+    abstand: fugenbreite(groesse),
     kopfGroesse: begrenze(groesse * 0.34, 11, 22),
     kopfSchrift: begrenze(groesse * 0.22, 8, 11),
     /** Ab hier ist Platz für Nummer und Zusatz, darunter nur noch der Name. */
@@ -136,9 +198,10 @@ type Rastermasse = ReturnType<typeof rastermasse>;
  * darauf. Beschriftet wird immer das, was man sieht: Nach einer Drehung
  * benennen die Köpfe die gedrehte Ansicht.
  *
- * Die Zellgröße richtet sich nach dem Fenster: Ohne Zoom passt der ganze Raum
- * hinein, auch ein Hörsaal mit 47 × 34 Feldern. Zum Lesen der Namen zoomt man
- * hinein, dann scrollt der Plan.
+ * Die Zellgröße richtet sich nach der Ansicht: eingepasst passt der ganze Raum
+ * ins Fenster (auch ein Hörsaal mit 47 × 34 Feldern), auf Breite nutzt er die
+ * volle Breite, und frei gezoomt gibt man die Zellgröße in Pixeln vor wie bei
+ * einem Bild. Was nicht mehr hineinpasst, wird gescrollt.
  *
  * Im Bearbeiten-Modus wird gezogen wie in einer Tabellenkalkulation:
  * über Zellen ziehen malt (praktisch für Wände), am Griff an der unteren Ecke
@@ -155,7 +218,8 @@ export function Raumplan({
   personen,
   ausgewaehlt,
   onZellePress,
-  zoom = 1,
+  ansicht = PLAN_ANSICHT,
+  onZellGroesse,
   bearbeiten,
   werkzeug = 'auswahl',
   auswahl,
@@ -164,6 +228,7 @@ export function Raumplan({
   onAufziehen,
   onBeschriftungText,
   zielZelle,
+  onZugEnde,
   anonym,
   testID,
 }: Props) {
@@ -181,10 +246,14 @@ export function Raumplan({
     spaltenAnzahl,
     (breite > 0 ? breite : fenster.width) - spacing.md,
     Math.max(280, fenster.height - HOEHE_FUER_DEN_REST),
-    zoom,
+    ansicht,
   );
   const { groesse, abstand, kopfGroesse } = masse;
   const schritt = groesse + abstand;
+
+  useEffect(() => {
+    onZellGroesse?.(groesse);
+  }, [groesse, onZellGroesse]);
 
   const belegungJePlatz = useMemo(
     () =>
@@ -283,6 +352,7 @@ export function Raumplan({
       onVerschieben?.(bis.zeile - von.zeile, bis.spalte - von.spalte);
     }
     setZug(null);
+    onZugEnde?.();
   };
 
   /** Zellen unter einem verbundenen Textfeld – sie liegen hinter dem Feld. */
@@ -344,7 +414,10 @@ export function Raumplan({
             style={[styles.raster, { gap: abstand }, bearbeiten ? ohneBrowserGeste : null]}
             onPointerMove={bearbeiten || zug ? pointerMove : undefined}
             onPointerUp={pointerUp}
-            onPointerCancel={() => setZug(null)}
+            onPointerCancel={() => {
+              setZug(null);
+              onZugEnde?.();
+            }}
           >
             {raster.map((zeile, z) => (
               <View key={z} style={[styles.zeile, { gap: abstand }]}>
@@ -409,7 +482,14 @@ export function Raumplan({
   );
 }
 
-/** Ein verbundenes Textfeld über dem Raster. */
+/**
+ * Ein verbundenes Textfeld über dem Raster.
+ *
+ * Es liegt über den Zellen, statt sie zu ersetzen: So lässt sich auch eine Tür
+ * („Haupteingang“) oder eine Tischreihe („Aufsicht“) beschriften. Beim
+ * Bearbeiten bekommt es deshalb einen sichtbaren Rahmen, sonst nur der Text
+ * eine helle Unterlage – darunter bleibt der Plan zu sehen.
+ */
 function Textfeld({
   beschriftung,
   bereich,
@@ -441,7 +521,13 @@ function Textfeld({
 
   return (
     <View
-      style={[styles.textfeld, rahmen, ecken, markiert && styles.textfeldMarkiert]}
+      style={[
+        styles.textfeld,
+        rahmen,
+        ecken,
+        bearbeiten && styles.textfeldBearbeiten,
+        markiert && styles.textfeldMarkiert,
+      ]}
       pointerEvents={bearbeiten ? 'auto' : 'none'}
       onPointerDown={() => onAuswahl?.(beschriftung)}
       testID={testID}
@@ -449,15 +535,18 @@ function Textfeld({
       {bearbeiten && onText ? (
         <TextInput
           style={[styles.textfeldEingabe, schrift, mitTextauswahl]}
+          // Ein frisch aufgezogenes Feld ist ausgewählt: Dann gleich hinein,
+          // damit man losschreiben kann, ohne noch einmal zu klicken.
+          autoFocus={markiert}
           value={beschriftung.text}
           onChangeText={(text) => onText(beschriftung.zeile, beschriftung.spalte, text)}
           placeholder="Text …"
           placeholderTextColor={colors.textMuted}
           multiline
         />
-      ) : (
+      ) : beschriftung.text ? (
         <Text style={[styles.textfeldText, schrift]}>{beschriftung.text}</Text>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -496,6 +585,7 @@ const Zelle = memo(function Zelle({
   vorschau: boolean;
   griff: boolean;
   gitter: boolean;
+  /** Liegt unter einem Textfeld: Der Platz bleibt, seine Beschriftung weicht. */
   verdeckt: boolean;
   interaktiv: boolean;
   datenSchluessel: string;
@@ -523,7 +613,9 @@ const Zelle = memo(function Zelle({
               <Text style={[styles.name, { fontSize: masse.namenSchrift }]} numberOfLines={2}>
                 {anonym ? person.anfangNachname : person.nachname}
               </Text>
-            ) : masse.zeigeDetails ? (
+            ) : platz && masse.zeigeDetails ? (
+              // Nur wo eine Belegung geführt wird: In Schritt 5 gibt es keine,
+              // dort stünde in jedem Tisch ein sinnloses „frei“.
               <Text style={[styles.frei, { fontSize: masse.kleinSchrift }]}>frei</Text>
             ) : null}
             {platz?.vorgabe && masse.zeigeDetails ? (
@@ -561,7 +653,6 @@ const Zelle = memo(function Zelle({
         istAusgewaehlt && styles.personAusgewaehlt,
         markiert && styles.markiert,
         vorschau && styles.vorschau,
-        verdeckt && styles.verdeckt,
       ]}
       onPointerDown={interaktiv ? () => onPointerDown(zeile, spalte) : undefined}
       {...datenAttribute({ zelle: datenSchluessel })}
@@ -627,16 +718,14 @@ const styles = StyleSheet.create({
     padding: 1,
     overflow: 'hidden',
   },
-  tisch: { borderColor: colors.border, backgroundColor: colors.surface, borderStyle: 'dashed' },
+  tisch: { borderColor: colors.tischRand, backgroundColor: colors.tisch, borderStyle: 'solid' },
   belegt: { borderStyle: 'solid', backgroundColor: '#eef2ff', borderColor: colors.primary },
-  reserviertZelle: { backgroundColor: colors.background, borderStyle: 'solid' },
+  reserviertZelle: { backgroundColor: colors.surface, borderStyle: 'dashed' },
   personAusgewaehlt: { borderColor: colors.danger, borderWidth: 2 },
   markiert: { borderColor: colors.primary, borderWidth: 2, borderStyle: 'solid' },
   vorschau: { backgroundColor: '#dbeafe', borderColor: colors.primary, borderWidth: 2, borderStyle: 'dashed' },
-  /** Liegt unter einem verbundenen Textfeld und wird davon überdeckt. */
-  verdeckt: { backgroundColor: 'transparent', borderColor: 'transparent' },
   tuer: { backgroundColor: colors.successBg, borderColor: colors.success },
-  pult: { backgroundColor: '#fef3c7', borderColor: '#d97706' },
+  pult: { backgroundColor: colors.pult, borderColor: colors.pultRand },
   // Wand: eckig, ohne eigene Ecken – die Fugen schließt `wandFuellung`.
   wand: { backgroundColor: '#475569', borderRadius: 0, borderColor: '#475569', overflow: 'visible' },
   wandFuellung: { position: 'absolute', backgroundColor: '#475569' },
@@ -654,14 +743,25 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: '#c7d2fe',
-    backgroundColor: '#fffbeb',
+    // Ohne Bearbeiten unsichtbar: Der Plan darunter soll durchscheinen.
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
     padding: 4,
+    alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  textfeldBearbeiten: { borderColor: '#c7d2fe', backgroundColor: 'rgba(255, 251, 235, 0.55)' },
   textfeldMarkiert: { borderColor: colors.primary, borderWidth: 2 },
-  textfeldText: { color: colors.text, fontWeight: '600' },
+  textfeldText: {
+    color: colors.text,
+    fontWeight: '600',
+    textAlign: 'center',
+    // Helle Unterlage nur hinter dem Text – über Tür, Tisch oder Wand lesbar.
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    paddingHorizontal: 3,
+    borderRadius: 4,
+  },
   textfeldEingabe: {
     color: colors.text,
     fontWeight: '600',

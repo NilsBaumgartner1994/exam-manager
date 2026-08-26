@@ -13,7 +13,7 @@ import {
 import {
   AppButton,
   FilePickerButton,
-  PlanZoomLeiste,
+  PlanLeiste,
   ProjektDownload,
   ProjektQuelle,
   RaumListe,
@@ -81,6 +81,10 @@ export function RaeumeScreen() {
     schemata: schemataRef,
     aendere: (raum, wandel) =>
       uebernehmeSchemata(schemataRef.current.map((s) => (s.raum === raum ? wandel(s) : s))),
+    // Hier hängt nur das Raster am Plan – ein Schritt zurück ist also genau
+    // der Stand der Raster von davor.
+    zustand: () => ({ schemata: schemataRef.current }),
+    setzeZustand: (stand) => uebernehmeSchemata(stand.schemata),
   });
 
   /** Räume der Liste, für die es noch kein Raster gibt. */
@@ -127,6 +131,7 @@ export function RaeumeScreen() {
    */
   const rasterAnlegen = () => {
     setFehler(null);
+    editor.merkeStand();
     uebernehmeSchemata([
       ...schemataRef.current,
       ...ohneRaster.map((raum) => standardRaumschema(raum.raum, raum.plaetze)),
@@ -136,6 +141,7 @@ export function RaeumeScreen() {
 
   const rasterEntfernen = (raum: string) => {
     setHinweis(null);
+    editor.merkeStand();
     uebernehmeSchemata(schemataRef.current.filter((schema) => schema.raum !== raum));
     editor.setzeAuswahl(null);
   };
@@ -220,7 +226,9 @@ export function RaeumeScreen() {
           Ein Element aus der Palette auf eine Zelle ziehen setzt es dort; antippen wählt es aus und
           man malt damit im Plan. Mit „Auswählen“ verschiebst du einen Block, am blauen Griff an der
           unteren Ecke ziehst du ihn über mehrere Felder auf. Mit „Text“ (oder „Zellen verbinden“)
-          entsteht über den ausgewählten Feldern ein Feld zum Reinschreiben.
+          entsteht über den ausgewählten Feldern ein Feld zum Reinschreiben – es legt sich über den
+          Plan, ohne ihn zu ersetzen, beschriftet also auch Tür, Pult oder eine Tischreihe. Jeder
+          Schritt lässt sich rückgängig machen (Strg/⌘ + Z).
         </Text>
 
         {schemata.length === 0 ? (
@@ -230,7 +238,7 @@ export function RaeumeScreen() {
           </StatusText>
         ) : (
           <>
-            <PlanZoomLeiste editor={editor} />
+            <PlanLeiste editor={editor} />
             <RaumplanFlaeche palette={<RaumPalette editor={editor} testID="raeume-palette" />}>
               {schemata.map((schema) => (
                 <RaumplanKarte

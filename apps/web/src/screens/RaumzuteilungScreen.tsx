@@ -40,7 +40,7 @@ import {
   FilePickerButton,
   LabeledNumberInput,
   LabeledTextInput,
-  PlanZoomLeiste,
+  PlanLeiste,
   ProjektDownload,
   ProjektQuelle,
   RaumListe,
@@ -77,7 +77,7 @@ const PLAN_MODI = [
   { key: 'verschieben', titel: 'Platzieren', hinweis: 'Person antippen, dann den Zieltisch antippen. Sitzt dort jemand, tauschen die beiden.' },
   { key: 'reserve', titel: 'Reserve', hinweis: 'Tisch antippen, um ihn als Reserveplatz frei zu halten (nochmal antippen hebt es auf).' },
   { key: 'vorgabe', titel: 'Vorgabe', hinweis: 'Besetzten Tisch antippen: Die Person bleibt dort, auch wenn neu verteilt wird.' },
-  { key: 'bearbeiten', titel: 'Raum bearbeiten', hinweis: 'Element aus der Palette auf eine Zelle ziehen oder antippen und dann im Plan malen. Mit „Auswählen“ verschiebst du einen Block; am blauen Griff an der unteren Ecke ziehst du ihn über mehrere Felder auf. Mit „Text“ (oder „Zellen verbinden“) entsteht über den ausgewählten Feldern ein Feld zum Reinschreiben.' },
+  { key: 'bearbeiten', titel: 'Raum bearbeiten', hinweis: 'Element aus der Palette auf eine Zelle ziehen oder antippen und dann im Plan malen. Mit „Auswählen“ verschiebst du einen Block; am blauen Griff an der unteren Ecke ziehst du ihn über mehrere Felder auf. Mit „Text“ (oder „Zellen verbinden“) entsteht über den ausgewählten Feldern ein Feld zum Reinschreiben – es beschriftet auch Tür, Pult oder eine Tischreihe, ohne sie zu ersetzen. Rückgängig geht mit Strg/⌘ + Z.' },
 ] as const;
 
 type PlanModus = (typeof PLAN_MODI)[number]['key'];
@@ -343,6 +343,14 @@ export function RaumzuteilungScreen() {
     schemata: schemataRef,
     aendere: schemaAendern,
     aendereOhneBelegung: nurSchemaAendern,
+    // Raster und Belegung gehören zusammen: Wandert ein Tischblock, wandern
+    // die Personen darin mit – ein Schritt zurück nimmt beides zurück.
+    zustand: () => ({ schemata: schemataRef.current, belegung: belegungRef.current }),
+    setzeZustand: (stand) => {
+      uebernehmeSchemata(stand.schemata);
+      uebernehmeBelegung(stand.belegung ?? []);
+      setAusgewaehlt(null);
+    },
   });
 
   const zuteilungErstellen = () => {
@@ -364,6 +372,7 @@ export function RaumzuteilungScreen() {
 
   const neuVerteilen = () => {
     if (!sitzplaetze) return;
+    editor.merkeStand();
     setAusgewaehlt(null);
     belegungAktualisieren(schemataRef.current, sitzplaetze, belegungRef.current, true);
     setHinweis('Sitzplan neu verteilt – Reserveplätze und Vorgaben sind geblieben.');
@@ -409,10 +418,12 @@ export function RaumzuteilungScreen() {
   const zellePress = (schema: Raumschema, zeile: number, spalte: number) => {
     setHinweis(null);
     if (planModus === 'reserve') {
+      editor.merkeStand();
       belegungSetzen(schalteReserve(belegungRef.current, schema.raum, zeile, spalte));
       return;
     }
     if (planModus === 'vorgabe') {
+      editor.merkeStand();
       uebernehmeBelegung(schalteVorgabe(belegungRef.current, schema.raum, zeile, spalte));
       return;
     }
@@ -427,6 +438,7 @@ export function RaumzuteilungScreen() {
         setAusgewaehlt(null);
         return;
       }
+      editor.merkeStand();
       belegungSetzen(
         setzePerson(belegungRef.current, schema.raum, zeile, spalte, ausgewaehlt.matrikelnummer),
       );
@@ -593,7 +605,7 @@ export function RaumzuteilungScreen() {
           </View>
           <Text style={styles.hinweis}>{modusHinweis}</Text>
 
-          <PlanZoomLeiste editor={editor} />
+          <PlanLeiste editor={editor} />
 
           {ausgewaehlt ? (
             <StatusText kind="info">

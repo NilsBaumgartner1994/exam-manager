@@ -5,6 +5,15 @@ export const colors = {
   border: '#d7dce1',
   /** Feine Rasterlinie im Sitzplan. */
   gitter: '#e3e8ee',
+  /**
+   * Möbel im Raumplan in Holztönen: der Sitzplatz hell, das Pult (Tisch ohne
+   * Sitzplatz) dunkler. So sind beide auf einen Blick als Tisch zu erkennen
+   * und trotzdem voneinander zu unterscheiden.
+   */
+  tisch: '#f3e2c7',
+  tischRand: '#b98b52',
+  pult: '#c9a173',
+  pultRand: '#7a5327',
   primary: '#1d4ed8',
   primaryText: '#ffffff',
   text: '#1f2933',

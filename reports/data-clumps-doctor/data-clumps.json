@@ -1,6 +1,6 @@
 {
   "report_version": "^0.1.103",
-  "report_timestamp": "2026-08-26T10:40:04.597Z",
+  "report_timestamp": "2026-08-26T11:46:00.387Z",
   "target_language": "typescript",
   "report_summary": {
     "additional": {
@@ -28,15 +28,15 @@
         }
       },
       "timer_information": {
-        "ast_generation_time_ms": 641,
-        "detection_time_ms": 12,
+        "ast_generation_time_ms": 626,
+        "detection_time_ms": 11,
         "machine_information": {
           "os": "Linux",
           "os_release": "6.17.0-1022-azure",
           "os_platform": "linux",
           "os_arch": "x64",
-          "os_uptime": 184.85,
-          "os_memory_free": 15033462784,
+          "os_uptime": 244.06,
+          "os_memory_free": 15017508864,
           "os_memory_total": 16766414848,
           "os_cpu_cores": 4,
           "os_cpu_model": "AMD EPYC 7763 64-Core Processor",
@@ -55,10 +55,10 @@
   "project_info": {
     "project_url": "https://github.com/NilsBaumgartner1994/exam-manager",
     "project_name": "exam-manager",
-    "project_version": "28000c12a45c5404a96022000d56f2ba3af446b9",
-    "project_commit_hash": "28000c12a45c5404a96022000d56f2ba3af446b9",
+    "project_version": "1b1560ee9aeb8a1ece98f42e50eb6e66848de9f1",
+    "project_commit_hash": "1b1560ee9aeb8a1ece98f42e50eb6e66848de9f1",
     "project_tag": null,
-    "project_commit_date": "1787740632",
+    "project_commit_date": "1787744712",
     "additional": {
       "relative_path_to_source_folder_in_project": ""
     },
@@ -126,9 +126,9 @@
             }
           },
           "position": {
-            "startLine": 73,
+            "startLine": 80,
             "startColumn": 25,
-            "endLine": 73,
+            "endLine": 80,
             "endColumn": 38
           }
         },
@@ -151,9 +151,9 @@
             }
           },
           "position": {
-            "startLine": 73,
+            "startLine": 80,
             "startColumn": 40,
-            "endLine": 73,
+            "endLine": 80,
             "endColumn": 54
           }
         },
@@ -176,9 +176,9 @@
             }
           },
           "position": {
-            "startLine": 73,
+            "startLine": 80,
             "startColumn": 56,
-            "endLine": 73,
+            "endLine": 80,
             "endColumn": 68
           }
         }
@@ -507,9 +507,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 73,
+              "startLine": 80,
               "startColumn": 25,
-              "endLine": 73,
+              "endLine": 80,
               "endColumn": 38
             }
           },
@@ -532,9 +532,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 73,
+              "startLine": 80,
               "startColumn": 40,
-              "endLine": 73,
+              "endLine": 80,
               "endColumn": 54
             }
           },
@@ -557,9 +557,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 73,
+              "startLine": 80,
               "startColumn": 56,
-              "endLine": 73,
+              "endLine": 80,
               "endColumn": 68
             }
           },
@@ -701,16 +701,16 @@
             "type": "Raumschema",
             "modifiers": [],
             "position": {
-              "startLine": 509,
+              "startLine": 513,
               "startColumn": 3,
-              "endLine": 509,
+              "endLine": 513,
               "endColumn": 22
             }
           },
           "position": {
-            "startLine": 34,
+            "startLine": 41,
             "startColumn": 3,
-            "endLine": 34,
+            "endLine": 41,
             "endColumn": 22
           }
         },
@@ -726,16 +726,16 @@
             "type": "Platzbelegung[]",
             "modifiers": [],
             "position": {
-              "startLine": 516,
+              "startLine": 520,
               "startColumn": 3,
-              "endLine": 516,
+              "endLine": 520,
               "endColumn": 30
             }
           },
           "position": {
-            "startLine": 38,
+            "startLine": 45,
             "startColumn": 3,
-            "endLine": 38,
+            "endLine": 45,
             "endColumn": 29
           }
         },
@@ -751,16 +751,16 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 517,
+              "startLine": 521,
               "startColumn": 3,
-              "endLine": 517,
+              "endLine": 521,
               "endColumn": 33
             }
           },
           "position": {
-            "startLine": 40,
+            "startLine": 47,
             "startColumn": 3,
-            "endLine": 40,
+            "endLine": 47,
             "endColumn": 32
           }
         },
@@ -776,16 +776,16 @@
             "type": "Map<string, Sitzplatz>",
             "modifiers": [],
             "position": {
-              "startLine": 518,
+              "startLine": 522,
               "startColumn": 3,
-              "endLine": 518,
+              "endLine": 522,
               "endColumn": 37
             }
           },
           "position": {
-            "startLine": 42,
+            "startLine": 49,
             "startColumn": 3,
-            "endLine": 42,
+            "endLine": 49,
             "endColumn": 36
           }
         },
@@ -801,16 +801,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 519,
+              "startLine": 523,
               "startColumn": 3,
-              "endLine": 519,
+              "endLine": 523,
               "endColumn": 31
             }
           },
           "position": {
-            "startLine": 44,
+            "startLine": 51,
             "startColumn": 3,
-            "endLine": 44,
+            "endLine": 51,
             "endColumn": 31
           }
         },
@@ -826,16 +826,16 @@
             "type": "boolean",
             "modifiers": [],
             "position": {
-              "startLine": 511,
+              "startLine": 515,
               "startColumn": 3,
-              "endLine": 511,
+              "endLine": 515,
               "endColumn": 23
             }
           },
           "position": {
-            "startLine": 63,
+            "startLine": 70,
             "startColumn": 3,
-            "endLine": 63,
+            "endLine": 70,
             "endColumn": 24
           }
         },
@@ -851,16 +851,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 522,
+              "startLine": 526,
               "startColumn": 3,
-              "endLine": 522,
+              "endLine": 526,
               "endColumn": 19
             }
           },
           "position": {
-            "startLine": 84,
+            "startLine": 91,
             "startColumn": 3,
-            "endLine": 84,
+            "endLine": 91,
             "endColumn": 19
           }
         }
@@ -898,16 +898,16 @@
             "type": "Raumschema",
             "modifiers": [],
             "position": {
-              "startLine": 34,
+              "startLine": 41,
               "startColumn": 3,
-              "endLine": 34,
+              "endLine": 41,
               "endColumn": 22
             }
           },
           "position": {
-            "startLine": 509,
+            "startLine": 513,
             "startColumn": 3,
-            "endLine": 509,
+            "endLine": 513,
             "endColumn": 22
           }
         },
@@ -923,16 +923,16 @@
             "type": "boolean",
             "modifiers": [],
             "position": {
-              "startLine": 63,
+              "startLine": 70,
               "startColumn": 3,
-              "endLine": 63,
+              "endLine": 70,
               "endColumn": 24
             }
           },
           "position": {
-            "startLine": 511,
+            "startLine": 515,
             "startColumn": 3,
-            "endLine": 511,
+            "endLine": 515,
             "endColumn": 23
           }
         },
@@ -948,16 +948,16 @@
             "type": "Platzbelegung[]",
             "modifiers": [],
             "position": {
-              "startLine": 38,
+              "startLine": 45,
               "startColumn": 3,
-              "endLine": 38,
+              "endLine": 45,
               "endColumn": 29
             }
           },
           "position": {
-            "startLine": 516,
+            "startLine": 520,
             "startColumn": 3,
-            "endLine": 516,
+            "endLine": 520,
             "endColumn": 30
           }
         },
@@ -973,16 +973,16 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 40,
+              "startLine": 47,
               "startColumn": 3,
-              "endLine": 40,
+              "endLine": 47,
               "endColumn": 32
             }
           },
           "position": {
-            "startLine": 517,
+            "startLine": 521,
             "startColumn": 3,
-            "endLine": 517,
+            "endLine": 521,
             "endColumn": 33
           }
         },
@@ -998,16 +998,16 @@
             "type": "Map<string, Sitzplatz>",
             "modifiers": [],
             "position": {
-              "startLine": 42,
+              "startLine": 49,
               "startColumn": 3,
-              "endLine": 42,
+              "endLine": 49,
               "endColumn": 36
             }
           },
           "position": {
-            "startLine": 518,
+            "startLine": 522,
             "startColumn": 3,
-            "endLine": 518,
+            "endLine": 522,
             "endColumn": 37
           }
         },
@@ -1023,16 +1023,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 44,
+              "startLine": 51,
               "startColumn": 3,
-              "endLine": 44,
+              "endLine": 51,
               "endColumn": 31
             }
           },
           "position": {
-            "startLine": 519,
+            "startLine": 523,
             "startColumn": 3,
-            "endLine": 519,
+            "endLine": 523,
             "endColumn": 31
           }
         },
@@ -1048,16 +1048,16 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 84,
+              "startLine": 91,
               "startColumn": 3,
-              "endLine": 84,
+              "endLine": 91,
               "endColumn": 19
             }
           },
           "position": {
-            "startLine": 522,
+            "startLine": 526,
             "startColumn": 3,
-            "endLine": 522,
+            "endLine": 526,
             "endColumn": 19
           }
         }

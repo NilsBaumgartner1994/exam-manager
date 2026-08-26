@@ -142,6 +142,16 @@ Konventionen des Datensatzes:
   eine nicht zugeordnete: Die ZIP ersetzt den Ordner auf der Platte und darf
   nichts verlieren. Jeder Screen übernimmt Eingaben nur, solange dort noch
   nichts geladen ist – eine Auswahl von Hand wird nie überschrieben.
+- **Ein Zwischen-Export darf entbehrlich sein, aber nicht stillschweigend
+  übergangen werden:** Schritt 4 braucht `3_Klausur_Teilnehmende_Export/`
+  nicht. Fehlt die Teilnehmerliste, prüft er die Anmeldungen aus
+  `0_Input_Klausuranmeldungen/` selbst gegen den Zulassungsbestand
+  (`pruefeAnmeldungen` im Core). Sind alle zugelassen, übernimmt er sie
+  wortlos; ist jemand ohne Zulassung dabei, steht die Rückfrage **oben** im
+  Screen und der Nutzer entscheidet (nur die Zugelassenen, trotzdem alle, oder
+  eigene CSV). Wer eine solche Abkürzung baut, macht die Herkunft der Zahlen
+  über `ProjektQuelle` sichtbar und fragt bei jeder Abweichung nach, statt sie
+  wegzurechnen.
 - Der Download-Knopf steht als `ProjektDownload` in `src/components/` und
   gehört auf **jeden** Screen; ein neuer Screen bekommt ihn mit.
 - `ProjektQuelle` gehört unter **jede** Dateiauswahl, deren Eingabe auch aus

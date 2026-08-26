@@ -116,7 +116,8 @@ export const PROJEKT_SCHEMA: OrdnerRegel[] = [
     ordner: '3_Klausur_Teilnehmende_Export',
     endungen: ['.csv'],
     rollen: ['teilnehmer'],
-    zweck: 'Angemeldete mit und ohne Zulassung (Schritt 3).',
+    zweck:
+      'Angemeldete mit und ohne Zulassung (Schritt 3). Optional – ohne diesen Export prüft Schritt 4 die Anmeldungen selbst.',
   },
   {
     ordner: '4_Raumzuteilung_Export',

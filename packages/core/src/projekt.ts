@@ -95,21 +95,24 @@ export function erkenneRolle(pfad: string, kopf?: string): DateiRolle {
 }
 
 /**
- * Ordner der Projektvorlage – hier landen auch neu erzeugte Dateien, wenn im
- * Projekt noch keine Datei derselben Rolle liegt.
+ * Ordner des Projekts. Aufbewahrt wird nur, was über eine Klausur hinaus
+ * gebraucht wird: der Zulassungsbestand der vergangenen Jahre und die leeren
+ * Raumraster, die sich für jeden Sitzplan wiederverwenden lassen.
+ *
+ * Alles andere (HIS-Export, Notenliste, Teilnehmendenliste, Belegung,
+ * Sitzplan) gehört zu genau einer Klausur: Es wird im Schritt hochgeladen und
+ * dort wieder heruntergeladen, aber nicht im Projektordner abgelegt.
  */
-export const PROJEKT_ORDNER: Record<DateiRolle, string> = {
-  notenliste: '1_vips',
-  studipExport: '1_vips',
-  zulassungsbestand: '2_zulassungen',
-  hisExport: '3_anmeldungen',
-  teilnehmer: '3_anmeldungen',
-  raeume: '4_raum',
-  raumschema: '4_raum',
-  raumbelegung: '4_raum',
-  sitzplan: '4_raum',
-  unbekannt: '',
+export const PROJEKT_ORDNER: Partial<Record<DateiRolle, string>> = {
+  zulassungsbestand: 'Zulassungen',
+  raeume: 'Raeume',
+  raumschema: 'Raeume',
 };
+
+/** Gehört eine Datei dieser Rolle in den Projektordner (und damit ins ZIP)? */
+export function gehoertInsProjekt(rolle: DateiRolle): boolean {
+  return PROJEKT_ORDNER[rolle] !== undefined;
+}
 
 const LIESMICH = `# Klausur-Projektordner
 
@@ -117,24 +120,26 @@ Diesen Ordner in der Startseite des Exam Managers auswählen – die App erkennt
 die Dateien an Name und Kopfzeile und füllt die Schritte damit. Alles bleibt
 dabei auf dem eigenen Rechner.
 
-## Was gehört wohin
+Der Ordner hält nur das, was über eine einzelne Klausur hinaus gilt:
 
-| Ordner | Datei | Woher |
+| Ordner | Datei | Was drinsteht |
 |---|---|---|
-| 1_vips/ | Notenliste.csv | VIPS-Export der Punkte |
-| 1_vips/ | Teilnehmendenexport.csv | Stud.IP-Export der Veranstaltung |
-| 2_zulassungen/ | *zulassungen*.csv | je Jahr eine Liste; der Dateiname muss "zulassungen" enthalten |
-| 3_anmeldungen/ | check.xlsx | Excel-Export des Prüfungsamts (HIS) |
-| 3_anmeldungen/ | allowedStudents.csv | Ergebnis aus Schritt 3 (erzeugt die App) |
-| 4_raum/ | raeume.csv | Räume mit Plätzen und Zeiten |
-| 4_raum/ | raumschema.csv | Raster der Räume (Tische, Tür, Wand, Pult) |
-| 4_raum/ | raumbelegung.csv | wer an welchem Tisch sitzt (erzeugt die App) |
+| Zulassungen/ | *_zulassungen.csv | je Jahr eine Liste der Zugelassenen; der Dateiname muss "zulassungen" enthalten (z. B. \`pv2025_zulassungen.csv\`) |
+| Raeume/ | raumschema.csv | leeres Raster der Räume (Tische, Tür, Wand, Pult) – ohne Studierende, für jeden Sitzplan wiederverwendbar |
+| Raeume/ | raeume.csv | Räume mit Plätzen und reservierter Zeit |
+
+Alles andere gehört zu genau einer Klausur und wird nicht hier abgelegt:
+Notenliste und Stud.IP-Export, der HIS-Export des Prüfungsamts (\`check.xlsx\`),
+die Liste der Klausur-Teilnehmenden, die Raumbelegung und der Sitzplan. Diese
+Dateien lädt man im jeweiligen Schritt hoch und das Ergebnis dort wieder
+herunter.
 
 ## Bearbeiteten Stand sichern
 
-Auf der Startseite lässt sich der aktuelle Stand als ZIP herunterladen. Dessen
-Inhalt ersetzt dann diesen Ordner – die App schreibt nichts von selbst auf die
-Festplatte.
+Auf der Startseite lässt sich der Projektordner als ZIP herunterladen – mit
+den Zulassungslisten und Raumrastern, so wie sie nach dem Durchlauf aussehen.
+Dessen Inhalt ersetzt dann diesen Ordner; die App schreibt nichts von selbst
+auf die Festplatte.
 
 ## Keine echten Daten ins Repository
 
@@ -145,19 +150,12 @@ Repository.
 /**
  * Leere Projektvorlage: Pfad → Inhalt. Die CSV-Dateien enthalten nur ihre
  * Kopfzeile, damit Format und Trennzeichen von Anfang an stimmen.
- * `check.xlsx` fehlt bewusst – die Datei kommt aus dem Prüfungsamt.
  */
 export function projektVorlage(): Map<string, string> {
   return new Map<string, string>([
     ['LIESMICH.md', LIESMICH],
-    ['1_vips/Notenliste.csv', 'Nachname;Vorname;Kennung;Matrikelnr.;Aufgabenblatt 01;Summe\n'],
-    [
-      '1_vips/Teilnehmendenexport.csv',
-      '"Status";"Anrede";"Titel";"Vorname";"Nachname";"Titel nachgestellt";"Benutzername";"Adresse";"Telefonnr.";"E-Mail";"Anmeldedatum";"Matrikelnummer";"Studiengänge";"Position"\n',
-    ],
-    ['2_zulassungen/jahr_zulassungen.csv', 'Nachname;Vorname;Matrikelnummer;E-Mail\n'],
-    ['3_anmeldungen/HIER_check_xlsx_ablegen.txt', 'Den Excel-Export des Prüfungsamts (check.xlsx) in diesen Ordner legen.\n'],
-    ['4_raum/raeume.csv', 'Raum;Plätze;ReservierteZeit\n'],
-    ['4_raum/raumschema.csv', 'Raum;Beispielraum\nP;.;.;.\n.;T;.;T\n.;T;.;T\nD;.;.;.\n'],
+    ['Zulassungen/veranstaltung_jahr_zulassungen.csv', 'Nachname;Vorname;Matrikelnummer;E-Mail\n'],
+    ['Raeume/raeume.csv', 'Raum;Plätze;ReservierteZeit\n'],
+    ['Raeume/raumschema.csv', 'Raum;Beispielraum\nP;.;.;.\n.;T;.;T\n.;T;.;T\nD;.;.;.\n'],
   ]);
 }

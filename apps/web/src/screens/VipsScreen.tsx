@@ -197,8 +197,8 @@ export function VipsScreen() {
               testID="vips-download"
             />
             <Text style={styles.hinweis}>
-              Hinweis: Diese Datei gehört als neue Jahresliste in den Zulassungsordner (z. B.
-              Zulassungen/), damit spätere Schritte sie berücksichtigen.
+              Hinweis: Diese Datei gehört als neue Jahresliste in den Ordner Zulassungen/ des
+              Projekts, damit spätere Schritte sie berücksichtigen.
             </Text>
           </View>
         </Section>

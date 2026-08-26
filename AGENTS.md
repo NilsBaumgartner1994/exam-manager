@@ -106,11 +106,23 @@ Konventionen des Datensatzes:
   Kopfzeile (`erkenneRolle`); die Kopfzeile hat Vorrang, weil Dateinamen in der
   Praxis uneinheitlich sind (`teilnehmer.csv` ist mal Stud.IP-Export, mal
   Teilnehmerliste). Neue Formate bekommen dort eine Regel **und** einen Test.
+- Der Ordner hat genau zwei Unterordner, weil nur zwei Dinge über eine
+  einzelne Klausur hinaus gelten: `Zulassungen/` mit den `*_zulassungen.csv`
+  der vergangenen Jahre und `Raeume/` mit den leeren Raumrastern
+  (`raumschema.csv`, `raeume.csv`) – ohne platzierte Studierende, damit sie
+  sich für jeden Sitzplan wiederverwenden lassen. Welche Rolle wo landet, steht
+  in `PROJEKT_ORDNER`; `gehoertInsProjekt(rolle)` beantwortet, ob eine Datei
+  aufbewahrt wird. Klausurbezogene Dateien (HIS-Export, Notenliste,
+  Teilnehmende, Belegung, Sitzplan) bleiben nur im Speicher: Sie werden im
+  Schritt hochgeladen und dort heruntergeladen, nicht im Ordner abgelegt. Wer
+  eine Rolle dauerhaft aufbewahren will, ergänzt `PROJEKT_ORDNER` **und** die
+  Projektvorlage.
 - `apps/web/src/projekt.tsx` hält den Stand im Speicher (React-Kontext):
   `datei(rolle)`/`dateienMit(rolle)` zum Lesen, `schreibe(name, text, rolle)`
-  zum Zurückschreiben von Ergebnissen, `alsZip()` für den Download. Jeder
-  Screen übernimmt Eingaben nur, solange dort noch nichts geladen ist – eine
-  Auswahl von Hand wird nie überschrieben.
+  zum Zurückschreiben von Ergebnissen, `alsZip()` für den Download – im ZIP
+  landet nur, was `gehoertInsProjekt()` bejaht. Jeder Screen übernimmt Eingaben
+  nur, solange dort noch nichts geladen ist – eine Auswahl von Hand wird nie
+  überschrieben.
 - Bewusst **kein** localStorage: Der Ordner enthält Personendaten, die nach dem
   Schließen der Seite nicht im Browserprofil zurückbleiben sollen. Ein Neuladen
   leert den Stand, das ist so gewollt und auf der Startseite erklärt.

@@ -7,12 +7,18 @@
  * Ergebnisse zurück. Heruntergeladen wird der Stand als ZIP – die App schreibt
  * nichts von selbst auf die Festplatte (der Browser darf das nicht, und das
  * ist gut so).
+ *
+ * Im ZIP landet nur, was der Projektordner dauerhaft hält (siehe
+ * `PROJEKT_ORDNER` im Core): der Zulassungsbestand und die leeren Raumraster.
+ * Klausurbezogene Dateien bleiben im Speicher – sie werden im jeweiligen
+ * Schritt heruntergeladen, nicht im Ordner abgelegt.
  */
 import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 import {
   DateiRolle,
   erkenneRolle,
   erstelleZip,
+  gehoertInsProjekt,
   PROJEKT_ORDNER,
   projektVorlage,
   verzeichnis,
@@ -20,7 +26,7 @@ import {
 import { readFileAsArrayBuffer, readFileAsText } from './files';
 
 export interface ProjektDatei {
-  /** Pfad innerhalb des Projektordners, z. B. `4_raum/raeume.csv`. */
+  /** Pfad innerhalb des Projektordners, z. B. `Zulassungen/pv2025_zulassungen.csv`. */
   pfad: string;
   rolle: DateiRolle;
   /** Textdateien (CSV, TXT, MD). */
@@ -100,7 +106,7 @@ export function ProjektProvider({ children }: { children: ReactNode }) {
   const schreibe = useCallback((dateiname: string, text: string, rolle: DateiRolle) => {
     setStand((vorher) => {
       // Neben eine vorhandene Datei derselben Rolle legen, sonst in den
-      // Ordner der Projektvorlage.
+      // Ordner der Projektvorlage (nur aufbewahrte Rollen haben einen).
       const vorbild = vorher.dateien.find((datei) => datei.rolle === rolle);
       const ordner = vorbild ? verzeichnis(vorbild.pfad) : PROJEKT_ORDNER[rolle] ?? '';
       const pfad = ordner === '' ? dateiname : `${ordner}/${dateiname}`;
@@ -114,7 +120,10 @@ export function ProjektProvider({ children }: { children: ReactNode }) {
 
   const alsZip = useCallback(async () => {
     const inhalte = new Map<string, Uint8Array | string>();
+    // Nur der dauerhafte Bestand – klausurbezogene Dateien gehören nicht in
+    // den Projektordner und damit auch nicht ins ZIP.
     for (const datei of stand.dateien) {
+      if (!gehoertInsProjekt(datei.rolle)) continue;
       inhalte.set(datei.pfad, datei.text ?? datei.bytes ?? '');
     }
     return erstelleZip(inhalte);
@@ -142,7 +151,7 @@ export function useProjekt(): ProjektWert {
   return wert;
 }
 
-/** Leere Projektvorlage als ZIP (Startpunkt für einen neuen Durchlauf). */
+/** Leere Projektvorlage als ZIP (Zulassungen/ und Raeume/, sonst nichts). */
 export async function vorlageAlsZip(): Promise<Uint8Array> {
   const inhalte = new Map<string, Uint8Array | string>();
   for (const [pfad, inhalt] of projektVorlage()) inhalte.set(pfad, inhalt);

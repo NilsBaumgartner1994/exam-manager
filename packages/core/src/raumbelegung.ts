@@ -21,6 +21,30 @@ import { Bereich, imBereich, Raumschema, tischzellen } from './raumschema';
 import { raumSchluessel } from './raumzuteilung';
 import { Raum, Sitzplatz } from './types';
 
+/**
+ * Was in den Kästen eines Sitzplans steht – auf dem Bildschirm und im PDF
+ * dasselbe, damit das Papier zeigt, was man vorher gesehen hat.
+ *
+ * Die Voreinstellung ist die des Aushangs: Kürzel und Platznummer, sonst
+ * nichts. Die Matrikelnummer gehört nicht an eine Saaltür, und „Pult“ steht in
+ * einem halbhohen Kästchen ohnehin meist im Weg.
+ */
+export interface PlanAnzeige {
+  /** „Pult“ an den Pult-Zellen anschreiben. */
+  pultText: boolean;
+  /** Nachname, so weit gekürzt, dass er eindeutig ist (`anfangNachname`). */
+  namensPraefix: boolean;
+  matrikelnummer: boolean;
+  sitzplatznummer: boolean;
+}
+
+export const PLAN_ANZEIGE_STANDARD: PlanAnzeige = {
+  pultText: false,
+  namensPraefix: true,
+  matrikelnummer: false,
+  sitzplatznummer: true,
+};
+
 export interface Platzbelegung {
   /**
    * Schlüssel des Raumeinsatzes (`raumSchluessel`), nicht bloß der Raumname:
@@ -75,9 +99,87 @@ export function sitzplatznummern(schemata: Raumschema[], ersteNummer: number): M
 }
 
 /**
+ * Wie die freien Tische eines Raums vergeben werden:
+ *
+ * - `lesereihenfolge` – von vorne links nach hinten rechts, wie im Raster,
+ * - `abstand` – so weit auseinander wie möglich (siehe `plaetzeMitAbstand`).
+ */
+export type Sitzverteilung = 'lesereihenfolge' | 'abstand';
+
+/**
+ * Ein Platz Abstand zur Seite zählt so viel wie zwei nach hinten: Beim
+ * Abgucken ist der Nachbar neben einem das Problem – dessen Blatt liegt offen
+ * in Blickrichtung.
+ */
+const SPALTEN_GEWICHT = 2;
+
+/**
+ * Zuschlag, wenn zwei genau hintereinander sitzen (dieselbe Spalte): Man sieht
+ * dem Vordermann in den Rücken, sein Blatt liegt verdeckt vor ihm. Deshalb ist
+ * „einer hinter dem anderen“ sicherer als „schräg dahinter“, obwohl schräg
+ * rechnerisch weiter weg ist.
+ */
+const RUECKEN_BONUS = 3;
+
+interface Platz {
+  zeile: number;
+  spalte: number;
+}
+
+/**
+ * Gewichteter Abstand zweier Plätze – groß heißt „sicher“:
+ *
+ *     nebeneinander (1 Platz)      2
+ *     schräg dahinter (1/1)        3
+ *     direkt dahinter (1 Reihe)    4   ← lieber so als schräg
+ *     zwei Plätze zur Seite        4
+ */
+function abstand(a: Platz, b: Platz): number {
+  const seitlich = Math.abs(a.spalte - b.spalte);
+  const hintereinander = Math.abs(a.zeile - b.zeile);
+  return (
+    SPALTEN_GEWICHT * seitlich + hintereinander + (seitlich === 0 ? RUECKEN_BONUS : 0)
+  );
+}
+
+/**
+ * `anzahl` Plätze so wählen, dass sie möglichst weit auseinander liegen.
+ *
+ * Gierig: Jeder neue Platz ist der, dessen kleinster Abstand zu allen schon
+ * vergebenen am größten ist – so wird der Raum von den Rändern her gefüllt und
+ * nicht erst eine Ecke. Bei Gleichstand entscheidet die Lesereihenfolge, damit
+ * dieselbe Eingabe immer dieselbe Verteilung ergibt.
+ */
+export function plaetzeMitAbstand(frei: Platz[], vergeben: Platz[], anzahl: number): Platz[] {
+  const gewaehlt: Platz[] = [];
+  const offen = [...frei];
+  // Abstand jedes freien Platzes zum nächsten schon vergebenen; wächst ein
+  // Platz dazu, wird nur noch gegen diesen einen nachgerechnet.
+  const naechster = offen.map((platz) =>
+    vergeben.reduce((min, anderer) => Math.min(min, abstand(platz, anderer)), Infinity),
+  );
+
+  while (gewaehlt.length < anzahl && offen.length > 0) {
+    let bester = 0;
+    for (let i = 1; i < offen.length; i++) {
+      if (naechster[i] > naechster[bester]) bester = i;
+    }
+    const platz = offen[bester];
+    gewaehlt.push(platz);
+    offen.splice(bester, 1);
+    naechster.splice(bester, 1);
+    for (let i = 0; i < offen.length; i++) {
+      naechster[i] = Math.min(naechster[i], abstand(offen[i], platz));
+    }
+  }
+  return gewaehlt;
+}
+
+/**
  * Belegung eines Raums aufbauen. Bestehende Plätze bleiben erhalten, solange
  * der Tisch noch existiert und die Person noch in den Raum gehört; alle
- * übrigen Personen füllen die freien Tische in Lesereihenfolge.
+ * übrigen Personen bekommen die freien Tische – in Lesereihenfolge oder mit
+ * größtmöglichem Abstand.
  *
  * Für eine Verteilung von vorne die bestehende Belegung vorher durch
  * `ohneFreieBelegung` schicken – dann bleiben nur Reserven und Vorgaben.
@@ -86,6 +188,7 @@ export function verteileImRaum(
   schema: Raumschema,
   matrikelnummern: string[],
   bestehend: Platzbelegung[],
+  verteilung: Sitzverteilung = 'lesereihenfolge',
 ): { belegung: Platzbelegung[]; ohnePlatz: string[] } {
   const bestehendNachPlatz = new Map(
     bestehend
@@ -100,7 +203,10 @@ export function verteileImRaum(
   for (const zelle of tischzellen(schema)) {
     const alt = bestehendNachPlatz.get(platzSchluessel(schema.raum, zelle.zeile, zelle.spalte));
     const reserviert = alt?.reserviert ?? false;
-    const bleibt = !reserviert && !!alt?.matrikelnummer && offen.has(alt.matrikelnummer);
+    // Eine Vorgabe bleibt, auch wenn die Person (noch) nicht zu diesem Raum
+    // gehört: „fest“ heißt fest – die Zuteilung zieht sie später hierher.
+    const bleibt =
+      !reserviert && !!alt?.matrikelnummer && (alt.vorgabe || offen.has(alt.matrikelnummer));
     if (bleibt && alt) offen.delete(alt.matrikelnummer);
     belegung.push({
       raum: schema.raum,
@@ -114,9 +220,20 @@ export function verteileImRaum(
 
   // 2. Durchgang: restliche Personen auf die freien Tische verteilen.
   const uebrig = matrikelnummern.filter((nummer) => offen.has(nummer));
+  const freieTische = belegung.filter((platz) => !platz.reserviert && platz.matrikelnummer === '');
+  const ziele =
+    verteilung === 'abstand'
+      ? plaetzeMitAbstand(
+          freieTische,
+          // Reserven zählen mit: Dort sitzt zwar niemand, aber der Platz ist
+          // weg – der Abstand soll sich an den wirklich Sitzenden ausrichten.
+          belegung.filter((platz) => platz.matrikelnummer !== ''),
+          uebrig.length,
+        ).map((platz) => belegung.find((b) => b.zeile === platz.zeile && b.spalte === platz.spalte)!)
+      : freieTische;
+
   let index = 0;
-  for (const platz of belegung) {
-    if (platz.reserviert || platz.matrikelnummer !== '') continue;
+  for (const platz of ziele) {
     if (index >= uebrig.length) break;
     platz.matrikelnummer = uebrig[index++];
   }
@@ -134,13 +251,19 @@ export function verteileAufRaumschemata(
   sitzplaetze: Sitzplatz[],
   schemata: Raumschema[],
   bestehend: Platzbelegung[] = [],
+  verteilung: Sitzverteilung = 'lesereihenfolge',
 ): { belegung: Platzbelegung[]; ohnePlatz: Sitzplatz[] } {
   const belegung: Platzbelegung[] = [];
   const ohnePlatz: Sitzplatz[] = [];
 
   for (const schema of schemata) {
     const imRaum = sitzplaetze.filter((platz) => platz.raumSchluessel === schema.raum);
-    const ergebnis = verteileImRaum(schema, imRaum.map((p) => p.matrikelnummer), bestehend);
+    const ergebnis = verteileImRaum(
+      schema,
+      imRaum.map((p) => p.matrikelnummer),
+      bestehend,
+      verteilung,
+    );
     belegung.push(...ergebnis.belegung);
     for (const nummer of ergebnis.ohnePlatz) {
       const person = imRaum.find((p) => p.matrikelnummer === nummer);
@@ -238,13 +361,25 @@ export function schalteReserve(belegung: Platzbelegung[], raum: string, zeile: n
   );
 }
 
-/** Vorgabe an-/abschalten (nur sinnvoll, wenn dort jemand sitzt). */
-export function schalteVorgabe(belegung: Platzbelegung[], raum: string, zeile: number, spalte: number): Platzbelegung[] {
+/** Vorgabe setzen oder lösen (nur sinnvoll, wenn dort jemand sitzt). */
+export function setzeVorgabe(
+  belegung: Platzbelegung[],
+  raum: string,
+  zeile: number,
+  spalte: number,
+  fest: boolean,
+): Platzbelegung[] {
   return belegung.map((platz) =>
     platz.raum === raum && platz.zeile === zeile && platz.spalte === spalte && platz.matrikelnummer !== ''
-      ? { ...platz, vorgabe: !platz.vorgabe }
+      ? { ...platz, vorgabe: fest }
       : platz,
   );
+}
+
+/** Vorgabe an-/abschalten (nur sinnvoll, wenn dort jemand sitzt). */
+export function schalteVorgabe(belegung: Platzbelegung[], raum: string, zeile: number, spalte: number): Platzbelegung[] {
+  const platz = belegung.find((b) => b.raum === raum && b.zeile === zeile && b.spalte === spalte);
+  return setzeVorgabe(belegung, raum, zeile, spalte, !platz?.vorgabe);
 }
 
 /**

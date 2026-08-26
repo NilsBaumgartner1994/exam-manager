@@ -227,11 +227,34 @@ Konventionen des Datensatzes:
 - `packages/core/src/raumschema.ts` hält das Raster eines Raums (Tische, Tür,
   Wand, Pult) und die Drehung der Ansicht, `raumbelegung.ts` die Frage, wer an
   welchem Tisch sitzt (Reserveplätze, Vorgaben, Umsetzen).
-- **`tisch` und `pult` sind beides Tische**, der Unterschied ist der Zweck:
-  `tisch` ist ein Sitzplatz (wird nummeriert und belegt, `tischzellen()`
-  zählt ihn), `pult` ein Tisch ohne Sitzplatz. In der Oberfläche heißen sie
-  deshalb „Sitzplatz“ und „Pult“ und sind in zwei Holztönen gezeichnet –
-  gleiche Familie, unterschiedliche Helligkeit.
+- **`tisch`, `reserve` und `pult` sind alle drei Tische**, der Unterschied ist
+  der Zweck: `tisch` ist ein Sitzplatz (wird nummeriert und belegt,
+  `tischzellen()` zählt ihn), `reserve` ein Tisch, der in diesem Raum dauerhaft
+  frei bleibt (`reservezellen()`, keine Nummer, keine Belegung), `pult` ein
+  Tisch ohne Sitzplatz. In der Oberfläche heißen sie „Sitzplatz“, „Reserve“ und
+  „Pult“ und sind in Holztönen gezeichnet – gleiche Familie, unterschiedliche
+  Helligkeit; die Reserve gestrichelt.
+- **Zwei Sorten Reserve, und das ist Absicht:** `reserve` im Raster gehört zum
+  Raum und steht in `Raeume/` (defekter Tisch, Platz an der Tafel); ein
+  Reserveplatz in der `Platzbelegung` gehört zu **einer** Klausur und steht in
+  `4_Raumzuteilung_Export/raumbelegung.csv`. Wer im Sitzplan einen Platz
+  freihält, ändert deshalb nie das Raster.
+- **Zellen sind halb so hoch wie breit** (`ZELL_HOEHE_ANTEIL` in
+  `Raumplan.tsx`): Es sind Tische, keine Quadrate. Wer dort rechnet, braucht
+  zwei Schrittweiten – `schritt` für Spalten, `schrittZeile` für Zeilen –, und
+  die Schriftgrößen hängen an der Höhe, nicht an der Breite. Im PDF dürfen die
+  Kästen höher werden (bis quadratisch), wenn ein breiter Raum sonst die untere
+  Seitenhälfte leer ließe.
+- **Was in den Kästen steht, ist eine Einstellung** (`PlanAnzeige` im Core:
+  Namenskürzel, Matrikelnummer, Sitzplatznummer, Pult-Text). Dasselbe Objekt
+  geht in `Raumplan` und in `sitzplanPdf` – gedruckt wird, was man sieht. Am
+  Aushang wird `sitzplatznummer` erzwungen: Danach sucht man dort.
+- **Ein Tippen auf einen Platz öffnet ein Blatt** (`BlattModal`), kein Modus
+  entscheidet vorher, was passiert. Darin steht, wer sitzt, und dort wird
+  gesetzt, geräumt, festgehalten und freigehalten. Wer von Hand setzt, setzt
+  automatisch eine Vorgabe – sonst säße die Person nach dem nächsten Verteilen
+  woanders; `erstelleRaumzuteilung` bekommt diese Vorgaben als
+  Matrikelnummer → Raumeinsatz mit.
 - Zwei Regeln, an denen sich alles andere ausrichtet:
   1. **Die Sitzplatznummer gehört zum Tisch**, nicht zur Person – vergeben in
      Lesereihenfolge des gespeicherten Rasters, über alle Räume fortlaufend.
@@ -241,7 +264,20 @@ Konventionen des Datensatzes:
      der Blickrichtung unberührt.
 - `verteileImRaum()` behält bestehende Plätze (auch ohne Vorgabe), damit ein
   Umbau des Raums manuelle Platzierungen nicht zunichtemacht. Für eine
-  Verteilung von vorne vorher `ohneFreieBelegung()` anwenden.
+  Verteilung von vorne vorher `ohneFreieBelegung()` anwenden. Eine Vorgabe
+  bleibt immer liegen – auch wenn die Person (noch) nicht zu diesem Raum
+  gehört; „fest“ heißt fest.
+- **Zwei Sitzverteilungen** (`Sitzverteilung`): `lesereihenfolge` füllt von
+  vorne links, `abstand` wählt die Plätze mit `plaetzeMitAbstand()` so, dass
+  die Geprüften möglichst weit auseinandersitzen. Der Abstand ist gewichtet:
+  ein Platz zur Seite zählt doppelt (`SPALTEN_GEWICHT`), und wer genau
+  hintereinander sitzt, bekommt einen Zuschlag (`RUECKEN_BONUS`) – man sieht
+  dem Vordermann in den Rücken, schräg dagegen aufs Blatt.
+- **PDFs entstehen im Core, nicht im Druckdialog:** `sitzplanPdf()` zeichnet
+  das Raster eines Raums, `tabellenPdf()` setzt Listen (je Abschnitt eine
+  Seite). So fällt je Raum ein Sitzplan heraus und daneben Aushang,
+  Dozenten- und Tutorenliste als eigene Dateien – mit `druckeAnsicht` wäre für
+  jede davon ein eigener Druckdialog nötig.
 - Wer im Screen die Belegung ändert, geht über `belegungSetzen()` – das setzt
   Verdrängte auf freie Tische nach und hält die Warnung „Ohne Tisch im
   Sitzplan“ aktuell.

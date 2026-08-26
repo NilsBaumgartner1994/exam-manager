@@ -66,6 +66,13 @@ export interface RaumzuteilungsOptionen {
   modus: Verteilmodus;
   /** Erste vergebene Sitzplatznummer (Default 1001). */
   ersteSitzplatznummer?: number;
+  /**
+   * Wer schon fest auf einem Platz sitzt: Matrikelnummer → Schlüssel des
+   * Raumeinsatzes (`raumSchluessel`). Diese Personen kommen in ihren Raum,
+   * bevor verteilt wird – sonst landete jemand, den man vorher von Hand
+   * gesetzt hat, beim nächsten Verteilen woanders.
+   */
+  vorgaben?: Map<string, string>;
 }
 
 export interface Raumzuteilung {
@@ -89,7 +96,22 @@ export function erstelleRaumzuteilung(
   const ohnePlatz: Zulassung[] = [];
   let raumIndex = 0;
 
+  // Erst die Vorgaben: Wer im Sitzplan festgesetzt wurde, bleibt in seinem
+  // Raum – der Platz dort ist belegt, bevor der Rest verteilt wird.
+  const vorgaben = optionen.vorgaben ?? new Map<string, string>();
+  const festgesetzt = new Set<string>();
   for (const person of teilnehmer) {
+    const schluessel = vorgaben.get(person.matrikelnummer);
+    if (schluessel === undefined) continue;
+    const ziel = belegung.find((eintrag) => raumSchluessel(eintrag.raum) === schluessel);
+    if (!ziel) continue;
+    ziel.belegt++;
+    zuteilung.push({ person, raum: ziel.raum });
+    festgesetzt.add(person.matrikelnummer);
+  }
+
+  for (const person of teilnehmer) {
+    if (festgesetzt.has(person.matrikelnummer)) continue;
     let ziel: { raum: Raum; belegt: number } | undefined;
     if (optionen.modus === 'balanced') {
       ziel = [...belegung]

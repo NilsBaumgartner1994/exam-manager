@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import {
   erstelleZip,
   parseRaeume,
+  PLAN_ANZEIGE_STANDARD,
   parseRaumschemaDateien,
   Raum,
   raeumeToCsv,
@@ -33,6 +34,12 @@ import { downloadCsv, downloadZip, readFileAsText } from '../files';
 import { useProjekt } from '../projekt';
 import { BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMATA } from '../sampleData';
 import { colors, spacing } from '../theme';
+
+/**
+ * Beim Einrichten eines Raums zählen die Möbel, nicht die Namen: Das Pult wird
+ * hier beschriftet (in Schritt 4 stünde „Pult“ nur im Weg).
+ */
+const ANZEIGE_RAUMPLANUNG = { ...PLAN_ANZEIGE_STANDARD, pultText: true };
 
 /**
  * Schritt 5: Räume und ihre leeren Raster pflegen – ohne Studierende.
@@ -285,6 +292,13 @@ export function RaeumeScreen() {
           Plan, ohne ihn zu ersetzen, beschriftet also auch Tür, Pult oder eine Tischreihe. Jeder
           Schritt lässt sich rückgängig machen (Strg/⌘ + Z).
         </Text>
+        <Text style={styles.hinweis}>
+          Ein <Text style={styles.pfad}>Reserve</Text>-Tisch bleibt in diesem Raum dauerhaft frei
+          und bekommt keine Sitzplatznummer – für einen defekten Tisch, den Platz direkt an der
+          Tafel oder den der Aufsicht. Warum er frei bleibt, schreibt man mit dem Textwerkzeug
+          darauf; der Text steht dann im Kasten. Wer nur für diese eine Klausur einen Platz
+          freihalten will, tut das in Schritt 4 – das landet in der Belegung, nicht im Raster.
+        </Text>
 
         {schemata.length === 0 || !aktivesSchema ? (
           <StatusText kind="info">
@@ -314,6 +328,7 @@ export function RaeumeScreen() {
                 key={aktivesSchema.raum}
                 editor={editor}
                 schema={aktivesSchema}
+                anzeige={ANZEIGE_RAUMPLANUNG}
                 bearbeiten
                 kopfZusatz={kopfZusatz(aktivesSchema)}
                 knoepfe={

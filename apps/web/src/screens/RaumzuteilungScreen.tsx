@@ -3,30 +3,41 @@ import { StyleSheet, Text, View } from 'react-native';
 import readXlsxFile from 'read-excel-file';
 import {
   AnmeldungsPruefung,
+  anzeigeBereich,
   Bereich,
   bereichAus,
+  bereichName,
   belegungToCsv,
   einsatzRaster,
   erstelleRaumzuteilung,
   erstelleZip,
   ladeZulassungsBestand,
+  eindeutigeNamenspraefixe,
+  entfernePerson,
   nichtDarstellbareZeichen,
   ohneFreieBelegung,
+  PLAN_ANZEIGE_STANDARD,
+  PlanAnzeige,
   parseBelegung,
   parseHisRows,
   parseRaeume,
   parseRaumschemaDateien,
   parseZulassungsliste,
   Platzbelegung,
+  platzSchluessel,
   pruefeAnmeldungen,
   Raum,
   Raumschema,
   raeumeToCsv,
   raumSchluessel,
   raumschemaDateien,
+  raumDateiname,
   schalteReserve,
   schalteVorgabe,
   setzePerson,
+  setzeVorgabe,
+  sitzplanPdf,
+  Sitzverteilung,
   Sitzplatz,
   sitzplaetzeMitBelegung,
   sitzplaetzeToCsv,
@@ -34,6 +45,7 @@ import {
   sitzplatzPdf,
   sortByNachname,
   standardRaumschema,
+  tabellenPdf,
   tischzellen,
   verschiebeBelegung,
   verteileAufRaumschemata,
@@ -43,6 +55,8 @@ import {
 } from '@exam-manager/core';
 import {
   AppButton,
+  BlattModal,
+  Checkbox,
   DataTable,
   FilePickerButton,
   LabeledNumberInput,
@@ -64,7 +78,7 @@ import {
   type RaumZeile,
   type Verschiebung,
 } from '../components';
-import { downloadCsv, downloadZip, readFileAsText } from '../files';
+import { downloadCsv, downloadFile, downloadZip, readFileAsText } from '../files';
 import { druckeAnsicht, SEITENUMBRUCH } from '../print';
 import { useProjekt } from '../projekt';
 import { BEISPIEL_KLAUSUR_TEILNEHMER, BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMATA } from '../sampleData';
@@ -81,10 +95,18 @@ type Ansicht = (typeof ANSICHTEN)[number]['key'];
 
 /** Was ein Tippen auf eine Zelle des Sitzplans bewirkt. */
 const PLAN_MODI = [
-  { key: 'verschieben', titel: 'Platzieren', hinweis: 'Person antippen, dann den Zieltisch antippen. Sitzt dort jemand, tauschen die beiden.' },
-  { key: 'reserve', titel: 'Reserve', hinweis: 'Tisch antippen, um ihn als Reserveplatz frei zu halten (nochmal antippen hebt es auf).' },
-  { key: 'vorgabe', titel: 'Vorgabe', hinweis: 'Besetzten Tisch antippen: Die Person bleibt dort, auch wenn neu verteilt wird.' },
-  { key: 'bearbeiten', titel: 'Raum bearbeiten', hinweis: 'Element aus der Palette auf eine Zelle ziehen oder antippen und dann im Plan malen. Mit „Auswählen“ verschiebst du einen Block; am blauen Griff an der unteren Ecke ziehst du ihn über mehrere Felder auf. Mit „Text“ (oder „Zellen verbinden“) entsteht über den ausgewählten Feldern ein Feld zum Reinschreiben – es beschriftet auch Tür, Pult oder eine Tischreihe, ohne sie zu ersetzen. Rückgängig geht mit Strg/⌘ + Z.' },
+  {
+    key: 'plaetze',
+    titel: 'Plätze belegen',
+    hinweis:
+      'Auf einen Platz tippen: Dort steht, wer sitzt – und dort lässt sich jemand festsetzen, der Platz für die Aufsicht freihalten oder wieder räumen.',
+  },
+  {
+    key: 'bearbeiten',
+    titel: 'Raum bearbeiten',
+    hinweis:
+      'Element aus der Palette auf eine Zelle ziehen oder antippen und dann im Plan malen. Mit „Auswählen“ ziehst du einen Bereich auf, ohne etwas zu ändern; gedrückt halten in der Auswahl verschiebt ihn, der blaue Griff an der unteren Ecke zieht ihn auf. Mit „Text“ (oder „Zellen verbinden“) entsteht ein Feld zum Reinschreiben. Rückgängig geht mit Strg/⌘ + Z.',
+  },
 ] as const;
 
 type PlanModus = (typeof PLAN_MODI)[number]['key'];
@@ -102,6 +124,7 @@ function RaumAushaenge({
   belegung,
   nummern,
   drehungen,
+  anzeige,
 }: {
   sitzplaetze: Sitzplatz[];
   raeume: Raum[];
@@ -109,7 +132,15 @@ function RaumAushaenge({
   belegung: Platzbelegung[];
   nummern: Map<string, number>;
   drehungen: Record<string, number>;
+  anzeige: PlanAnzeige;
 }) {
+  // Am Aushang sucht man seine Platznummer – die steht immer drauf, egal was
+  // im Plan am Bildschirm gerade angehakt ist. Gemerkt, damit `React.memo` in
+  // den Zellen greift: Ein neues Objekt je Render zeichnete alles neu.
+  const anzeigeAushang = useMemo<PlanAnzeige>(
+    () => ({ ...anzeige, sitzplatznummer: true }),
+    [anzeige],
+  );
   // Ein Aushang je Raumeinsatz: Wird derselbe Raum zweimal geprüft, hängen
   // dort zwei Listen – auf beiden steht derselbe Raumname, aber die Zeit der
   // Gruppe und ihre eigenen Sitzplatznummern.
@@ -142,7 +173,8 @@ function RaumAushaenge({
                 belegung={belegung.filter((platz) => platz.raum === schluessel)}
                 nummern={nummern}
                 personen={personen}
-                anonym
+                anzeige={anzeigeAushang}
+                gitter={false}
               />
             ) : null}
             <DataTable
@@ -207,9 +239,17 @@ export function RaumzuteilungScreen() {
   // Sitzplan im Raum.
   const [schemata, setSchemata] = useState<Raumschema[]>([]);
   const [belegung, setBelegung] = useState<Platzbelegung[]>([]);
-  const [planModus, setPlanModus] = useState<PlanModus>('verschieben');
-  const [ausgewaehlt, setAusgewaehlt] = useState<{ raum: string; matrikelnummer: string } | null>(null);
+  const [planModus, setPlanModus] = useState<PlanModus>('plaetze');
   const [ohnePlanPlatz, setOhnePlanPlatz] = useState<Sitzplatz[]>([]);
+  /** Was in den Kästen steht – am Bildschirm und im PDF dasselbe. */
+  const [anzeige, setAnzeige] = useState<PlanAnzeige>(PLAN_ANZEIGE_STANDARD);
+  /** Wie die freien Tische eines Raums vergeben werden. */
+  const [sitzverteilung, setSitzverteilung] = useState<Sitzverteilung>('lesereihenfolge');
+  /** Der Platz, dessen Blatt gerade offen ist. */
+  const [platzDialog, setPlatzDialog] = useState<
+    { schluessel: string; raumName: string; titel: string; zeile: number; spalte: number } | null
+  >(null);
+  const [personSuche, setPersonSuche] = useState('');
 
   const aushangRef = useRef<View>(null);
 
@@ -342,10 +382,48 @@ export function RaumzuteilungScreen() {
     return gruppen;
   }, [belegung]);
 
-  const personenJeMatrikel = useMemo(
-    () => new Map((angezeigteSitzplaetze ?? []).map((platz) => [platz.matrikelnummer, platz])),
-    [angezeigteSitzplaetze],
-  );
+  /**
+   * Wer hinter einer Matrikelnummer steckt. Schon **vor** der Zuteilung: Sonst
+   * stünde in einem Kasten, auf den man jemanden gesetzt hat, nichts drin. Die
+   * Namenskürzel sind dieselben wie am Aushang – eindeutig über alle
+   * Teilnehmenden.
+   */
+  const personenJeMatrikel = useMemo(() => {
+    const praefixe = eindeutigeNamenspraefixe(teilnehmer);
+    const jeMatrikel = new Map<string, Sitzplatz>(
+      teilnehmer.map((person) => [
+        person.matrikelnummer,
+        {
+          anfangNachname: praefixe.get(person) ?? person.nachname,
+          sitzplatznummer: 0,
+          raum: '',
+          raumSchluessel: '',
+          reservierteZeit: '',
+          matrikelnummer: person.matrikelnummer,
+          anwesend: '',
+          nachname: person.nachname,
+          vorname: person.vorname,
+          zeitUndRaum: '',
+          email: person.email,
+        },
+      ]),
+    );
+    for (const platz of angezeigteSitzplaetze ?? []) jeMatrikel.set(platz.matrikelnummer, platz);
+    return jeMatrikel;
+  }, [teilnehmer, angezeigteSitzplaetze]);
+
+  /**
+   * Ohne Zuteilung steht der Plan trotzdem: leere Plätze, damit sich Reserven
+   * und Vorgaben schon vorher setzen lassen. Reserven und Vorgaben, die es
+   * schon gibt, bleiben dabei stehen.
+   */
+  useEffect(() => {
+    if (sitzplaetze !== null || raster.length === 0) return;
+    const ergebnis = verteileAufRaumschemata([], raster, belegungRef.current);
+    uebernehmeBelegung(ergebnis.belegung);
+    // `raster` ist gemerkt und ändert sich nur mit Räumen oder Rastern.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [raster, sitzplaetze]);
 
   const teilnehmerLaden = async (files: File[]) => {
     setFehler(null);
@@ -442,6 +520,7 @@ export function RaumzuteilungScreen() {
       fuerSitzplaetze,
       einsatzRaster(raeume, fuerSchemata),
       vonVorne ? ohneFreieBelegung(basis) : basis,
+      sitzverteilung,
     );
     uebernehmeBelegung(ergebnis.belegung);
     setOhnePlanPlatz(ergebnis.ohnePlatz);
@@ -493,21 +572,26 @@ export function RaumzuteilungScreen() {
     setzeZustand: (stand) => {
       uebernehmeSchemata(stand.schemata);
       uebernehmeBelegung(stand.belegung ?? []);
-      setAusgewaehlt(null);
     },
   });
 
   const zuteilungErstellen = () => {
     setFehler(null);
     setHinweis(null);
+    // Wer im Sitzplan festgesetzt wurde, bleibt in seinem Raum.
+    const vorgaben = new Map(
+      belegungRef.current
+        .filter((platz) => platz.vorgabe && platz.matrikelnummer !== '')
+        .map((platz) => [platz.matrikelnummer, platz.raum]),
+    );
     const ergebnis = erstelleRaumzuteilung(teilnehmer, raeume, {
       modus,
       ersteSitzplatznummer: startnummer ?? 1001,
+      vorgaben,
     });
     setSitzplaetze(ergebnis.sitzplaetze);
     setOhnePlatz(ergebnis.ohnePlatz);
     setAnsicht('aushang');
-    setAusgewaehlt(null);
 
     const neueSchemata = schemataErgaenzen(raeume);
     uebernehmeSchemata(neueSchemata);
@@ -517,7 +601,6 @@ export function RaumzuteilungScreen() {
   const neuVerteilen = () => {
     if (!sitzplaetze) return;
     editor.merkeStand();
-    setAusgewaehlt(null);
     belegungAktualisieren(schemataRef.current, sitzplaetze, belegungRef.current, true);
     setHinweis('Sitzplan neu verteilt – Reserveplätze und Vorgaben sind geblieben.');
   };
@@ -560,44 +643,102 @@ export function RaumzuteilungScreen() {
   };
 
   /**
-   * Zelle im Sitzplan angetippt – was passiert, hängt vom Modus ab. Gemeint
-   * ist immer ein Raum**einsatz**: Reserve, Vorgabe und Platzierung gehören
-   * zum Durchgang, nicht zum Raum.
+   * Zelle im Sitzplan angetippt: Das Blatt zeigt, was dort ist und was sich
+   * damit tun lässt. Gemeint ist immer ein Raum**einsatz** – Reserve, Vorgabe
+   * und Platzierung gehören zum Durchgang, nicht zum Raum.
    */
-  const zellePress = (schluessel: string, zeile: number, spalte: number) => {
+  const zellePress = (
+    schluessel: string,
+    raumName: string,
+    titel: string,
+    zeile: number,
+    spalte: number,
+  ) => {
     setHinweis(null);
-    if (planModus === 'reserve') {
-      editor.merkeStand();
-      belegungSetzen(schalteReserve(belegungRef.current, schluessel, zeile, spalte));
-      return;
-    }
-    if (planModus === 'vorgabe') {
-      editor.merkeStand();
-      uebernehmeBelegung(schalteVorgabe(belegungRef.current, schluessel, zeile, spalte));
-      return;
-    }
-
-    // Platzieren: erst Person wählen, dann Zieltisch.
-    const platz = belegungRef.current.find(
-      (b) => b.raum === schluessel && b.zeile === zeile && b.spalte === spalte,
-    );
-    if (!platz) return;
-    if (ausgewaehlt && ausgewaehlt.raum === schluessel) {
-      if (platz.matrikelnummer === ausgewaehlt.matrikelnummer) {
-        setAusgewaehlt(null);
-        return;
-      }
-      editor.merkeStand();
-      belegungSetzen(
-        setzePerson(belegungRef.current, schluessel, zeile, spalte, ausgewaehlt.matrikelnummer),
-      );
-      setAusgewaehlt(null);
-      return;
-    }
-    if (platz.matrikelnummer !== '') {
-      setAusgewaehlt({ raum: schluessel, matrikelnummer: platz.matrikelnummer });
-    }
+    setPersonSuche('');
+    setPlatzDialog({ schluessel, raumName, titel, zeile, spalte });
   };
+
+  /** Der Platz, über den das Blatt gerade spricht. */
+  const dialogPlatz = platzDialog
+    ? belegung.find(
+        (b) =>
+          b.raum === platzDialog.schluessel &&
+          b.zeile === platzDialog.zeile &&
+          b.spalte === platzDialog.spalte,
+      )
+    : undefined;
+  const dialogSchema = platzDialog
+    ? raster.find((s) => s.raum === platzDialog.schluessel)
+    : undefined;
+  const dialogTyp = dialogSchema?.zellen[platzDialog?.zeile ?? 0]?.[platzDialog?.spalte ?? 0];
+  const dialogNummer = platzDialog
+    ? nummern.get(platzSchluessel(platzDialog.schluessel, platzDialog.zeile, platzDialog.spalte))
+    : undefined;
+  const dialogPerson = dialogPlatz?.matrikelnummer
+    ? personenJeMatrikel.get(dialogPlatz.matrikelnummer)
+    : undefined;
+
+  /** Eine Person auf den Platz des offenen Blatts setzen – als feste Vorgabe. */
+  const personSetzen = (matrikelnummer: string) => {
+    if (!platzDialog) return;
+    editor.merkeStand();
+    const gesetzt = setzePerson(
+      belegungRef.current,
+      platzDialog.schluessel,
+      platzDialog.zeile,
+      platzDialog.spalte,
+      matrikelnummer,
+    );
+    // Wer von Hand gesetzt wird, bleibt dort: sonst säße er nach dem nächsten
+    // Verteilen woanders.
+    belegungSetzen(
+      setzeVorgabe(gesetzt, platzDialog.schluessel, platzDialog.zeile, platzDialog.spalte, true),
+    );
+    setPersonSuche('');
+  };
+
+  const platzRaeumen = () => {
+    if (!platzDialog || !dialogPlatz?.matrikelnummer) return;
+    editor.merkeStand();
+    belegungSetzen(entfernePerson(belegungRef.current, dialogPlatz.matrikelnummer));
+  };
+
+  const vorgabeSchalten = () => {
+    if (!platzDialog) return;
+    editor.merkeStand();
+    uebernehmeBelegung(
+      schalteVorgabe(belegungRef.current, platzDialog.schluessel, platzDialog.zeile, platzDialog.spalte),
+    );
+  };
+
+  const reserveSchalten = () => {
+    if (!platzDialog) return;
+    editor.merkeStand();
+    belegungSetzen(
+      schalteReserve(belegungRef.current, platzDialog.schluessel, platzDialog.zeile, platzDialog.spalte),
+    );
+  };
+
+  /**
+   * Wer sich auf diesen Platz setzen lässt: alle Teilnehmenden, gefiltert nach
+   * dem, was im Suchfeld steht. Wer schon woanders sitzt, steht mit seinem
+   * Platz dabei – dann wird getauscht.
+   */
+  const kandidaten = (() => {
+    const suche = personSuche.trim().toLowerCase();
+    const platzJePerson = new Map(
+      belegung.filter((b) => b.matrikelnummer !== '').map((b) => [b.matrikelnummer, b]),
+    );
+    return teilnehmer
+      .filter((person) =>
+        suche === ''
+          ? true
+          : `${person.nachname} ${person.vorname} ${person.matrikelnummer}`.toLowerCase().includes(suche),
+      )
+      .slice(0, 40)
+      .map((person) => ({ person, sitztAuf: platzJePerson.get(person.matrikelnummer) }));
+  })();
 
   const aushaengeDrucken = () => {
     setFehler(null);
@@ -660,6 +801,140 @@ export function RaumzuteilungScreen() {
     .join('; ');
 
   // Gezählt werden Einsätze: Wird ein Raum zweimal geprüft, sind das zwei.
+  /** Adresse der angetippten Zelle in der gedrehten Ansicht, z. B. „C4“. */
+  const platzAdresse =
+    platzDialog && dialogSchema
+      ? bereichName(
+          anzeigeBereich(
+            { zeile: platzDialog.zeile, spalte: platzDialog.spalte, hoehe: 1, breite: 1 },
+            dialogSchema,
+            editor.drehungen[platzDialog.raumName] ?? 0,
+          ),
+        )
+      : '';
+
+  /** Zweite Zeile im Blatt: Platznummer und Zeit, soweit vorhanden. */
+  const dialogUntertitel = [
+    dialogNummer !== undefined ? `Sitzplatz ${dialogNummer}` : null,
+    raeume.find((raum) => raumSchluessel(raum) === platzDialog?.schluessel)?.reservierteZeit || null,
+  ]
+    .filter((teil): teil is string => teil !== null)
+    .join(' · ');
+
+  /** Was an dieser Stelle steht, wenn es kein Sitzplatz ist. */
+  const dialogBeschreibung = {
+    reserve: 'Ein Tisch, der in diesem Raum dauerhaft frei bleibt (Element „Reserve“ in Schritt 5).',
+    pult: 'Ein Pult – ein Tisch ohne Sitzplatz, etwa für die Aufsicht.',
+    wand: 'Eine Wand.',
+    tuer: 'Eine Tür.',
+    leer: 'Hier steht nichts. Im Raum bearbeiten lässt sich ein Tisch setzen.',
+    tisch: '',
+  }[dialogTyp ?? 'leer'];
+
+  /** Überschrift eines Raumeinsatzes – „94/E01“ oder „94/E01 · 2. Durchgang“. */
+  const einsatzTitel = (raum: Raum) =>
+    (raum.durchgang ?? 1) > 1 ? `${raum.raum} · ${raum.durchgang}. Durchgang` : raum.raum;
+
+  /** Eine Datei anbieten; mehrere kommen als ZIP – der Browser lädt nur eine. */
+  const gibDateien = async (dateien: Map<string, Uint8Array>, zipName: string) => {
+    const namen = [...dateien.keys()];
+    if (namen.length === 0) return;
+    if (namen.length === 1) {
+      downloadFile(namen[0], dateien.get(namen[0])!, 'application/pdf');
+    } else {
+      downloadZip(zipName, await erstelleZip(new Map<string, Uint8Array | string>(dateien)));
+    }
+    setHinweis(`${namen.length} PDF${namen.length === 1 ? '' : 's'}: ${namen.join(', ')}`);
+  };
+
+  const mitPdfLauf = async (was: string, tun: () => Promise<void>) => {
+    setFehler(null);
+    setHinweis(null);
+    setPdfLaeuft(true);
+    try {
+      await tun();
+    } catch (e) {
+      setFehler(`${was} konnte nicht erzeugt werden: ${String(e)}`);
+    } finally {
+      setPdfLaeuft(false);
+    }
+  };
+
+  /** Je Raumeinsatz ein Sitzplan-PDF – genau das Bild, das am Schirm steht. */
+  const sitzplaeneAlsPdf = () =>
+    mitPdfLauf('Der Sitzplan', async () => {
+      const dateien = new Map<string, Uint8Array>();
+      for (const raum of raeume) {
+        const schema = schemata.find((s) => s.raum === raum.raum);
+        if (!schema) continue;
+        const schluessel = raumSchluessel(raum);
+        dateien.set(
+          `sitzplan_${raumDateiname(schluessel)}.pdf`,
+          await sitzplanPdf({
+            schema,
+            schluessel,
+            titel: einsatzTitel(raum),
+            untertitel: raum.reservierteZeit,
+            belegung: belegungJeRaum.get(schluessel) ?? [],
+            nummern,
+            personen: personenJeMatrikel,
+            drehungen: editor.drehungen[raum.raum] ?? 0,
+            anzeige,
+          }),
+        );
+      }
+      await gibDateien(dateien, 'sitzplaene.zip');
+    });
+
+  /** Aushang: je Raumeinsatz eine Seite, nach Namenskürzel sortiert. */
+  const aushangAlsPdf = () =>
+    mitPdfLauf('Der Aushang', async () => {
+      const plaetze = angezeigteSitzplaetze ?? [];
+      const abschnitte = raeume
+        .map((raum) => {
+          const schluessel = raumSchluessel(raum);
+          const imRaum = plaetze
+            .filter((platz) => platz.raumSchluessel === schluessel)
+            .sort((a, b) => a.anfangNachname.localeCompare(b.anfangNachname, 'de'));
+          return {
+            titel: einsatzTitel(raum),
+            untertitel: raum.reservierteZeit,
+            spalten: ['Anfang Nachname', 'Sitzplatz'],
+            zeilen: imRaum.map((platz) => [platz.anfangNachname, platz.sitzplatznummer]),
+          };
+        })
+        .filter((abschnitt) => abschnitt.zeilen.length > 0);
+      downloadFile('aushang.pdf', await tabellenPdf(abschnitte), 'application/pdf');
+      setHinweis(`Aushang als PDF: ${abschnitte.length} Räume.`);
+    });
+
+  /** Dozentenliste (nach Sitzplatz) und Tutorenliste (nach Nachname). */
+  const listeAlsPdf = (fuer: 'dozent' | 'tutor') =>
+    mitPdfLauf(fuer === 'dozent' ? 'Die Dozentenliste' : 'Die Tutorenliste', async () => {
+      const plaetze = angezeigteSitzplaetze ?? [];
+      const sortiert =
+        fuer === 'dozent'
+          ? [...plaetze].sort((a, b) => a.sitzplatznummer - b.sitzplatznummer)
+          : sortByNachname(plaetze);
+      const pdf = await tabellenPdf([
+        {
+          titel: fuer === 'dozent' ? 'Dozentenliste (nach Sitzplatz)' : 'Tutorenliste (nach Nachname)',
+          untertitel: raeume.map((raum) => einsatzTitel(raum)).join(', '),
+          spalten: ['Sitzplatz', 'Nachname', 'Vorname', 'Matrikelnr.', 'Raum', 'Anwesend'],
+          zeilen: sortiert.map((platz) => [
+            platz.sitzplatznummer,
+            platz.nachname,
+            platz.vorname,
+            platz.matrikelnummer,
+            platz.raum,
+            '',
+          ]),
+        },
+      ]);
+      downloadFile(`${fuer === 'dozent' ? 'dozentenliste' : 'tutorenliste'}.pdf`, pdf, 'application/pdf');
+      setHinweis(`${fuer === 'dozent' ? 'Dozentenliste' : 'Tutorenliste'} als PDF gespeichert.`);
+    });
+
   const anzahlRaeume = angezeigteSitzplaetze
     ? new Set(angezeigteSitzplaetze.map((platz) => platz.raumSchluessel)).size
     : 0;
@@ -795,6 +1070,25 @@ export function RaumzuteilungScreen() {
             onPress={() => setModus('sequential')}
           />
         </View>
+        <Text style={styles.hinweis}>
+          Und wie die Plätze <Text style={styles.pfad}>innerhalb</Text> eines Raums vergeben werden:
+          der Reihe nach oder so weit auseinander wie möglich. Beim Abstand zählt ein Platz zur Seite doppelt (dort schaut man
+          direkt aufs Nachbarblatt), und zwei sitzen lieber hintereinander als schräg versetzt.
+        </Text>
+        <View style={styles.buttonZeile}>
+          <AppButton
+            title="Der Reihe nach"
+            variant={sitzverteilung === 'lesereihenfolge' ? 'primary' : 'secondary'}
+            onPress={() => setSitzverteilung('lesereihenfolge')}
+            testID="raum-sitz-reihe"
+          />
+          <AppButton
+            title="Größtmöglicher Abstand"
+            variant={sitzverteilung === 'abstand' ? 'primary' : 'secondary'}
+            onPress={() => setSitzverteilung('abstand')}
+            testID="raum-sitz-abstand"
+          />
+        </View>
         <AppButton
           title="Zuteilung erstellen"
           onPress={zuteilungErstellen}
@@ -815,11 +1109,12 @@ export function RaumzuteilungScreen() {
         {hinweis ? <StatusText kind="info">{hinweis}</StatusText> : null}
       </Section>
 
-      {angezeigteSitzplaetze && raster.length > 0 ? (
+      {raster.length > 0 ? (
         <Section title="Sitzplan im Raum" testID="raum-sitzplan">
           <Text style={styles.hinweis}>
-            Der Sitzplan zeigt, wo im Raum die Tische stehen. Die Sitzplatznummer gehört zum Tisch –
-            wer den Platz wechselt, bekommt die Nummer des neuen Tisches.
+            Der Sitzplan zeigt, wo im Raum die Tische stehen – schon bevor verteilt wird. Die
+            Sitzplatznummer gehört zum Tisch: Wer den Platz wechselt, bekommt die Nummer des neuen
+            Tisches. Ein Tippen auf einen Platz öffnet, was sich dort tun lässt.
           </Text>
 
           <View style={styles.buttonZeile}>
@@ -828,23 +1123,43 @@ export function RaumzuteilungScreen() {
                 key={m.key}
                 title={m.titel}
                 variant={planModus === m.key ? 'primary' : 'secondary'}
-                onPress={() => {
-                  setPlanModus(m.key);
-                  setAusgewaehlt(null);
-                }}
+                onPress={() => setPlanModus(m.key)}
                 testID={`raum-modus-${m.key}`}
               />
             ))}
           </View>
           <Text style={styles.hinweis}>{modusHinweis}</Text>
 
-          <PlanLeiste editor={editor} />
+          {/* Was in den Kästen steht – dasselbe am Bildschirm und im PDF. */}
+          <View style={styles.buttonZeile} testID="raum-anzeige">
+            <Text style={styles.hinweis}>Im Plan zeigen:</Text>
+            <Checkbox
+              label="Namenskürzel"
+              wert={anzeige.namensPraefix}
+              onChange={(wert) => setAnzeige((alt) => ({ ...alt, namensPraefix: wert }))}
+              testID="raum-anzeige-name"
+            />
+            <Checkbox
+              label="Matrikelnummer"
+              wert={anzeige.matrikelnummer}
+              onChange={(wert) => setAnzeige((alt) => ({ ...alt, matrikelnummer: wert }))}
+              testID="raum-anzeige-matrikel"
+            />
+            <Checkbox
+              label="Sitzplatznummer"
+              wert={anzeige.sitzplatznummer}
+              onChange={(wert) => setAnzeige((alt) => ({ ...alt, sitzplatznummer: wert }))}
+              testID="raum-anzeige-nummer"
+            />
+            <Checkbox
+              label="Pult beschriften"
+              wert={anzeige.pultText}
+              onChange={(wert) => setAnzeige((alt) => ({ ...alt, pultText: wert }))}
+              testID="raum-anzeige-pult"
+            />
+          </View>
 
-          {ausgewaehlt ? (
-            <StatusText kind="info">
-              {`Ausgewählt: ${personenJeMatrikel.get(ausgewaehlt.matrikelnummer)?.nachname ?? ausgewaehlt.matrikelnummer} – jetzt den Zieltisch antippen.`}
-            </StatusText>
-          ) : null}
+          <PlanLeiste editor={editor} />
 
           {ohnePlanPlatz.length > 0 ? (
             <StatusText kind="error">
@@ -870,24 +1185,24 @@ export function RaumzuteilungScreen() {
                 (p) => p.raum === schluessel && p.matrikelnummer !== '',
               ).length;
               const reserven = belegung.filter((p) => p.raum === schluessel && p.reserviert).length;
+              const titel =
+                (raum.durchgang ?? 1) > 1
+                  ? `${raum.raum} · ${raum.durchgang}. Durchgang`
+                  : raum.raum;
               return (
                 <RaumplanKarte
                   key={schluessel}
                   editor={editor}
                   schema={schema}
                   schluessel={schluessel}
-                  titel={
-                    (raum.durchgang ?? 1) > 1
-                      ? `${raum.raum} · ${raum.durchgang}. Durchgang`
-                      : raum.raum
-                  }
+                  titel={titel}
                   bearbeiten={planModus === 'bearbeiten'}
                   kopfZusatz={`${belegt}/${tische} belegt${reserven > 0 ? `, ${reserven} Reserve` : ''}`}
                   belegung={belegungJeRaum.get(schluessel) ?? []}
                   nummern={nummern}
                   personen={personenJeMatrikel}
-                  ausgewaehlt={ausgewaehlt?.raum === schluessel ? ausgewaehlt.matrikelnummer : null}
-                  onZellePress={(zeile, spalte) => zellePress(schluessel, zeile, spalte)}
+                  anzeige={anzeige}
+                  onZellePress={(zeile, spalte) => zellePress(schluessel, raum.raum, titel, zeile, spalte)}
                 />
               );
             })}
@@ -895,6 +1210,12 @@ export function RaumzuteilungScreen() {
 
           <View style={styles.buttonZeile}>
             <AppButton title="Sitzplan neu verteilen" variant="secondary" onPress={neuVerteilen} testID="raum-neu-verteilen" />
+            <AppButton
+              title={pdfLaeuft ? 'PDF läuft …' : 'Sitzpläne als PDF'}
+              onPress={sitzplaeneAlsPdf}
+              disabled={pdfLaeuft}
+              testID="raum-sitzplan-pdf"
+            />
             <AppButton
               title="Raumschema als CSV speichern"
               variant="secondary"
@@ -920,7 +1241,7 @@ export function RaumzuteilungScreen() {
               title="Belegung als CSV speichern"
               variant="secondary"
               onPress={() => {
-                const csv = belegungToCsv(belegung, angezeigteSitzplaetze, nummern);
+                const csv = belegungToCsv(belegung, angezeigteSitzplaetze ?? [], nummern);
                 downloadCsv('raumbelegung.csv', csv);
                 projekt.schreibe('raumbelegung.csv', csv, 'raumbelegung');
               }}
@@ -945,11 +1266,32 @@ export function RaumzuteilungScreen() {
               />
             ))}
           </View>
-          <AppButton
-            title="Alle Aushänge als PDF"
-            onPress={aushaengeDrucken}
-            testID="raum-aushaenge-pdf"
-          />
+          <View style={styles.buttonZeile}>
+            <AppButton
+              title="Aushang als PDF"
+              onPress={aushangAlsPdf}
+              disabled={pdfLaeuft}
+              testID="raum-aushang-pdf"
+            />
+            <AppButton
+              title="Dozentenliste als PDF"
+              onPress={() => listeAlsPdf('dozent')}
+              disabled={pdfLaeuft}
+              testID="raum-dozent-pdf"
+            />
+            <AppButton
+              title="Tutorenliste als PDF"
+              onPress={() => listeAlsPdf('tutor')}
+              disabled={pdfLaeuft}
+              testID="raum-tutor-pdf"
+            />
+            <AppButton
+              title="Ansicht drucken"
+              variant="secondary"
+              onPress={aushaengeDrucken}
+              testID="raum-aushaenge-pdf"
+            />
+          </View>
           {ansicht === 'aushang' ? (
             <DataTable
               columns={[
@@ -1018,6 +1360,7 @@ export function RaumzuteilungScreen() {
                 // derselben Richtung – sonst stünde auf dem Papier ein anderer
                 // Raum als auf dem Bildschirm.
                 drehungen={editor.drehungen}
+                anzeige={anzeige}
               />
             </View>
           ) : null}
@@ -1060,6 +1403,98 @@ export function RaumzuteilungScreen() {
           testID="raum-projekt-download"
         />
       </Section>
+
+      {/* Was an einem Platz zu tun ist, steht im Blatt – nicht in einem Modus,
+          den man vorher wählen muss. */}
+      <BlattModal
+        offen={platzDialog !== null}
+        titel={platzDialog ? `${platzDialog.titel} · ${platzAdresse}` : ''}
+        untertitel={dialogUntertitel}
+        onSchliessen={() => setPlatzDialog(null)}
+        testID="raum-platz-blatt"
+      >
+        {platzDialog && dialogTyp === 'tisch' ? (
+          <>
+            {dialogPerson ? (
+              <View style={styles.blattBlock}>
+                <Text style={styles.blattTitel} testID="raum-platz-person">
+                  {`${dialogPerson.nachname}, ${dialogPerson.vorname}`}
+                </Text>
+                <Text style={styles.hinweis}>
+                  {`Matrikelnummer ${dialogPerson.matrikelnummer}${dialogPlatz?.vorgabe ? ' · fest gesetzt' : ''}`}
+                </Text>
+                <View style={styles.buttonZeile}>
+                  <AppButton
+                    title={dialogPlatz?.vorgabe ? 'Vorgabe lösen' : 'Hier festsetzen'}
+                    variant="secondary"
+                    onPress={vorgabeSchalten}
+                    testID="raum-platz-vorgabe"
+                  />
+                  <AppButton
+                    title="Platz räumen"
+                    variant="secondary"
+                    onPress={platzRaeumen}
+                    testID="raum-platz-raeumen"
+                  />
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.hinweis}>
+                {dialogPlatz?.reserviert
+                  ? 'Dieser Platz wird für diese Klausur freigehalten.'
+                  : 'Hier sitzt noch niemand.'}
+              </Text>
+            )}
+
+            <View style={styles.buttonZeile}>
+              <AppButton
+                title={dialogPlatz?.reserviert ? 'Reserve aufheben' : 'Platz freihalten (Reserve)'}
+                variant="secondary"
+                onPress={reserveSchalten}
+                testID="raum-platz-reserve"
+              />
+            </View>
+            <Text style={styles.hinweis}>
+              Eine Reserve gilt nur für diese Klausur – sie steht in der Belegung, nicht im Raster
+              des Raums. Dauerhaft freie Tische bekommen in Schritt 5 das Element „Reserve“.
+            </Text>
+
+            {!dialogPlatz?.reserviert ? (
+              <View style={styles.blattBlock}>
+                <Text style={styles.blattTitel}>Jemanden hierher setzen</Text>
+                <Text style={styles.hinweis}>
+                  Wer hier gesetzt wird, bleibt hier – auch beim nächsten Verteilen. Sitzt die
+                  Person schon woanders, tauschen die beiden Plätze.
+                </Text>
+                <LabeledTextInput
+                  label="Suchen"
+                  value={personSuche}
+                  onChangeText={setPersonSuche}
+                  placeholder="Nachname, Vorname oder Matrikelnummer"
+                  testID="raum-platz-suche"
+                />
+                {teilnehmer.length === 0 ? (
+                  <StatusText kind="info">Noch keine Teilnehmenden geladen.</StatusText>
+                ) : (
+                  kandidaten.map(({ person, sitztAuf }) => (
+                    <AppButton
+                      key={person.matrikelnummer}
+                      title={`${person.nachname}, ${person.vorname} (${person.matrikelnummer})${
+                        sitztAuf ? ` – sitzt auf ${sitztAuf.raum}` : ''
+                      }`}
+                      variant="secondary"
+                      onPress={() => personSetzen(person.matrikelnummer)}
+                      testID={`raum-platz-person-${person.matrikelnummer}`}
+                    />
+                  ))
+                )}
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <Text style={styles.hinweis}>{dialogBeschreibung}</Text>
+        )}
+      </BlattModal>
     </ScreenContainer>
   );
 }
@@ -1070,6 +1505,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
+  blattBlock: { gap: spacing.sm },
+  blattTitel: { fontSize: 16, fontWeight: '700', color: colors.text },
   raumTabellen: { gap: spacing.md },
   raumTabelle: { gap: spacing.xs },
   raumUeberschrift: { fontSize: 15, fontWeight: '600', color: colors.text },

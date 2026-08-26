@@ -1,4 +1,6 @@
 export { AppButton } from './AppButton';
+export { BlattModal } from './BlattModal';
+export { Checkbox } from './Checkbox';
 export { DataTable, type Column } from './DataTable';
 export { FilePickerButton } from './FilePickerButton';
 export { LabeledNumberInput, LabeledTextInput } from './LabeledInput';

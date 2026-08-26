@@ -7,6 +7,7 @@ import {
   bereichAus,
   bereichName,
   mitGroesse,
+  PlanAnzeige,
   Platzbelegung,
   Raumschema,
   setzeBeschriftungsText,
@@ -40,14 +41,17 @@ export type Werkzeug = 'auswahl' | 'text' | ZellTyp;
 /**
  * Die Elemente der Palette.
  *
- * „Sitzplatz“ und „Pult“ sind beides Tische – der Unterschied ist, ob dort
- * jemand geprüft wird: Nur Sitzplätze werden nummeriert und bekommen in
- * Schritt 4 Studierende. Das Pult ist der einfache Tisch für alles andere
- * (Aufsicht, Ablage, Materialtisch).
+ * „Sitzplatz“, „Reserve“ und „Pult“ sind alle drei Tische – der Unterschied
+ * ist, ob dort jemand geprüft wird: Nur Sitzplätze werden nummeriert und
+ * bekommen in Schritt 4 Studierende. Ein **Reserveplatz** bleibt in diesem
+ * Raum dauerhaft frei (defekt, zu nah an der Tafel, für die Aufsicht) – warum,
+ * schreibt man mit dem Textwerkzeug daneben. Das **Pult** ist der einfache
+ * Tisch für alles andere (Ablage, Materialtisch).
  */
 export const PALETTE: { werkzeug: Werkzeug; titel: string; untertitel: string }[] = [
   { werkzeug: 'auswahl', titel: 'Auswählen', untertitel: 'markieren & verschieben' },
   { werkzeug: 'tisch', titel: 'Sitzplatz', untertitel: 'Tisch für Studierende · T' },
+  { werkzeug: 'reserve', titel: 'Reserve', untertitel: 'Tisch bleibt frei · R' },
   { werkzeug: 'pult', titel: 'Pult', untertitel: 'Tisch ohne Sitzplatz · P' },
   { werkzeug: 'wand', titel: 'Wand', untertitel: 'W' },
   { werkzeug: 'tuer', titel: 'Tür', untertitel: 'D' },
@@ -528,6 +532,8 @@ interface KarteProps {
   belegung?: Platzbelegung[];
   nummern?: Map<string, number>;
   personen?: Map<string, Sitzplatz>;
+  /** Was in den Kästen steht (Kürzel, Matrikelnummer, Platznummer, „Pult“). */
+  anzeige?: PlanAnzeige;
   ausgewaehlt?: string | null;
   /** Zelle angetippt, solange nicht bearbeitet wird (Platzieren, Reserve, Vorgabe). */
   onZellePress?: (zeile: number, spalte: number) => void;
@@ -549,6 +555,7 @@ export function RaumplanKarte({
   belegung = OHNE_BELEGUNG,
   nummern = OHNE_NUMMERN,
   personen = OHNE_PERSONEN,
+  anzeige,
   ausgewaehlt = null,
   onZellePress,
   testID,
@@ -607,6 +614,7 @@ export function RaumplanKarte({
         belegung={belegung}
         nummern={nummern}
         personen={personen}
+        anzeige={anzeige}
         ausgewaehlt={ausgewaehlt}
         onZellePress={
           bearbeiten

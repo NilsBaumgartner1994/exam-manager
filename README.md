@@ -99,7 +99,7 @@ Alle CSV-Dateien: Trennzeichen `;`, UTF-8, Zeilenende `\n`.
 | VIPS-Notenliste | `Nachname;Vorname;Kennung;Matrikelnr.;<Aufgabenblatt …>;Summe` (Zeile 2 = Maximalpunktzahl, Datei mit BOM) |
 | Stud.IP-Export | `Status;Anrede;Titel;Vorname;Nachname;…;E-Mail;Anmeldedatum;Matrikelnummer;Studiengänge;Position` (alle Felder in `"`) |
 | Raumliste | `Raum;Plätze;ReservierteZeit`. In `Raeume/raeume.csv` steht der Bestand des Hauses (jeder Raum einmal), in `4_Raumzuteilung_Export/klausurraeume.csv` die Räume **dieser** Klausur – dort darf ein Raum mehrfach stehen, dann wird er mehrfach belegt (Gruppe 1 / Gruppe 2) |
-| Raumschema (je Raum eine Datei, `94_E01.csv`) | Raster statt Kopfzeile: `Raum;<Name>` beginnt einen Raum, jede weitere Zeile ist eine Reihe im Raum. Zellen: `T` Sitzplatz (Tisch für Studierende), `P` Pult (Tisch ohne Sitzplatz), `D` Tür, `W` Wand, `.` frei. Freier Text über verbundenen Zellen steht in eigenen Zeilen: `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>` – er liegt über dem Raster, die Zellen darunter bleiben erhalten |
+| Raumschema (je Raum eine Datei, `94_E01.csv`) | Raster statt Kopfzeile: `Raum;<Name>` beginnt einen Raum, jede weitere Zeile ist eine Reihe im Raum. Zellen: `T` Sitzplatz (Tisch für Studierende), `R` Reserve (Tisch, der in diesem Raum dauerhaft frei bleibt – ohne Sitzplatznummer), `P` Pult (Tisch ohne Sitzplatz), `D` Tür, `W` Wand, `.` frei. Freier Text über verbundenen Zellen steht in eigenen Zeilen: `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>` – er liegt über dem Raster, die Zellen darunter bleiben erhalten |
 | Raumbelegung (`raumbelegung.csv`) | `Raum;Zeile;Spalte;Sitzplatznummer;Matrikelnummer;Nachname;Vorname;Reserviert;Vorgabe` (Sitzplatznummer, Nachname und Vorname stehen nur zur Lesbarkeit darin und werden beim Einlesen ignoriert) |
 
 Ein Raumschema bildet den Aufbau des Raumes direkt ab und lässt sich deshalb
@@ -272,6 +272,14 @@ Und die vier Schritte selbst:
    Die E-Mail-Adressen kommen dabei aus dem Zulassungsbestand; der HIS-Export
    hat keine.
 
+   **Verteilen:** Über die Räume hinweg entweder **gleichmäßig** (nach
+   relativer Auslastung) oder **Raum für Raum**. Innerhalb eines Raums
+   entweder **der Reihe nach** oder mit **größtmöglichem Abstand**: Dann
+   werden die Plätze so gewählt, dass die Geprüften möglichst weit
+   auseinandersitzen – ein Platz zur Seite zählt doppelt (dort schaut man
+   direkt aufs Nachbarblatt), und zwei sitzen lieber hintereinander als schräg
+   versetzt, weil man dem Vordermann in den Rücken sieht.
+
    **Räume der Klausur:** Der Bestand des Hauses steht in `Raeume/` (Schritt 5)
    und gilt für jedes Jahr. Hier wird ausgewählt, welche dieser Räume die
    Klausur benutzt: ein Klick auf `+ 01/E01` nimmt den Raum auf, Plätze und
@@ -289,12 +297,32 @@ Und die vier Schritte selbst:
    sind (je Raum eine CSV in `Raeume/`, siehe oben). Auf diesem Raster werden
    die Studierenden platziert:
 
-   - **Platzieren** – Person antippen, Zieltisch antippen; sitzt dort jemand,
-     tauschen die beiden.
-   - **Reserve** – Tische frei halten; wer dadurch verdrängt wird, rückt auf
-     einen freien Tisch nach (bleibt keiner übrig, nennt die App die Person).
-   - **Vorgabe** – eine Person fest auf ihren Platz binden; sie bleibt dort
-     auch bei „Sitzplan neu verteilen“.
+   Der Sitzplan steht **schon vor der Zuteilung**: Sobald Räume gewählt sind,
+   sind die Pläne da – leer, aber vollständig. So lassen sich Plätze vorab
+   freihalten und einzelne Personen fest setzen, bevor verteilt wird.
+
+   - **Auf einen Platz tippen** öffnet ein Blatt über die volle Breite. Darin
+     steht, wer dort sitzt (Name, Matrikelnummer, Sitzplatznummer), und was
+     sich tun lässt: **jemanden hierher setzen** (Suchfeld über alle
+     Teilnehmenden – wer schon woanders sitzt, tauscht den Platz), den
+     **Platz räumen**, die **Vorgabe** lösen oder setzen und den Platz als
+     **Reserve** freihalten.
+   - **Vorgabe** – wer von Hand gesetzt wird, bleibt dort: auch bei „Sitzplan
+     neu verteilen“ und bei einer neuen Zuteilung (die Person kommt dann in
+     genau diesen Raum). Im Plan steht „fest“ daneben.
+   - **Reserve** – ein Platz, der für **diese** Klausur frei bleibt; wer
+     dadurch verdrängt wird, rückt auf einen freien Tisch nach (bleibt keiner
+     übrig, nennt die App die Person). Die Reserve steht in der Belegung,
+     nicht im Raster des Raums – ein dauerhaft freier Tisch bekommt in
+     Schritt 5 das Element „Reserve“.
+   - **Was in den Kästen steht** – Häkchen über dem Plan: Namenskürzel,
+     Matrikelnummer, Sitzplatznummer, „Pult“ beschriften. Sie gelten für den
+     Bildschirm **und** für die PDFs; auf dem Aushang steht die Sitzplatznummer
+     immer.
+   - **PDFs** – „Sitzpläne als PDF“ erzeugt je Raum eine Datei (mehrere kommen
+     als ZIP), dazu getrennt „Aushang als PDF“ (eine Seite je Raum),
+     „Dozentenliste als PDF“ (nach Sitzplatz) und „Tutorenliste als PDF“ (nach
+     Nachname). Gezeichnet wird dasselbe Raster wie am Bildschirm.
    - **Raum bearbeiten** – links liegt die Palette (Auswählen, Sitzplatz,
      Pult, Wand, Tür, Text, Radierer). Ein Element auf eine Zelle **ziehen**
      setzt es dort; **antippen** wählt es aus und man malt damit im Plan (über
@@ -305,11 +333,17 @@ Und die vier Schritte selbst:
      die Auswahl wie in einer Tabellenkalkulation über mehrere Felder auf oder
      wieder zusammen und füllt sie dabei. Zeilen und Spalten lassen sich
      zusätzlich über die Knöpfe hinzufügen und entfernen.
-   - **Sitzplatz oder Pult?** Beides sind Tische, in hellem bzw. dunklerem
-     Holzton. Ein **Sitzplatz** (`T`) ist ein Tisch, an dem jemand geprüft
-     wird: Nur diese werden nummeriert und belegt, und nur sie zählt die
-     Platzzahl des Raums. Das **Pult** (`P`) ist der einfache Tisch für alles
-     andere – Aufsicht, Ablage, Materialtisch.
+   - **Sitzplatz, Reserve oder Pult?** Alle drei sind Tische. Ein
+     **Sitzplatz** (`T`) ist ein Tisch, an dem jemand geprüft wird: Nur diese
+     werden nummeriert und belegt, und nur sie zählt die Platzzahl des Raums.
+     Ein **Reserve**-Tisch (`R`) bleibt in diesem Raum dauerhaft frei – der
+     defekte Tisch, der Platz direkt an der Tafel, der der Aufsicht – und
+     bekommt keine Nummer; warum, schreibt man mit dem Textwerkzeug darauf.
+     Das **Pult** (`P`) ist der einfache Tisch für alles andere (Ablage,
+     Materialtisch).
+   - **Flache Kästen:** Eine Zelle ist halb so hoch wie breit – es sind Tische,
+     keine Quadrate. So passen doppelt so viele Reihen ins Bild, ohne dass die
+     Kästen schmaler werden.
    - **Rückgängig / Wiederholen** – jeder Schritt im Plan lässt sich zurück-
      nehmen: die Knöpfe über den Plänen oder <kbd>Strg</kbd>/<kbd>⌘</kbd> +
      <kbd>Z</kbd> (vorwärts mit <kbd>Umschalt</kbd> + <kbd>Z</kbd> bzw.

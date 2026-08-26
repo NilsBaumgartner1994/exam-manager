@@ -80,6 +80,11 @@ url: http://localhost:8081
 - scrollUntilVisible:
     element: 'Zuteilung erstellen'
 - tapOn: 'Zuteilung erstellen'
+# Der Sitzplan steht schon vor der Zuteilung; die Häkchen sagen, was in den
+# Kästen steht – am Bildschirm wie im PDF.
+- scrollUntilVisible:
+    element: 'Sitzplan im Raum'
+- assertVisible: 'Im Plan zeigen:'
 - scrollUntilVisible:
     element: '7 Sitzplätze in 5 Räumen vergeben.'
 - assertVisible: '7 Sitzplätze in 5 Räumen vergeben.'

@@ -11,6 +11,8 @@ import {
 import {
   AnzeigeZelle,
   anzeigeBereich,
+  PLAN_ANZEIGE_STANDARD,
+  PlanAnzeige,
   anzeigeRaster,
   Bereich,
   bereichAus,
@@ -93,8 +95,16 @@ interface Props {
    */
   onZugEnde?: () => void;
 
-  /** Aushang-Darstellung: nur Namenskürzel statt vollem Namen. */
-  anonym?: boolean;
+  /**
+   * Was in den Kästen steht (Kürzel, Matrikelnummer, Platznummer, „Pult“).
+   * Dasselbe Objekt geht ins PDF – gedruckt wird, was man sieht.
+   */
+  anzeige?: PlanAnzeige;
+  /**
+   * Zeilen- und Spaltenköpfe wie in einer Tabellenkalkulation. Am Aushang
+   * stören sie nur; beim Bearbeiten zeigen sie, wie groß der Raum ist.
+   */
+  gitter?: boolean;
   testID?: string;
 }
 
@@ -110,6 +120,13 @@ interface Zug {
   /** Beim Aufziehen der feste Eckpunkt (Anzeige oben links der Auswahl). */
   anker?: { zeile: number; spalte: number };
 }
+
+/**
+ * Zellen sind halb so hoch wie breit. Ein Sitzplatz ist ein Tisch, und Tische
+ * stehen quer: So passen doppelt so viele Reihen ins Bild, ohne dass die
+ * Kästen schmaler und die Namen darin unleserlich werden.
+ */
+const ZELL_HOEHE_ANTEIL = 0.5;
 
 /** Grenzen der Zellgröße beim Einpassen: für große Räume klein, zum Lesen groß. */
 const ZELLE_MIN = 14;
@@ -174,7 +191,9 @@ export function rastermasse(
   // Die Zeilenköpfe stehen links neben dem Raster: gut eine Drittelzelle, die
   // von der Breite abgeht, sonst ragt der Plan bei „Breite“ knapp heraus.
   const proSpalte = breite / (Math.max(1, anzahlSpalten) + 0.4);
-  const proZeile = hoehe / Math.max(1, anzahlZeilen);
+  // Eine Zeile ist nur halb so hoch wie eine Spalte breit – die Höhe erlaubt
+  // deshalb doppelt so große Zellen wie die reine Zeilenzahl vermuten lässt.
+  const proZeile = hoehe / Math.max(1, anzahlZeilen) / ZELL_HOEHE_ANTEIL;
   const platz = ansicht.modus === 'breite' ? proSpalte : Math.min(proSpalte, proZeile);
   // Zellgröße und Fuge hängen voneinander ab (kleine Zellen bekommen eine
   // schmalere Fuge). Erst mit der größten Fuge schätzen, dann mit der Fuge
@@ -188,16 +207,18 @@ export function rastermasse(
       : // Die endgültige Fuge kann eine Stufe breiter sein als die geschätzte;
         // dann eine Spur kleiner, damit der Plan sicher hineinpasst.
         Math.max(ZELLE_MIN, Math.min(gewuenscht, Math.floor(platz - fugenbreite(gewuenscht))));
+  const zellHoehe = Math.max(7, Math.round(groesse * ZELL_HOEHE_ANTEIL));
   return {
     groesse,
+    zellHoehe,
     abstand: fugenbreite(groesse),
     kopfGroesse: begrenze(groesse * 0.34, 11, 22),
     kopfSchrift: begrenze(groesse * 0.22, 8, 11),
-    /** Ab hier ist Platz für Nummer und Zusatz, darunter nur noch der Name. */
-    zeigeDetails: groesse >= 40,
-    zeigeNamen: groesse >= 26,
-    namenSchrift: begrenze(groesse * 0.2, 8, 13),
-    kleinSchrift: begrenze(groesse * 0.16, 7, 11),
+    /** Ab hier passen zwei Zeilen Text in den Kasten, darunter nur eine. */
+    zeigeDetails: zellHoehe >= 24,
+    zeigeNamen: zellHoehe >= 11,
+    namenSchrift: begrenze(zellHoehe * 0.52, 7, 13),
+    kleinSchrift: begrenze(zellHoehe * 0.44, 6, 11),
   };
 }
 
@@ -212,8 +233,8 @@ type Rastermasse = ReturnType<typeof rastermasse>;
  *
  * Das Raster hat Köpfe wie eine Tabellenkalkulation: Spalten A, B, C …,
  * Zeilen 1, 2, 3 … So ist zu sehen, wie groß der Raum ist und wo sich klicken
- * lässt – auch dort, wo (noch) nichts steht. Der Aushang (`anonym`) verzichtet
- * darauf. Beschriftet wird immer das, was man sieht: Nach einer Drehung
+ * lässt – auch dort, wo (noch) nichts steht. Der Aushang (`gitter={false}`)
+ * verzichtet darauf. Beschriftet wird immer das, was man sieht: Nach einer Drehung
  * benennen die Köpfe die gedrehte Ansicht.
  *
  * Die Zellgröße richtet sich nach der Ansicht: eingepasst passt der ganze Raum
@@ -252,7 +273,8 @@ export function Raumplan({
   onBeschriftungText,
   zielZelle,
   onZugEnde,
-  anonym,
+  anzeige = PLAN_ANZEIGE_STANDARD,
+  gitter = true,
   testID,
 }: Props) {
   const fenster = useWindowDimensions();
@@ -276,7 +298,7 @@ export function Raumplan({
 
   const raster = useMemo(() => anzeigeRaster(schema, drehungen), [schema, drehungen]);
   const spaltenAnzahl = raster[0]?.length ?? 0;
-  const mitGitter = !anonym;
+  const mitGitter = gitter;
 
   const masse = rastermasse(
     raster.length,
@@ -285,8 +307,9 @@ export function Raumplan({
     Math.max(280, fenster.height - HOEHE_FUER_DEN_REST),
     ansicht,
   );
-  const { groesse, abstand, kopfGroesse } = masse;
+  const { groesse, zellHoehe, abstand, kopfGroesse } = masse;
   const schritt = groesse + abstand;
+  const schrittZeile = zellHoehe + abstand;
 
   useEffect(() => {
     onZellGroesse?.(groesse);
@@ -316,7 +339,7 @@ export function Raumplan({
     // Der gemessene Knoten ist genau das Zellraster (die Köpfe liegen außerhalb),
     // die erste Zelle beginnt also an seiner Ecke.
     const rect = knoten.getBoundingClientRect();
-    const zeile = Math.floor((y - rect.top) / schritt);
+    const zeile = Math.floor((y - rect.top) / schrittZeile);
     const spalte = Math.floor((x - rect.left) / schritt);
     if (zeile < 0 || spalte < 0 || zeile >= raster.length || spalte >= spaltenAnzahl) {
       if (!begrenzen) return null;
@@ -503,7 +526,7 @@ export function Raumplan({
           {mitGitter ? (
             <View style={{ gap: abstand }}>
               {raster.map((_, z) => (
-                <View key={z} style={[styles.kopf, { width: kopfGroesse, height: groesse }]}>
+                <View key={z} style={[styles.kopf, { width: kopfGroesse, height: zellHoehe }]}>
                   <Text style={[styles.kopfText, { fontSize: masse.kopfSchrift }]} numberOfLines={1}>
                     {zeilenName(z)}
                   </Text>
@@ -540,7 +563,7 @@ export function Raumplan({
                       nummer={nummern.get(platz)}
                       personen={personen}
                       ausgewaehlt={ausgewaehlt ?? null}
-                      anonym={anonym ?? false}
+                      anzeige={anzeige}
                       gitter={mitGitter}
                       verdeckt={verdeckt.has(`${zelle.zeile}|${zelle.spalte}`)}
                       markiert={!!auswahl && imBereich(auswahl, zelle.zeile, zelle.spalte)}
@@ -618,14 +641,15 @@ function Textfeld({
   testID?: string;
 }) {
   const schritt = masse.groesse + masse.abstand;
+  const schrittZeile = masse.zellHoehe + masse.abstand;
   const rahmen = {
     left: bereich.spalte * schritt,
-    top: bereich.zeile * schritt,
+    top: bereich.zeile * schrittZeile,
     width: bereich.breite * masse.groesse + (bereich.breite - 1) * masse.abstand,
-    height: bereich.hoehe * masse.groesse + (bereich.hoehe - 1) * masse.abstand,
+    height: bereich.hoehe * masse.zellHoehe + (bereich.hoehe - 1) * masse.abstand,
   };
-  const schrift = { fontSize: Math.max(9, Math.min(16, Math.round(masse.groesse * 0.24))) };
-  const ecken = { borderRadius: Math.min(radius.md, Math.round(masse.groesse * 0.18)) };
+  const schrift = { fontSize: Math.max(8, Math.min(16, Math.round(rahmen.height * 0.45))) };
+  const ecken = { borderRadius: Math.min(radius.md, Math.round(masse.zellHoehe * 0.3)) };
 
   return (
     <View
@@ -668,7 +692,7 @@ const Zelle = memo(function Zelle({
   nummer,
   personen,
   ausgewaehlt,
-  anonym,
+  anzeige,
   markiert,
   vorschau,
   griff,
@@ -688,7 +712,7 @@ const Zelle = memo(function Zelle({
   nummer?: number;
   personen: Map<string, Sitzplatz>;
   ausgewaehlt: string | null;
-  anonym: boolean;
+  anzeige: PlanAnzeige;
   markiert: boolean;
   vorschau: boolean;
   griff: boolean;
@@ -702,41 +726,67 @@ const Zelle = memo(function Zelle({
 }) {
   const person = platz?.matrikelnummer ? personen.get(platz.matrikelnummer) : undefined;
   const istAusgewaehlt = !!ausgewaehlt && platz?.matrikelnummer === ausgewaehlt;
-  const { groesse, abstand } = masse;
+  const { groesse, zellHoehe, abstand } = masse;
 
+  /**
+   * Was im Kasten steht. In einen halbhohen Kasten passt eine Zeile, in einen
+   * großen zwei – deshalb kommt zuerst, was am wichtigsten ist: die Person,
+   * dann die Nummer.
+   */
   const inhalt = (() => {
-    if (verdeckt) return null;
+    if (verdeckt || !masse.zeigeNamen) return null;
     switch (zelle.typ) {
-      case 'tisch':
+      case 'tisch': {
+        const zeilen: { text: string; stil: object }[] = [];
+        if (platz?.reserviert) {
+          zeilen.push({ text: 'Reserve', stil: styles.reserve });
+        } else if (person) {
+          if (anzeige.namensPraefix) {
+            zeilen.push({ text: person.anfangNachname, stil: styles.name });
+          }
+          if (anzeige.matrikelnummer) {
+            zeilen.push({ text: person.matrikelnummer, stil: styles.klein });
+          }
+          // Ohne Namen wäre der Kasten leer, obwohl dort jemand sitzt – die
+          // Farbe allein sagt nicht, dass der Platz vergeben ist.
+          if (zeilen.length === 0 && !anzeige.sitzplatznummer) {
+            zeilen.push({ text: '•', stil: styles.klein });
+          }
+        }
+        if (anzeige.sitzplatznummer && nummer !== undefined) {
+          zeilen.push({ text: String(nummer), stil: styles.nummer });
+        }
+        const passt = masse.zeigeDetails ? 2 : 1;
         return (
           <>
-            {masse.zeigeDetails ? (
-              <Text style={[styles.nummer, { fontSize: masse.kleinSchrift }]}>{nummer ?? ''}</Text>
-            ) : null}
-            {!masse.zeigeNamen ? null : platz?.reserviert ? (
-              <Text style={[styles.reserve, { fontSize: masse.kleinSchrift }]} numberOfLines={1}>
-                Reserve
+            {zeilen.slice(0, passt).map((eintrag, i) => (
+              <Text
+                key={i}
+                style={[
+                  eintrag.stil,
+                  { fontSize: eintrag.stil === styles.name ? masse.namenSchrift : masse.kleinSchrift },
+                ]}
+                numberOfLines={1}
+              >
+                {eintrag.text}
               </Text>
-            ) : person ? (
-              <Text style={[styles.name, { fontSize: masse.namenSchrift }]} numberOfLines={2}>
-                {anonym ? person.anfangNachname : person.nachname}
-              </Text>
-            ) : platz && masse.zeigeDetails ? (
-              // Nur wo eine Belegung geführt wird: In Schritt 5 gibt es keine,
-              // dort stünde in jedem Tisch ein sinnloses „frei“.
-              <Text style={[styles.frei, { fontSize: masse.kleinSchrift }]}>frei</Text>
-            ) : null}
+            ))}
             {platz?.vorgabe && masse.zeigeDetails ? (
               <Text style={[styles.vorgabe, { fontSize: masse.kleinSchrift }]}>fest</Text>
             ) : null}
           </>
         );
+      }
+      case 'reserve':
+        return (
+          <Text style={[styles.reserve, { fontSize: masse.kleinSchrift }]} numberOfLines={1}>
+            Reserve
+          </Text>
+        );
       case 'tuer':
-        return masse.zeigeNamen ? (
-          <Text style={[styles.symbolText, { fontSize: masse.kleinSchrift }]}>Tür</Text>
-        ) : null;
+        return <Text style={[styles.symbolText, { fontSize: masse.kleinSchrift }]}>Tür</Text>;
       case 'pult':
-        return masse.zeigeNamen ? (
+        return anzeige.pultText ? (
           <Text style={[styles.symbolText, { fontSize: masse.kleinSchrift }]}>Pult</Text>
         ) : null;
       default:
@@ -750,9 +800,10 @@ const Zelle = memo(function Zelle({
       style={[
         styles.zelle,
         // Die Ecken runden mit: Bei 18 px Zellen wären 8 px Radius Kreise.
-        { width: groesse, height: groesse, borderRadius: Math.min(radius.md, Math.round(groesse * 0.18)) },
+        { width: groesse, height: zellHoehe, borderRadius: Math.min(radius.md, Math.round(zellHoehe * 0.3)) },
         gitter && styles.gitterlinie,
         zelle.typ === 'tisch' && styles.tisch,
+        zelle.typ === 'reserve' && styles.dauerReserve,
         zelle.typ === 'tuer' && styles.tuer,
         zelle.typ === 'pult' && styles.pult,
         zelle.typ === 'wand' && styles.wand,
@@ -784,7 +835,15 @@ const Zelle = memo(function Zelle({
       {inhalt}
       {griff ? (
         <View
-          style={[styles.griff, { width: Math.max(12, groesse * 0.22), height: Math.max(12, groesse * 0.22) }]}
+          // Der Griff muss in den halbhohen Kasten passen und trotzdem zu
+          // treffen sein – deshalb an der Höhe gemessen, nicht an der Breite.
+          style={[
+            styles.griff,
+            {
+              width: Math.max(10, Math.min(groesse * 0.22, zellHoehe * 0.6)),
+              height: Math.max(10, Math.min(groesse * 0.22, zellHoehe * 0.6)),
+            },
+          ]}
           onPointerDown={(ereignis) => {
             ereignis.stopPropagation();
             onGriffPointerDown();
@@ -830,6 +889,13 @@ const styles = StyleSheet.create({
   belegt: { borderStyle: 'solid', backgroundColor: '#eef2ff', borderColor: colors.primary },
   reserviertZelle: { backgroundColor: colors.surface, borderStyle: 'dashed' },
   personAusgewaehlt: { borderColor: colors.danger, borderWidth: 2 },
+  /** Dauerhaft freigehaltener Tisch: Holzton, aber gestrichelt und blass. */
+  dauerReserve: {
+    backgroundColor: colors.surface,
+    borderColor: colors.tischRand,
+    borderStyle: 'dashed',
+  },
+  klein: { color: colors.textMuted },
   markiert: { borderColor: colors.primary, borderWidth: 2, borderStyle: 'solid' },
   vorschau: { backgroundColor: '#dbeafe', borderColor: colors.primary, borderWidth: 2, borderStyle: 'dashed' },
   tuer: { backgroundColor: colors.successBg, borderColor: colors.success },
@@ -887,7 +953,6 @@ const styles = StyleSheet.create({
   },
   nummer: { color: colors.textMuted },
   name: { fontWeight: '600', color: colors.text, textAlign: 'center' },
-  frei: { color: colors.textMuted },
   reserve: { fontWeight: '600', color: colors.textMuted },
   vorgabe: { fontWeight: '700', color: colors.danger },
   symbolText: { fontWeight: '600', color: colors.text },

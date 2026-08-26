@@ -8,8 +8,12 @@
  *     Raum;94/E01
  *     P;.;.;.;.
  *     .;T;T;.;T
- *     .;T;T;.;T
+ *     .;T;R;.;T
  *     D;.;.;.;.
+ *
+ * `T` ist ein Sitzplatz, `R` ein Tisch, der in diesem Raum dauerhaft frei
+ * bleibt (defekt, zu nah an der Tafel, für die Aufsicht) – er bekommt keine
+ * Sitzplatznummer. Woran das liegt, schreibt man mit dem Textwerkzeug daneben.
  *
  * Eine Zeile `Raum;<Name>` beginnt einen neuen Raum, alle weiteren Zeilen sind
  * dessen Raster.
@@ -33,12 +37,13 @@
 import { CSV_DELIMITER, parseCsvRows, toCsv } from './csv';
 import { normalizeName } from './namen';
 
-export type ZellTyp = 'leer' | 'tisch' | 'tuer' | 'wand' | 'pult';
+export type ZellTyp = 'leer' | 'tisch' | 'reserve' | 'tuer' | 'wand' | 'pult';
 
 /** Kürzel in der CSV – ein Zeichen je Zelle. */
 export const ZELL_KUERZEL: Record<ZellTyp, string> = {
   leer: '.',
   tisch: 'T',
+  reserve: 'R',
   tuer: 'D',
   wand: 'W',
   pult: 'P',
@@ -48,6 +53,7 @@ const KUERZEL_ZU_TYP: Record<string, ZellTyp> = {
   '.': 'leer',
   '': 'leer',
   T: 'tisch',
+  R: 'reserve',
   D: 'tuer',
   W: 'wand',
   P: 'pult',
@@ -215,10 +221,18 @@ export function raumschemataToCsv(schemata: Raumschema[]): string {
  * nicht zurückrechnen können, sondern nur wiedererkennbar sein.
  */
 export function raumschemaDateiname(raum: string): string {
+  return `${raumDateiname(raum)}.csv`;
+}
+
+/**
+ * Der Raumname als Baustein eines Dateinamens: `94/E01` → `94_E01`. Auch für
+ * alles andere, was je Raum als Datei herausfällt (Sitzplan-PDFs).
+ */
+export function raumDateiname(raum: string): string {
   const name = normalizeName(raum)
     .replace(/[^A-Za-z0-9_-]+/g, '_')
     .replace(/^_+|_+$/g, '');
-  return `${name === '' ? 'raum' : name}.csv`;
+  return name === '' ? 'raum' : name;
 }
 
 /**
@@ -375,15 +389,32 @@ export function anzeigeBereich(
   return bereichAus(ecken[0], ecken[1]);
 }
 
-/** Alle Tischzellen in Lesereihenfolge des gespeicherten Rasters. */
-export function tischzellen(schema: Raumschema): { zeile: number; spalte: number }[] {
-  const plaetze: { zeile: number; spalte: number }[] = [];
+/** Alle Zellen eines Typs in Lesereihenfolge des gespeicherten Rasters. */
+export function zellenVomTyp(schema: Raumschema, typ: ZellTyp): { zeile: number; spalte: number }[] {
+  const zellen: { zeile: number; spalte: number }[] = [];
   schema.zellen.forEach((zeile, z) =>
-    zeile.forEach((typ, s) => {
-      if (typ === 'tisch') plaetze.push({ zeile: z, spalte: s });
+    zeile.forEach((vorhanden, s) => {
+      if (vorhanden === typ) zellen.push({ zeile: z, spalte: s });
     }),
   );
-  return plaetze;
+  return zellen;
+}
+
+/**
+ * Alle Sitzplätze in Lesereihenfolge des gespeicherten Rasters.
+ *
+ * Reserveplätze (`reserve`) sind **nicht** dabei: Sie sind Tische, an denen in
+ * diesem Raum nie jemand geprüft wird (defekt, zu nah an der Tafel, für die
+ * Aufsicht freigehalten). Sie bekommen deshalb auch keine Sitzplatznummer –
+ * anders als ein Platz, den Schritt 4 für eine einzelne Klausur freihält.
+ */
+export function tischzellen(schema: Raumschema): { zeile: number; spalte: number }[] {
+  return zellenVomTyp(schema, 'tisch');
+}
+
+/** Die dauerhaft freigehaltenen Tische des Raums. */
+export function reservezellen(schema: Raumschema): { zeile: number; spalte: number }[] {
+  return zellenVomTyp(schema, 'reserve');
 }
 
 /**
@@ -600,7 +631,7 @@ export function setzeZelle(schema: Raumschema, zeile: number, spalte: number, ty
 }
 
 /** Nächster Zelltyp beim Antippen im Bearbeiten-Modus. */
-export const ZELL_REIHENFOLGE: ZellTyp[] = ['leer', 'tisch', 'tuer', 'wand', 'pult'];
+export const ZELL_REIHENFOLGE: ZellTyp[] = ['leer', 'tisch', 'reserve', 'tuer', 'wand', 'pult'];
 
 export function naechsterZellTyp(typ: ZellTyp): ZellTyp {
   const index = ZELL_REIHENFOLGE.indexOf(typ);

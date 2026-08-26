@@ -1,7 +1,12 @@
 import {
   erstelleZip,
   nichtDarstellbareZeichen,
+  parseRaumschemata,
+  sitzplanPdf,
   sitzplatzPdf,
+  sitzplatznummern,
+  tabellenPdf,
+  verteileImRaum,
   winAnsiText,
   zulassungsPdf,
 } from '../src';
@@ -78,5 +83,59 @@ describe('Sonderzeichen in Namen', () => {
       nachname: alle, vorname: '', matrikelnummer: '1', email: '',
     });
     expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
+  });
+});
+
+describe('Sitzplan und Listen als PDF (Screen 4)', () => {
+  const schema = parseRaumschemata('Raum;94/E01\nW;W;W\nP;T;R\n.;T;T\nText;0;0;1;3;Tafel\n')[0];
+
+  it('zeichnet den Sitzplan eines Raums', async () => {
+    const { belegung } = verteileImRaum(schema, ['1000005'], []);
+    const pdf = await sitzplanPdf({
+      schema,
+      titel: '94/E01 · 2. Durchgang',
+      untertitel: '01.02.2026 – Gruppe 2',
+      belegung,
+      nummern: sitzplatznummern([schema], 1001),
+      personen: new Map([
+        [
+          '1000005',
+          {
+            anfangNachname: 'Schr',
+            sitzplatznummer: 1001,
+            raum: '94/E01',
+            raumSchluessel: '94/E01',
+            reservierteZeit: '',
+            matrikelnummer: '1000005',
+            anwesend: '',
+            nachname: 'Schrödinger',
+            vorname: 'Erwin',
+            zeitUndRaum: '',
+            email: '',
+          },
+        ],
+      ]),
+    });
+    expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
+    expect(pdf.length).toBeGreaterThan(500);
+  });
+
+  it('zeichnet den Sitzplan auch gedreht und ohne Belegung', async () => {
+    const pdf = await sitzplanPdf({ schema, titel: '94/E01', drehungen: 1 });
+    expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
+  });
+
+  it('setzt Listen mit einer Seite je Abschnitt', async () => {
+    const pdf = await tabellenPdf([
+      {
+        titel: 'Aushang 94/E01',
+        untertitel: '01.02.2026',
+        spalten: ['Sitzplatz', 'Anfang Nachname'],
+        zeilen: [[1001, 'Schr'], [1002, 'Ł']],
+      },
+      { titel: 'Dozentenliste', spalten: ['Sitzplatz', 'Name'], zeilen: [[1001, 'Schrödinger']] },
+    ]);
+    expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
+    expect(pdf.length).toBeGreaterThan(500);
   });
 });

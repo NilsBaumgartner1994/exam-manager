@@ -17,6 +17,8 @@ import {
   ohneFreieBelegung,
   parseRaumschemaDateien,
   parseRaumschemata,
+  plaetzeMitAbstand,
+  reservezellen,
   Platzbelegung,
   raumschemaDateien,
   raumschemaDateiname,
@@ -396,5 +398,72 @@ describe('Raster als einzelne Dateien', () => {
     const schemata = parseRaumschemaDateien([SCHEMA_CSV, 'Raum;94/E01\nT;T\n']);
     expect(schemata.map((s) => s.raum)).toEqual(['94/E01', '94/E03']);
     expect(tischzellen(schemata[0])).toHaveLength(6);
+  });
+});
+
+describe('Reserveplätze im Raster', () => {
+  it('liest `R` als dauerhaft freigehaltenen Tisch – ohne Sitzplatznummer', () => {
+    const schema = parseRaumschemata('Raum;X\nT;R;T\n')[0];
+    expect(schema.zellen[0]).toEqual(['tisch', 'reserve', 'tisch']);
+    expect(tischzellen(schema)).toHaveLength(2);
+    expect(reservezellen(schema)).toEqual([{ zeile: 0, spalte: 1 }]);
+    // Nummeriert und belegt werden nur die Sitzplätze.
+    expect([...sitzplatznummern([schema], 1001).keys()]).toEqual(['X|0|0', 'X|0|2']);
+    const { belegung } = verteileImRaum(schema, ['a', 'b'], []);
+    expect(belegung.map((p) => p.spalte)).toEqual([0, 2]);
+  });
+
+  it('schreibt Reserveplätze wieder als `R` heraus', () => {
+    const schema = parseRaumschemata('Raum;X\nT;R\n')[0];
+    expect(raumschemataToCsv([schema])).toContain('T;R');
+  });
+});
+
+describe('Sitzverteilung mit größtmöglichem Abstand', () => {
+  const frei = (zeilen: number, spalten: number) =>
+    Array.from({ length: zeilen }, (_, z) =>
+      Array.from({ length: spalten }, (_, s) => ({ zeile: z, spalte: s })),
+    ).flat();
+
+  it('setzt die ersten Personen in die Ecken', () => {
+    const gewaehlt = plaetzeMitAbstand(frei(3, 3), [], 2);
+    expect(gewaehlt).toHaveLength(2);
+    // Zwei Plätze in einem 3×3-Raster: die beiden Ecken einer Zeile – zur
+    // Seite ist der Abstand mehr wert als nach hinten.
+    expect(Math.abs(gewaehlt[0].spalte - gewaehlt[1].spalte)).toBe(2);
+  });
+
+  it('hält Abstand zu denen, die schon sitzen', () => {
+    const [platz] = plaetzeMitAbstand(
+      [
+        { zeile: 0, spalte: 1 },
+        { zeile: 0, spalte: 4 },
+      ],
+      [{ zeile: 0, spalte: 0 }],
+      1,
+    );
+    expect(platz).toEqual({ zeile: 0, spalte: 4 });
+  });
+
+  it('setzt lieber hintereinander als schräg daneben', () => {
+    // Zur Wahl: zwei Reihen genau dahinter oder einmal schräg. Schräg ist
+    // rechnerisch weiter weg, aber man sieht dem Vordermann in den Rücken –
+    // deshalb gewinnt „hintereinander“.
+    const [platz] = plaetzeMitAbstand(
+      [
+        { zeile: 2, spalte: 0 },
+        { zeile: 1, spalte: 1 },
+      ],
+      [{ zeile: 0, spalte: 0 }],
+      1,
+    );
+    expect(platz).toEqual({ zeile: 2, spalte: 0 });
+  });
+
+  it('verteilt eine ganze Reihe mit Lücken statt am Stück', () => {
+    const schema = parseRaumschemata('Raum;X\nT;T;T;T;T;T;T\n')[0];
+    const { belegung } = verteileImRaum(schema, ['a', 'b', 'c'], [], 'abstand');
+    const besetzt = belegung.filter((p) => p.matrikelnummer !== '').map((p) => p.spalte).sort((a, b) => a - b);
+    expect(besetzt).toEqual([0, 3, 6]);
   });
 });

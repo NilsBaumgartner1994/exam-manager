@@ -1,18 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import readXlsxFile from 'read-excel-file';
 import {
+  AnmeldungsPruefung,
   Bereich,
   bereichAus,
   belegungToCsv,
   erstelleRaumzuteilung,
   erstelleZip,
+  ladeZulassungsBestand,
   nichtDarstellbareZeichen,
   ohneFreieBelegung,
   parseBelegung,
+  parseHisRows,
   parseRaeume,
   parseRaumschemata,
   parseZulassungsliste,
   Platzbelegung,
+  pruefeAnmeldungen,
   Raum,
   Raumschema,
   raeumeToCsv,
@@ -149,6 +154,18 @@ function RaumAushaenge({
 }
 
 /**
+ * Woher die Teilnehmerliste stammt. `anmeldungenAlle`/`anmeldungenZugelassen`
+ * entstehen ohne den Export aus Schritt 3, direkt aus den Anmeldungen in
+ * `0_Input_Klausuranmeldungen/`.
+ */
+type TeilnehmerQuelle =
+  | 'liste'
+  | 'anmeldungenAlle'
+  | 'anmeldungenZugelassen'
+  | 'datei'
+  | 'beispiel';
+
+/**
  * Schritt 4 des Prüfungs-Workflows: Klausur-Teilnehmende auf Räume verteilen,
  * Sitzplätze vergeben und Aushang-/Aufsichtslisten sowie PDFs erzeugen.
  */
@@ -156,6 +173,9 @@ export function RaumzuteilungScreen() {
   // Eingaben.
   const [teilnehmer, setTeilnehmer] = useState<Zulassung[]>([]);
   const [teilnehmerStatus, setTeilnehmerStatus] = useState<string | null>(null);
+  /** Aus den Anmeldungen abgeleitet, wenn keine Teilnehmerliste vorliegt. */
+  const [anmeldungen, setAnmeldungen] = useState<AnmeldungsPruefung | null>(null);
+  const [quelle, setQuelle] = useState<TeilnehmerQuelle | null>(null);
   const [zeilen, setZeilen] = useState<RaumZeile[]>([]);
   const [fehler, setFehler] = useState<string | null>(null);
   const [hinweis, setHinweis] = useState<string | null>(null);
@@ -204,24 +224,67 @@ export function RaumzuteilungScreen() {
 
   const raeume = zeilen.map(zeileZuRaum);
 
+  /**
+   * Teilnehmerliste direkt aus den Anmeldungen übernehmen – wahlweise alle
+   * Angemeldeten oder nur die Zugelassenen. Damit kommt Schritt 4 ohne den
+   * Export aus Schritt 3 (`3_Klausur_Teilnehmende_Export/`) aus.
+   */
+  const uebernimmAnmeldungen = (
+    pruefung: AnmeldungsPruefung,
+    gewaehlt: 'anmeldungenAlle' | 'anmeldungenZugelassen',
+  ) => {
+    const liste = gewaehlt === 'anmeldungenAlle' ? pruefung.alle : pruefung.zugelassen;
+    setTeilnehmer(liste);
+    setQuelle(gewaehlt);
+    setTeilnehmerStatus(
+      gewaehlt === 'anmeldungenZugelassen'
+        ? `${liste.length} von ${pruefung.alle.length} Anmeldungen übernommen – nur die Zugelassenen.`
+        : pruefung.alleZugelassen
+          ? `${liste.length} Anmeldungen übernommen – alle sind zugelassen.`
+          : `${liste.length} Anmeldungen übernommen – darunter ${pruefung.nichtZugelassen.length} ohne Zulassung.`,
+    );
+  };
+
   // Eingaben aus dem Projektordner, solange nichts eigenes geladen wurde.
   const projekt = useProjekt();
   useEffect(() => {
-    if (teilnehmer.length > 0 || zeilen.length > 0) return;
+    if (teilnehmer.length > 0 || zeilen.length > 0 || anmeldungen !== null) return;
     const liste = projekt.datei('teilnehmer');
     const raumDatei = projekt.datei('raeume');
     const schemaDatei = projekt.datei('raumschema');
     const belegungDatei = projekt.datei('raumbelegung');
-    if (!liste?.text && !raumDatei?.text) return;
-    try {
-      if (liste?.text) setTeilnehmer(parseZulassungsliste(liste.text));
+    // Ohne Export aus Schritt 3: die Anmeldungen hier selbst prüfen.
+    const hisDatei = projekt.datei('hisExport');
+    const bestandTexte = projekt
+      .dateienMit('zulassungsbestand')
+      .map((datei) => datei.text ?? '')
+      .filter((text) => text !== '');
+    const ausAnmeldungen = !liste?.text && !!hisDatei?.bytes && bestandTexte.length > 0;
+    if (!liste?.text && !raumDatei?.text && !ausAnmeldungen) return;
+
+    const uebernehmen = async () => {
+      if (liste?.text) {
+        setTeilnehmer(parseZulassungsliste(liste.text));
+        setQuelle('liste');
+      } else if (ausAnmeldungen && hisDatei?.bytes) {
+        // Kopie, damit der Excel-Reader einen eigenständigen Puffer bekommt.
+        const rows = await readXlsxFile(hisDatei.bytes.slice().buffer);
+        const pruefung = pruefeAnmeldungen(
+          parseHisRows(rows),
+          ladeZulassungsBestand(bestandTexte),
+        );
+        setAnmeldungen(pruefung);
+        // Sind alle zugelassen, gibt es nichts zu fragen – direkt übernehmen.
+        if (pruefung.alleZugelassen) uebernimmAnmeldungen(pruefung, 'anmeldungenAlle');
+      }
       if (raumDatei?.text) setZeilen(parseRaeume(raumDatei.text).map(raumZuZeile));
       if (schemaDatei?.text) uebernehmeSchemata(parseRaumschemata(schemaDatei.text));
       if (belegungDatei?.text) uebernehmeBelegung(parseBelegung(belegungDatei.text));
-    } catch (e) {
-      setFehler(`Projektdateien konnten nicht gelesen werden: ${String(e)}`);
-    }
-  }, [projekt, teilnehmer, zeilen]);
+    };
+    uebernehmen().catch((e) =>
+      setFehler(`Projektdateien konnten nicht gelesen werden: ${String(e)}`),
+    );
+  }, [projekt, teilnehmer, zeilen, anmeldungen]);
 
   /** Tischnummern: über alle Räume fortlaufend, in Lesereihenfolge des Rasters. */
   const nummern = useMemo(
@@ -260,6 +323,7 @@ export function RaumzuteilungScreen() {
     try {
       const geladen = parseZulassungsliste(await readFileAsText(files[0]));
       setTeilnehmer(geladen);
+      setQuelle('datei');
       setTeilnehmerStatus(`${geladen.length} Teilnehmende geladen.`);
     } catch (e) {
       setFehler(`Teilnehmer-CSV konnte nicht gelesen werden: ${String(e)}`);
@@ -272,6 +336,7 @@ export function RaumzuteilungScreen() {
     setZeilen(parseRaeume(BEISPIEL_RAEUME).map(raumZuZeile));
     uebernehmeSchemata(parseRaumschemata(BEISPIEL_RAUMSCHEMA));
     uebernehmeBelegung([]);
+    setQuelle('beispiel');
     setTeilnehmerStatus('Beispieldaten geladen.');
   };
 
@@ -495,6 +560,21 @@ export function RaumzuteilungScreen() {
     }
   };
 
+  /**
+   * Rückfrage oben im Screen: Die Teilnehmerliste stammt aus den Anmeldungen,
+   * aber nicht alle Angemeldeten sind zugelassen. Sie bleibt stehen, solange
+   * die Liste von dort kommt – so lässt sich die Wahl noch umstellen.
+   */
+  const rueckfrage =
+    anmeldungen !== null &&
+    !anmeldungen.alleZugelassen &&
+    (quelle === null || quelle === 'anmeldungenAlle' || quelle === 'anmeldungenZugelassen')
+      ? anmeldungen
+      : null;
+  const nichtZugelassenListe = (anmeldungen?.nichtZugelassen ?? [])
+    .map((person) => `${person.nachname}, ${person.vorname} (${person.matrikelnummer})`)
+    .join('; ');
+
   const anzahlRaeume = angezeigteSitzplaetze
     ? new Set(angezeigteSitzplaetze.map((platz) => platz.raum)).size
     : 0;
@@ -503,9 +583,36 @@ export function RaumzuteilungScreen() {
   return (
     <ScreenContainer
       title="4. Raumzuteilung & Sitzplan"
-      intro="Die Teilnehmerliste aus Schritt 3 auf Räume verteilen: Sitzplätze vergeben, Sitzplan im Raum anordnen, Aushang- und Aufsichtslisten anzeigen und alles herunterladen – alles lokal im Browser."
+      intro="Die Teilnehmenden der Klausur auf Räume verteilen: Sitzplätze vergeben, Sitzplan im Raum anordnen, Aushang- und Aufsichtslisten anzeigen und alles herunterladen – alles lokal im Browser. Die Liste kommt aus Schritt 3 oder, wenn dort nichts liegt, direkt aus den geprüften Anmeldungen."
       testID="Raumzuteilung-screen"
     >
+      {rueckfrage ? (
+        <Section title="Nicht alle Angemeldeten sind zugelassen" testID="raum-rueckfrage">
+          <StatusText kind="error" testID="raum-rueckfrage-text">
+            {`${rueckfrage.nichtZugelassen.length} von ${rueckfrage.alle.length} Anmeldungen aus 0_Input_Klausuranmeldungen/ haben keine Zulassung: ${nichtZugelassenListe}`}
+          </StatusText>
+          <Text style={styles.hinweis}>
+            Womit soll weitergearbeitet werden? Der Export aus Schritt 3
+            (3_Klausur_Teilnehmende_Export/) ist dafür nicht nötig – wer eine eigene Liste hat,
+            wählt sie unten als Teilnehmer-CSV aus.
+          </Text>
+          <View style={styles.buttonZeile}>
+            <AppButton
+              title={`Nur die ${rueckfrage.zugelassen.length} Zugelassenen verwenden`}
+              variant={quelle === 'anmeldungenZugelassen' ? 'primary' : 'secondary'}
+              onPress={() => uebernimmAnmeldungen(rueckfrage, 'anmeldungenZugelassen')}
+              testID="raum-nur-zugelassene"
+            />
+            <AppButton
+              title={`Trotzdem alle ${rueckfrage.alle.length} Anmeldungen verwenden`}
+              variant={quelle === 'anmeldungenAlle' ? 'primary' : 'secondary'}
+              onPress={() => uebernimmAnmeldungen(rueckfrage, 'anmeldungenAlle')}
+              testID="raum-alle-anmeldungen"
+            />
+          </View>
+        </Section>
+      ) : null}
+
       <Section title="Teilnehmende">
         <FilePickerButton
           label="Teilnehmer-CSV auswählen (aus Schritt 3)"
@@ -520,6 +627,16 @@ export function RaumzuteilungScreen() {
         />
         {teilnehmerStatus ? <StatusText kind="info">{teilnehmerStatus}</StatusText> : null}
         <ProjektQuelle rolle="teilnehmer" testID="raum-quelle-teilnehmer" />
+        {anmeldungen !== null ? (
+          <>
+            <Text style={styles.hinweis}>
+              Ohne Teilnehmerliste aus Schritt 3 prüft dieser Schritt die Anmeldungen des
+              Prüfungsamts selbst gegen den Zulassungsbestand.
+            </Text>
+            <ProjektQuelle rolle="hisExport" testID="raum-quelle-his" />
+            <ProjektQuelle rolle="zulassungsbestand" alle testID="raum-quelle-zulassungen" />
+          </>
+        ) : null}
       </Section>
 
       <Section title="Räume">

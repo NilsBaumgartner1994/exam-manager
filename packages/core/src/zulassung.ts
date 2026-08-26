@@ -90,3 +90,49 @@ export function parseAnmeldungen(csvText: string): Anmeldung[] {
     matrikelnummer: (row[2] ?? '').trim(),
   }));
 }
+
+/**
+ * Ergebnis der Prüfung der Klausuranmeldungen gegen den Zulassungsbestand –
+ * fertig als Teilnehmerliste für Schritt 4.
+ *
+ * Schritt 4 braucht den Export aus Schritt 3 damit nicht zwingend: Liegt im
+ * Projektordner keine geprüfte Teilnehmerliste, kann er die Anmeldungen aus
+ * `0_Input_Klausuranmeldungen/` selbst prüfen. Sind alle zugelassen, gibt es
+ * nichts zu entscheiden; sonst fragt der Screen nach.
+ */
+export interface AnmeldungsPruefung {
+  /** Alle Angemeldeten in der Reihenfolge des HIS-Exports. */
+  alle: Zulassung[];
+  /** Angemeldet **und** im Zulassungsbestand gefunden. */
+  zugelassen: Zulassung[];
+  /** Angemeldet, aber ohne Zulassung. */
+  nichtZugelassen: Zulassung[];
+  /** Niemand ohne Zulassung – die Anmeldungen sind ohne Rückfrage brauchbar. */
+  alleZugelassen: boolean;
+}
+
+/**
+ * Anmeldungen des Prüfungsamts gegen den Bestand prüfen und als
+ * Teilnehmerliste aufbereiten.
+ *
+ * Abweichung von `checkPermissions.py` (bewusst): Die E-Mail-Adresse kommt aus
+ * dem Zulassungsbestand dazu, wenn die Person dort steht – der HIS-Export hat
+ * keine. Das Skript kopiert nur die drei Spalten der Anmeldung; hier ist die
+ * Adresse für die Sitzplatz-PDFs in Schritt 4 nützlich und kostet nichts.
+ */
+export function pruefeAnmeldungen(
+  anmeldungen: Anmeldung[],
+  bestand: Zulassung[],
+): AnmeldungsPruefung {
+  const emails = new Map<string, string>();
+  for (const person of bestand) {
+    const vorhanden = emails.get(key(person));
+    if (vorhanden === undefined || vorhanden === '') emails.set(key(person), person.email);
+  }
+  const alle: Zulassung[] = anmeldungen.map((anmeldung) => ({
+    ...anmeldung,
+    email: emails.get(key(anmeldung)) ?? '',
+  }));
+  const { zugelassen, nichtZugelassen } = pruefeZulassungen(alle, bestand);
+  return { alle, zugelassen, nichtZugelassen, alleZugelassen: nichtZugelassen.length === 0 };
+}

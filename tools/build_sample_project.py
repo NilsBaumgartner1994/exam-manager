@@ -54,7 +54,10 @@ EXPORT_ORDNER = {
     "3_Klausur_Teilnehmende_Export": (
         "Hier legt Schritt 3 die geprüften Anmeldungen ab:\n"
         "`allowedStudents.csv` (angemeldet und zugelassen) und\n"
-        "`notAllowedStudents.csv` (angemeldet, aber ohne Zulassung).\n"
+        "`notAllowedStudents.csv` (angemeldet, aber ohne Zulassung).\n\n"
+        "Für Schritt 4 ist dieser Ordner nicht zwingend: Liegt hier keine Teilnehmerliste,\n"
+        "prüft Schritt 4 die Anmeldungen aus `0_Input_Klausuranmeldungen/` selbst gegen den\n"
+        "Zulassungsbestand und fragt nach, falls jemand ohne Zulassung dabei ist.\n"
     ),
     "4_Raumzuteilung_Export": (
         "Hier legt Schritt 4 den Sitzplan und die Raumbelegung dieser Klausur ab.\n"
@@ -80,7 +83,7 @@ als „nicht zugeordnet“ an und rührt es nicht an.
 | Zulassungen/ | *zulassungen*.csv | je Jahr eine Liste der Zugelassenen |
 | Raeume/ | *.csv | Räume und ihre leeren Raster, jedes Jahr wiederverwendbar |
 | 2_Zulassungs_PDFs_Export/ | *.pdf | erzeugte Zulassungs-PDFs (Schritt 2) |
-| 3_Klausur_Teilnehmende_Export/ | *.csv | Angemeldete mit und ohne Zulassung (Schritt 3) |
+| 3_Klausur_Teilnehmende_Export/ | *.csv | Angemeldete mit und ohne Zulassung (Schritt 3, optional) |
 | 4_Raumzuteilung_Export/ | *.csv | Sitzplan und Raumbelegung (Schritt 4) |
 
 Die Export-Ordner füllt die App. Der Browser darf nicht auf die Festplatte

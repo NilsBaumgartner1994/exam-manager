@@ -230,7 +230,10 @@ export function KlausurTeilnehmerScreen() {
                 />
               </>
             ) : (
-              <StatusText kind="success">Alle Angemeldeten sind zugelassen.</StatusText>
+              <StatusText kind="success">
+                Alle Angemeldeten sind zugelassen – Schritt 4 kann die Anmeldungen direkt
+                verwenden, ein Export ist dafür nicht nötig.
+              </StatusText>
             )}
           </View>
         </Section>
@@ -271,7 +274,11 @@ export function KlausurTeilnehmerScreen() {
             />
             <Text style={styles.hinweis}>
               Hinweis: Die Datei mit den Zugelassenen ist die Eingabe für Schritt 4 (Raumzuteilung)
-              und den Klausurdruck. Im Projekt liegt sie in 3_Klausur_Teilnehmende_Export/.
+              und den Klausurdruck. Im Projekt liegt sie in 3_Klausur_Teilnehmende_Export/. Für
+              Schritt 4 ist der Export nicht zwingend: Liegt dort keine Teilnehmerliste, prüft
+              Schritt 4 die Anmeldungen aus 0_Input_Klausuranmeldungen/ selbst und fragt nach,
+              falls jemand ohne Zulassung dabei ist. Für den Klausurdruck wird die Datei weiterhin
+              gebraucht.
             </Text>
           </View>
         </Section>

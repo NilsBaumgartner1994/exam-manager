@@ -204,7 +204,7 @@ optionalen **Projektordner**:
    Zulassungen/                           *zulassungen*.csv   je Jahr eine Liste der Zugelassenen
    Raeume/                                *.csv               raeume.csv, raumschema.csv (blanko)
    2_Zulassungs_PDFs_Export/              *.pdf               erzeugte Zulassungs-PDFs (Schritt 2)
-   3_Klausur_Teilnehmende_Export/         *.csv               Angemeldete mit/ohne Zulassung (Schritt 3)
+   3_Klausur_Teilnehmende_Export/         *.csv               Angemeldete mit/ohne Zulassung (Schritt 3, optional)
    4_Raumzuteilung_Export/                *.csv               Sitzplan und Belegung (Schritt 4)
    ```
 
@@ -248,12 +248,23 @@ Und die vier Schritte selbst:
    Ergebnis.
 3. **Klausur-Anmeldungen prüfen** – HIS-Export (`check.xlsx`) gegen den
    Zulassungsbestand prüfen; Zugelassene/Nicht-Zugelassene anzeigen und als
-   CSV herunterladen.
+   CSV herunterladen. Der Export ist nur für den Klausurdruck nötig – Schritt 4
+   kommt auch ohne ihn aus (siehe dort).
 4. **Raumzuteilung & Sitzplan** – Teilnehmer-CSV aus Schritt 3 laden, Räume
    modellieren (und als Blanko-CSV speichern), Sitzplätze ab Startnummer
    (Default 1001) vergeben; Ansichten: Aushang (anonym), Dozent (nach
    Sitzplatz), Tutor (nach Nachname), Räume/Aushänge je Raum; Export als CSV,
    Sitzplatz-PDFs (ZIP) und alle Aushänge als PDF über den Druckdialog.
+
+   **Ohne Umweg über Schritt 3:** Liegt im Projektordner keine Teilnehmerliste
+   in `3_Klausur_Teilnehmende_Export/`, prüft dieser Schritt die Anmeldungen
+   aus `0_Input_Klausuranmeldungen/` selbst gegen den Zulassungsbestand. Sind
+   **alle** Angemeldeten zugelassen, werden sie ohne Rückfrage übernommen. Ist
+   jemand nicht zugelassen, steht das oben im Screen mit Namen, und die
+   Entscheidung liegt beim Nutzer: nur die Zugelassenen verwenden, trotzdem
+   alle Anmeldungen verwenden – oder doch eine eigene Teilnehmer-CSV auswählen.
+   Die E-Mail-Adressen kommen dabei aus dem Zulassungsbestand; der HIS-Export
+   hat keine.
 
    **Sitzplan im Raum:** Zu jedem Raum lässt sich ein Raster hinterlegen, das
    den Aufbau des Raumes abbildet – wo Tische stehen, wo Tür, Wand und Pult

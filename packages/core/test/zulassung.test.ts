@@ -4,6 +4,7 @@ import {
   ladeZulassungsBestand,
   parseAnmeldungen,
   parseStudipExport,
+  pruefeAnmeldungen,
   pruefeZulassungen,
   teilnehmerMitZulassung,
 } from '../src';
@@ -33,5 +34,25 @@ describe('Zulassungsprüfung (Screen 2 + 3)', () => {
     const { zugelassen, nichtZugelassen } = pruefeZulassungen(anmeldungen, bestand);
     expect(zugelassen).toHaveLength(7);
     expect(nichtZugelassen.map((a) => a.nachname)).toEqual(['Crick']);
+  });
+
+  it('macht aus den Anmeldungen eine Teilnehmerliste – ohne Export aus Schritt 3', () => {
+    const pruefung = pruefeAnmeldungen(parseAnmeldungen(lies(pfad.checkCsv)), bestand);
+    expect(pruefung.alle).toHaveLength(8);
+    expect(pruefung.zugelassen).toHaveLength(7);
+    expect(pruefung.nichtZugelassen.map((a) => a.nachname)).toEqual(['Crick']);
+    expect(pruefung.alleZugelassen).toBe(false);
+    // Die E-Mail fehlt im HIS-Export und kommt aus dem Zulassungsbestand.
+    expect(pruefung.zugelassen.every((a) => a.email !== '')).toBe(true);
+    expect(pruefung.nichtZugelassen[0].email).toBe('');
+  });
+
+  it('meldet „alle zugelassen“, wenn niemand ohne Zulassung angemeldet ist', () => {
+    const anmeldungen = parseAnmeldungen(lies(pfad.checkCsv));
+    const nurZugelassene = pruefeZulassungen(anmeldungen, bestand).zugelassen;
+    const pruefung = pruefeAnmeldungen(nurZugelassene, bestand);
+    expect(pruefung.alleZugelassen).toBe(true);
+    expect(pruefung.alle).toHaveLength(7);
+    expect(pruefung.nichtZugelassen).toHaveLength(0);
   });
 });

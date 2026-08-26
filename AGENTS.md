@@ -312,6 +312,13 @@ Konventionen des Datensatzes:
   Zellen sind `React.memo` und bekommen deshalb stabile Rückrufe (Position als
   Argument statt frisch erzeugter Closure) und gemerkte Werte (`useMemo` für
   Raster und Belegungskarte).
+- **Am Bildschirm liegt der Plan in einem Fenster, auf Papier nicht:** Mit
+  `beweglich` (setzt `RaumplanKarte`) bekommt er einen eigenen Ausschnitt –
+  er scrollt in beide Richtungen, ist höchstens `planFensterHoehe(…)` hoch
+  (dieselbe Höhe, mit der „Ganzer Raum“ rechnet) und lässt sich schieben und
+  zoomen. Ohne `beweglich` wächst er wie zuvor in die Höhe und scrollt nur
+  waagerecht; so gehört er auf den Aushang, der gedruckt wird – ein
+  Ausschnitt schnitte dort den halben Raum ab.
 
 ### Ziehen im Editor
 
@@ -345,6 +352,37 @@ Konventionen des Datensatzes:
   schnell hintereinander, und jede muss auf dem Ergebnis der vorherigen
   aufsetzen – der Zustand aus dem Render wäre dafür zu alt. Deshalb: in
   Ereignis-Handlern immer `.current` lesen, im Render den Zustand.
+
+### Schieben und Zoomen mit dem Finger
+
+- Auf dem Planfenster steht `touch-action: none`: Was der Finger dort tut,
+  entscheidet der Plan, nicht der Browser. Sonst zöge er die Seite mit,
+  während man den Ausschnitt schiebt, und die Pinch-Geste zoomte die ganze
+  Seite statt des Raums.
+- **Zwei Finger schieben und zoomen immer** – auch mitten in einem Malzug: Der
+  zweite Finger bricht den laufenden `Zug` ab (`zugAbbrechen`) und
+  `stopPropagation` hält ihn von den Zellen fern. Ein Finger schiebt nur dort,
+  wo er nichts zu zeichnen hat: im Sitzplan (Schritt 4, `bearbeiten` aus) und
+  mit dem Werkzeug „Verschieben“ (`hand` → `PlanWerkzeug 'schieben'`). Die
+  Zeiger liegen dafür in einer Map (`zeigerRef`), gehört wird in der
+  Capture-Phase am Planfenster und für Bewegung/Loslassen am `window`.
+- **Der Zoom hängt an einem Anker** (`ankerRef`, in Zellen gemessen): Der Punkt
+  unter der Mitte zwischen den Fingern bleibt dort, wo er ist. Weil die neue
+  Zellgröße erst über die Ansicht zurückkommt, greift der Anker zweimal –
+  sofort beim Bewegen (das schiebt zugleich, wenn der Fingerabstand gleich
+  bleibt) und noch einmal im `useLayoutEffect`, sobald die neue Größe
+  gezeichnet ist.
+- **Getippt wird beim Loslassen, nicht beim Drücken.** Im beweglichen Plan
+  öffnet ein Platz erst, wenn der Finger sich um weniger als `TIPP_TOLERANZ`
+  bewegt hat – sonst öffnete jeder Wisch über den Sitzplan ein Blatt, statt
+  den Ausschnitt zu schieben.
+- **Gestapelt braucht `alignItems: 'stretch'`.** `RaumplanFlaeche` stellt
+  Palette und Pläne auf schmalen Fenstern untereinander (den Plan **oben**,
+  die Werkzeuge darunter – sonst scrollt man auf dem Handy an der ganzen
+  Palette vorbei). Bleibt dabei das `flex-start` der Zeile stehen, misst die
+  Spalte ihre Kinder am Inhalt: Der Plan eines Hörsaals ist breiter als der
+  Bildschirm, und die Schaltflächen darüber standen daneben. Wer im Editor
+  etwas am Layout ändert, prüft das mit einem schmalen Fenster nach.
 
 ## PDF aus der sichtbaren Ansicht
 

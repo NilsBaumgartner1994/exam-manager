@@ -32,6 +32,7 @@ import {
 } from '../components';
 import { downloadCsv, downloadZip, readFileAsText } from '../files';
 import { useProjekt } from '../projekt';
+import { useResponsiveLayout } from '../responsive';
 import { BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMATA } from '../sampleData';
 import { colors, spacing } from '../theme';
 
@@ -77,6 +78,7 @@ export function RaeumeScreen() {
 
   const raeume = zeilen.map(zeileZuRaum);
   const projekt = useProjekt();
+  const { isCompact } = useResponsiveLayout();
 
   // Eingaben aus dem Projektordner, solange nichts eigenes geladen wurde.
   useEffect(() => {
@@ -316,6 +318,7 @@ export function RaeumeScreen() {
                   key={schema.raum}
                   title={`${schema.raum} (${tischzellen(schema).length})`}
                   variant={schema.raum === aktiverRaum ? 'primary' : 'secondary'}
+                  kompakt={isCompact}
                   onPress={() => raumWechseln(schema.raum)}
                   testID={`raeume-waehlen-${schema.raum}`}
                 />
@@ -336,6 +339,7 @@ export function RaeumeScreen() {
                     <AppButton
                       title="Plätze übernehmen"
                       variant="secondary"
+                      kompakt={isCompact}
                       onPress={() => plaetzeUebernehmen(aktivesSchema)}
                       disabled={!plaetzeJeRaum.has(aktivesSchema.raum)}
                       testID={`raeume-plaetze-${aktivesSchema.raum}`}
@@ -343,6 +347,7 @@ export function RaeumeScreen() {
                     <AppButton
                       title="Raster entfernen"
                       variant="secondary"
+                      kompakt={isCompact}
                       onPress={() => rasterEntfernen(aktivesSchema.raum)}
                       testID={`raeume-raster-entfernen-${aktivesSchema.raum}`}
                     />

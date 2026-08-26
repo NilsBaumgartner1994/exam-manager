@@ -323,8 +323,9 @@ Und die vier Schritte selbst:
      dazu getrennt „Aushang als PDF“ (eine Seite je Raum),
      „Dozentenliste als PDF“ (nach Sitzplatz) und „Tutorenliste als PDF“ (nach
      Nachname). Gezeichnet wird dasselbe Raster wie am Bildschirm.
-   - **Raum bearbeiten** – links liegt die Palette (Auswählen, Sitzplatz,
-     Pult, Wand, Tür, Text, Radierer). Ein Element auf eine Zelle **ziehen**
+   - **Raum bearbeiten** – links liegt die Palette (Auswählen, Verschieben,
+     Sitzplatz, Reserve, Pult, Wand, Tür, Text, Radierer); auf einem schmalen
+     Bildschirm steht sie unter dem Plan. Ein Element auf eine Zelle **ziehen**
      setzt es dort; **antippen** wählt es aus und man malt damit im Plan (über
      Zellen ziehen zeichnet z. B. eine ganze Wand). Mit **Auswählen** zieht
      man über mehrere Zellen, ohne etwas zu verändern – markiert wird nur –,
@@ -371,6 +372,13 @@ Und die vier Schritte selbst:
      man die Zellgröße selbst ein wie beim Zoomen in ein Bild; die Leiste
      nennt sie dann in Pixeln. Der Zoom setzt auf der gerade sichtbaren Größe
      auf, springt also nicht.
+   - **Schieben und Zoomen (auch auf dem Handy)** – der Plan liegt am
+     Bildschirm in einem eigenen Fenster: **zwei Finger** schieben ihn und
+     zoomen zugleich (am Rechner <kbd>Strg</kbd> + Mausrad, ohne Taste
+     scrollt das Rad im Plan). Mit dem Werkzeug **Verschieben** genügt ein
+     Finger – sonst würde jeder Wisch mit dem gewählten Element malen. Im
+     Sitzplan (Schritt 4) schiebt ein Finger ohnehin: Dort öffnet erst ein
+     **Tippen** den Platz, ein Wischen bewegt den Ausschnitt.
    - **Drehen** – die Ansicht je Raum um 90° drehen (vier Richtungen), damit
      sie zur eigenen Blickrichtung im Raum passt. Gedreht wird nur die
      Darstellung; die gespeicherten Positionen und die Sitzplatznummern

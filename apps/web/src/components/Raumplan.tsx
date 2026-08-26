@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutChangeEvent,
   ScrollView,
@@ -35,9 +35,10 @@ import { colors, radius, spacing } from '../theme';
  *   gedrückt hält und zieht, verschiebt den ganzen Block,
  * - `aufziehen` – ziehen zieht einen Bereich auf und legt etwas darüber
  *   (Textfeld),
- * - `malen` – ziehen setzt das gewählte Element in jede überstrichene Zelle.
+ * - `malen` – ziehen setzt das gewählte Element in jede überstrichene Zelle,
+ * - `schieben` – ziehen bewegt den Ausschnitt (die Hand), ohne etwas zu ändern.
  */
-export type PlanWerkzeug = 'auswahl' | 'aufziehen' | 'malen';
+export type PlanWerkzeug = 'auswahl' | 'aufziehen' | 'malen' | 'schieben';
 
 interface Props {
   schema: Raumschema;
@@ -73,6 +74,19 @@ interface Props {
    * ab dem, was er gerade sieht.
    */
   onZellGroesse?: (groesse: number) => void;
+  /**
+   * Der Plan sitzt in einem eigenen Fenster, das sich schieben und zoomen
+   * lässt (Finger, Rad, Zwei-Finger-Geste). Ohne das wächst er wie bisher in
+   * die Höhe und scrollt nur waagerecht – so gehört er auf Aushang und Druck,
+   * denn Papier hat keinen Ausschnitt.
+   */
+  beweglich?: boolean;
+  /**
+   * Neue Zellgröße aus einer Zoom-Geste (Zwei-Finger-Zoom, Strg + Mausrad).
+   * Ohne diesen Rückruf zoomt die Geste nicht – die Ansicht gehört dem, der
+   * den Plan einbindet.
+   */
+  onZoomGeste?: (zellGroesse: number) => void;
 
   // --- nur im Bearbeiten-Modus ---
   /** Zeigt Auswahl und Ziehgriff und schaltet das Ziehen frei. */
@@ -122,6 +136,37 @@ interface Zug {
 }
 
 /**
+ * Was die Finger gerade mit dem Ausschnitt tun: einer schiebt ihn, zwei
+ * schieben und zoomen zugleich (der Abstand zwischen ihnen ist der Maßstab).
+ */
+type Geste =
+  | {
+      art: 'schieben';
+      /** Wo der Finger aufgesetzt hat und wie der Ausschnitt dabei stand. */
+      start: { x: number; y: number; links: number; oben: number };
+      /** Ab `TIPP_TOLERANZ` gilt es als Wischen – davor als Tippen. */
+      bewegt: boolean;
+    }
+  | {
+      art: 'zwei';
+      bewegt: true;
+      /** Fingerabstand und Zellgröße zu Beginn – daraus wird der Maßstab. */
+      distanz: number;
+      groesse: number;
+    };
+
+/** Ein Punkt des Plans (in Zellen), der beim Zoomen unter den Fingern bleibt. */
+interface Anker {
+  spalte: number;
+  zeile: number;
+  /** Der Bildschirmpunkt, an dem er liegen soll. */
+  x: number;
+  y: number;
+  /** Bleibt über mehrere Schritte stehen (Zwei-Finger-Geste) oder gilt einmal (Rad). */
+  dauerhaft: boolean;
+}
+
+/**
  * Zellen sind halb so hoch wie breit. Ein Sitzplatz ist ein Tisch, und Tische
  * stehen quer: So passen doppelt so viele Reihen ins Bild, ohne dass die
  * Kästen schmaler und die Namen darin unleserlich werden.
@@ -136,6 +181,24 @@ export const ZELLE_FREI_MIN = 8;
 export const ZELLE_FREI_MAX = 240;
 /** Höhe, die neben dem Plan für Kopfzeile, Schaltflächen und Listen bleibt. */
 const HOEHE_FUER_DEN_REST = 340;
+/** So hoch ist das Planfenster mindestens – darunter sieht man nichts mehr. */
+const HOEHE_MINDESTENS = 280;
+/**
+ * Bis hierhin gilt ein Druck als Tippen und nicht als Wischen (in Pixeln).
+ * Ein Finger trifft nie genau denselben Punkt, an dem er aufgesetzt hat.
+ */
+const TIPP_TOLERANZ = 8;
+/** Ein Rasten am Mausrad (mit Strg) vergrößert bzw. verkleinert um so viel. */
+const RAD_SCHRITT = 1.12;
+
+/**
+ * Höhe des Fensters, in dem ein beweglicher Plan liegt. Dieselbe Höhe rechnet
+ * `rastermasse` für „Ganzer Raum“ aus – so passt der eingepasste Plan genau
+ * hinein, statt knapp daneben.
+ */
+export function planFensterHoehe(fensterHoehe: number): number {
+  return Math.max(HOEHE_MINDESTENS, fensterHoehe - HOEHE_FUER_DEN_REST);
+}
 
 /**
  * Wie groß die Zellen gezeichnet werden:
@@ -264,6 +327,8 @@ export function Raumplan({
   onZellePress,
   ansicht = PLAN_ANSICHT,
   onZellGroesse,
+  beweglich,
+  onZoomGeste,
   bearbeiten,
   werkzeug = 'auswahl',
   auswahl,
@@ -280,6 +345,8 @@ export function Raumplan({
   const fenster = useWindowDimensions();
   const [breite, setBreite] = useState(0);
   const gitterRef = useRef<View>(null);
+  /** Das Fenster, in dem der Plan liegt – es wird geschoben und gezoomt. */
+  const flaecheRef = useRef<View>(null);
   const [zug, setZug] = useState<Zug | null>(null);
   /**
    * Der laufende Zug zusätzlich im Ref: Die Ereignisse kommen schneller, als
@@ -300,11 +367,12 @@ export function Raumplan({
   const spaltenAnzahl = raster[0]?.length ?? 0;
   const mitGitter = gitter;
 
+  const fensterHoehe = planFensterHoehe(fenster.height);
   const masse = rastermasse(
     raster.length,
     spaltenAnzahl,
     (breite > 0 ? breite : fenster.width) - spacing.md,
-    Math.max(280, fenster.height - HOEHE_FUER_DEN_REST),
+    fensterHoehe,
     ansicht,
   );
   const { groesse, zellHoehe, abstand, kopfGroesse } = masse;
@@ -375,9 +443,14 @@ export function Raumplan({
   const zellePointerDown = (anzeige: { zeile: number; spalte: number }) => {
     const zelle = kanonisch(anzeige);
     if (!bearbeiten) {
-      onZellePress?.(zelle.zeile, zelle.spalte);
+      // Im beweglichen Plan entscheidet erst das Loslassen, ob das ein Tippen
+      // war oder ein Wischen (`gesteEnde`) – sonst öffnete jeder Wischer einen
+      // Platz, statt den Ausschnitt zu schieben.
+      if (!beweglich) onZellePress?.(zelle.zeile, zelle.spalte);
       return;
     }
+    // Die Hand ändert nichts: Sie schiebt nur den Ausschnitt.
+    if (werkzeug === 'schieben') return;
     // In der Auswahl gedrückt: gedrückt halten und ziehen verschiebt den
     // ganzen Block – wie ein Kasten in einer Tabellenkalkulation.
     if (werkzeug === 'auswahl' && auswahl && imBereich(auswahl, zelle.zeile, zelle.spalte)) {
@@ -484,6 +557,205 @@ export function Raumplan({
     };
   }, [zieht]);
 
+  // --- Schieben und Zoomen im Planfenster ---------------------------------
+  //
+  // Auf dem Planfenster steht `touch-action: none`: Was mit dem Finger
+  // geschieht, entscheidet der Plan selbst. Zwei Finger schieben und zoomen
+  // immer (auch mitten im Zeichnen), ein Finger schiebt dort, wo er nichts
+  // zeichnet – im Sitzplan (Schritt 4) und mit dem Werkzeug „Verschieben“.
+  // Sonst bliebe auf einem Handy nur das, was gerade im Ausschnitt steht: Ein
+  // Hörsaal mit 44 Spalten ist dort nie am Stück zu sehen.
+
+  /** Alle Finger/Zeiger, die gerade auf dem Planfenster liegen. */
+  const zeigerRef = useRef(new Map<number, { x: number; y: number }>());
+  /** Was gerade gezogen wird – ein Finger schiebt, zwei schieben und zoomen. */
+  const gesteRef = useRef<Geste | null>(null);
+  /**
+   * Der Punkt des Plans, der beim Zoomen unter den Fingern bleiben soll –
+   * gemessen in Zellen, damit er von der Zellgröße unabhängig ist. Ohne ihn
+   * zöge jeder Zoomschritt den Plan unter der Hand weg.
+   */
+  const ankerRef = useRef<Anker | null>(null);
+  /** Die aktuellen Schrittweiten für die Rückrufe (dort ist der Render zu alt). */
+  const masseRef = useRef({ schritt, schrittZeile, groesse });
+  masseRef.current = { schritt, schrittZeile, groesse };
+
+  const planFenster = () => flaecheRef.current as unknown as HTMLElement | null;
+
+  const merkeAnker = (x: number, y: number, dauerhaft: boolean) => {
+    const knoten = planFenster();
+    if (!knoten) return;
+    const rect = knoten.getBoundingClientRect();
+    ankerRef.current = {
+      spalte: (knoten.scrollLeft + x - rect.left) / masseRef.current.schritt,
+      zeile: (knoten.scrollTop + y - rect.top) / masseRef.current.schrittZeile,
+      x,
+      y,
+      dauerhaft,
+    };
+  };
+
+  /** Den gemerkten Punkt wieder unter die Finger holen (schiebt und zoomt). */
+  const halteAnker = () => {
+    const anker = ankerRef.current;
+    const knoten = planFenster();
+    if (!anker || !knoten) return;
+    const rect = knoten.getBoundingClientRect();
+    knoten.scrollLeft = anker.spalte * masseRef.current.schritt - (anker.x - rect.left);
+    knoten.scrollTop = anker.zeile * masseRef.current.schrittZeile - (anker.y - rect.top);
+  };
+
+  // Der Zoom kommt erst über die Ansicht zurück – der Anker greift deshalb
+  // noch einmal, sobald die neue Zellgröße gezeichnet ist.
+  useLayoutEffect(() => {
+    if (!ankerRef.current) return;
+    halteAnker();
+    if (!ankerRef.current.dauerhaft) ankerRef.current = null;
+    // Absicht: nur die Größe zählt, `halteAnker` liest den Rest aus Refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schritt, schrittZeile]);
+
+  const zoomen = (faktor: number) => {
+    if (!onZoomGeste) return;
+    const ziel = begrenze(masseRef.current.groesse * faktor, ZELLE_FREI_MIN, ZELLE_FREI_MAX);
+    if (ziel !== masseRef.current.groesse) onZoomGeste(ziel);
+  };
+
+  /** Ein laufendes Malen/Auswählen abbrechen – die Finger meinen jetzt den Ausschnitt. */
+  const zugAbbrechen = () => {
+    if (!zugRef.current) return;
+    zugRef.current = null;
+    setZug(null);
+    onZugEnde?.();
+  };
+
+  /** Schiebt ein einzelner Finger? Nur, wo er nichts zu zeichnen hat. */
+  const einFingerSchiebt = () => !bearbeiten || werkzeug === 'schieben';
+
+  const gesteStart = (ereignis: globalThis.PointerEvent) => {
+    const zeiger = zeigerRef.current;
+    zeiger.set(ereignis.pointerId, { x: ereignis.clientX, y: ereignis.clientY });
+    if (zeiger.size === 2) {
+      const [a, b] = [...zeiger.values()];
+      gesteRef.current = {
+        art: 'zwei',
+        bewegt: true,
+        distanz: Math.hypot(a.x - b.x, a.y - b.y),
+        groesse: masseRef.current.groesse,
+      };
+      merkeAnker((a.x + b.x) / 2, (a.y + b.y) / 2, true);
+      // Der zweite Finger gilt dem Ausschnitt, nicht der Zelle unter dem ersten.
+      zugAbbrechen();
+      ereignis.stopPropagation();
+      return;
+    }
+    if (zeiger.size !== 1 || !einFingerSchiebt()) return;
+    const knoten = planFenster();
+    if (!knoten) return;
+    gesteRef.current = {
+      art: 'schieben',
+      bewegt: false,
+      start: {
+        x: ereignis.clientX,
+        y: ereignis.clientY,
+        links: knoten.scrollLeft,
+        oben: knoten.scrollTop,
+      },
+    };
+  };
+
+  const gesteBewegt = (ereignis: globalThis.PointerEvent) => {
+    const zeiger = zeigerRef.current;
+    if (!zeiger.has(ereignis.pointerId)) return;
+    zeiger.set(ereignis.pointerId, { x: ereignis.clientX, y: ereignis.clientY });
+    const geste = gesteRef.current;
+    const knoten = planFenster();
+    if (!geste || !knoten) return;
+    if (geste.art === 'zwei') {
+      const [a, b] = [...zeiger.values()];
+      if (!a || !b) return;
+      const anker = ankerRef.current;
+      if (anker) {
+        // Der gemerkte Punkt folgt der Mitte zwischen den Fingern: Damit
+        // schiebt dieselbe Geste auch, wenn der Abstand gleich bleibt.
+        anker.x = (a.x + b.x) / 2;
+        anker.y = (a.y + b.y) / 2;
+      }
+      const distanz = Math.hypot(a.x - b.x, a.y - b.y);
+      if (geste.distanz > 0 && distanz > 0) {
+        const ziel = begrenze(
+          geste.groesse * (distanz / geste.distanz),
+          ZELLE_FREI_MIN,
+          ZELLE_FREI_MAX,
+        );
+        if (ziel !== masseRef.current.groesse) onZoomGeste?.(ziel);
+      }
+      halteAnker();
+      return;
+    }
+    const dx = ereignis.clientX - geste.start.x;
+    const dy = ereignis.clientY - geste.start.y;
+    if (!geste.bewegt && Math.hypot(dx, dy) > TIPP_TOLERANZ) geste.bewegt = true;
+    if (!geste.bewegt) return;
+    knoten.scrollLeft = geste.start.links - dx;
+    knoten.scrollTop = geste.start.oben - dy;
+  };
+
+  const gesteEnde = (ereignis: globalThis.PointerEvent) => {
+    const zeiger = zeigerRef.current;
+    if (!zeiger.has(ereignis.pointerId)) return;
+    const geste = gesteRef.current;
+    zeiger.delete(ereignis.pointerId);
+    // Eine Zwei-Finger-Geste endet mit dem ersten Finger, der geht: Der zweite
+    // allein würde sonst als Schieben weiterlaufen, wo er gerade liegt.
+    if (zeiger.size < 2) {
+      gesteRef.current = null;
+      ankerRef.current = null;
+    }
+    if (geste?.art !== 'schieben') return;
+    // Ein Tippen wirkt erst beim Loslassen – so öffnet ein Wischen über den
+    // Plan keinen Platz, sondern schiebt den Ausschnitt.
+    if (geste.bewegt || bearbeiten) return;
+    const position = zelleBeiPunkt(ereignis.clientX, ereignis.clientY);
+    if (!position) return;
+    const zelle = kanonisch(position);
+    onZellePress?.(zelle.zeile, zelle.spalte);
+  };
+
+  /** Am Rad zoomt nur, wer Strg/⌘ hält – sonst scrollt das Fenster wie gewohnt. */
+  const aufRad = (ereignis: WheelEvent) => {
+    if (!ereignis.ctrlKey && !ereignis.metaKey) return;
+    ereignis.preventDefault();
+    merkeAnker(ereignis.clientX, ereignis.clientY, false);
+    zoomen(ereignis.deltaY < 0 ? RAD_SCHRITT : 1 / RAD_SCHRITT);
+  };
+
+  const gesten = useRef({ gesteStart, gesteBewegt, gesteEnde, aufRad });
+  gesten.current = { gesteStart, gesteBewegt, gesteEnde, aufRad };
+  useEffect(() => {
+    const knoten = flaecheRef.current as unknown as HTMLElement | null;
+    if (!beweglich || !knoten) return;
+    // In der Capture-Phase, damit der zweite Finger vor den Zellen drankommt;
+    // Bewegung und Loslassen hört das Fenster mit, denn losgelassen wird oft
+    // neben dem Plan.
+    const gedrueckt = (e: globalThis.PointerEvent) => gesten.current.gesteStart(e);
+    const bewegt = (e: globalThis.PointerEvent) => gesten.current.gesteBewegt(e);
+    const beendet = (e: globalThis.PointerEvent) => gesten.current.gesteEnde(e);
+    const gerollt = (e: WheelEvent) => gesten.current.aufRad(e);
+    knoten.addEventListener('pointerdown', gedrueckt, true);
+    window.addEventListener('pointermove', bewegt, true);
+    window.addEventListener('pointerup', beendet, true);
+    window.addEventListener('pointercancel', beendet, true);
+    knoten.addEventListener('wheel', gerollt, { passive: false });
+    return () => {
+      knoten.removeEventListener('pointerdown', gedrueckt, true);
+      window.removeEventListener('pointermove', bewegt, true);
+      window.removeEventListener('pointerup', beendet, true);
+      window.removeEventListener('pointercancel', beendet, true);
+      knoten.removeEventListener('wheel', gerollt);
+    };
+  }, [beweglich]);
+
   /** Zellen unter einem verbundenen Textfeld – sie liegen hinter dem Feld. */
   const verdeckt = useMemo(() => {
     const schluessel = new Set<string>();
@@ -500,116 +772,137 @@ export function Raumplan({
     if (gemessen > 0 && gemessen !== breite) setBreite(gemessen);
   };
 
-  return (
-    <ScrollView
-      horizontal
-      nestedScrollEnabled
-      showsHorizontalScrollIndicator
-      onLayout={merkeBreite}
-      testID={testID}
-    >
-      <View style={styles.aussen}>
+  const inhalt = (
+    <View style={[styles.aussen, beweglich ? styles.aussenBeweglich : null]}>
+      {mitGitter ? (
+        <View style={[styles.kopfZeile, { gap: abstand }]}>
+          <View style={{ width: kopfGroesse, height: kopfGroesse }} />
+          {Array.from({ length: spaltenAnzahl }, (_, s) => (
+            <View key={s} style={[styles.kopf, { width: groesse, height: kopfGroesse }]}>
+              <Text style={[styles.kopfText, { fontSize: masse.kopfSchrift }]} numberOfLines={1}>
+                {spaltenName(s)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      <View style={[styles.innen, { gap: abstand }]}>
         {mitGitter ? (
-          <View style={[styles.kopfZeile, { gap: abstand }]}>
-            <View style={{ width: kopfGroesse, height: kopfGroesse }} />
-            {Array.from({ length: spaltenAnzahl }, (_, s) => (
-              <View key={s} style={[styles.kopf, { width: groesse, height: kopfGroesse }]}>
+          <View style={{ gap: abstand }}>
+            {raster.map((_, z) => (
+              <View key={z} style={[styles.kopf, { width: kopfGroesse, height: zellHoehe }]}>
                 <Text style={[styles.kopfText, { fontSize: masse.kopfSchrift }]} numberOfLines={1}>
-                  {spaltenName(s)}
+                  {zeilenName(z)}
                 </Text>
               </View>
             ))}
           </View>
         ) : null}
 
-        <View style={[styles.innen, { gap: abstand }]}>
-          {mitGitter ? (
-            <View style={{ gap: abstand }}>
-              {raster.map((_, z) => (
-                <View key={z} style={[styles.kopf, { width: kopfGroesse, height: zellHoehe }]}>
-                  <Text style={[styles.kopfText, { fontSize: masse.kopfSchrift }]} numberOfLines={1}>
-                    {zeilenName(z)}
-                  </Text>
-                </View>
-              ))}
+        <View
+          ref={gitterRef}
+          // Eigene Kennung: Die Köpfe liegen außerhalb, das reine Zellraster ist
+          // der Bezugspunkt für Koordinaten (und für Tests).
+          testID={testID ? `${testID}-raster` : undefined}
+          style={[styles.raster, { gap: abstand }, bearbeiten ? ohneBrowserGeste : null]}
+          // Zusätzlich zum Fenster (siehe oben): Wird sehr schnell geklickt,
+          // ist das Loslassen da, bevor der Effekt den Zeiger am Fenster
+          // angemeldet hat. Doppelt schadet nicht – `pointerUp` räumt den Zug
+          // im Ref auf und tut beim zweiten Mal nichts.
+          onPointerUp={pointerUp}
+          onPointerCancel={pointerUp}
+        >
+          {raster.map((zeile, z) => (
+            <View key={z} style={[styles.zeile, { gap: abstand }]}>
+              {zeile.map((zelle, s) => {
+                const platz = platzSchluessel(belegSchluessel, zelle.zeile, zelle.spalte);
+                return (
+                  <Zelle
+                    key={s}
+                    zeile={z}
+                    spalte={s}
+                    zelle={zelle}
+                    masse={masse}
+                    platz={belegungJePlatz.get(platz)}
+                    nummer={nummern.get(platz)}
+                    personen={personen}
+                    ausgewaehlt={ausgewaehlt ?? null}
+                    anzeige={anzeige}
+                    gitter={mitGitter}
+                    verdeckt={verdeckt.has(`${zelle.zeile}|${zelle.spalte}`)}
+                    markiert={!!auswahl && imBereich(auswahl, zelle.zeile, zelle.spalte)}
+                    vorschau={
+                      (!!vorschau && imBereich(vorschau, z, s)) ||
+                      (!!zielZelle &&
+                        zielZelle.zeile === zelle.zeile &&
+                        zielZelle.spalte === zelle.spalte)
+                    }
+                    griff={
+                      !!bearbeiten &&
+                      !!auswahlAnzeige &&
+                      auswahlAnzeige.zeile + auswahlAnzeige.hoehe - 1 === z &&
+                      auswahlAnzeige.spalte + auswahlAnzeige.breite - 1 === s
+                    }
+                    interaktiv={!!onZellePress || !!bearbeiten}
+                    // Am `data-zelle` findet die Palette ihr Ziel – dort
+                    // zählt der Raum, denn bearbeitet wird sein Raster.
+                    datenSchluessel={platzSchluessel(schema.raum, zelle.zeile, zelle.spalte)}
+                    onPointerDown={zellDown}
+                    onGriffPointerDown={griffDown}
+                  />
+                );
+              })}
             </View>
-          ) : null}
+          ))}
 
-          <View
-            ref={gitterRef}
-            // Eigene Kennung: Die Köpfe liegen außerhalb, das reine Zellraster ist
-            // der Bezugspunkt für Koordinaten (und für Tests).
-            testID={testID ? `${testID}-raster` : undefined}
-            style={[styles.raster, { gap: abstand }, bearbeiten ? ohneBrowserGeste : null]}
-            // Zusätzlich zum Fenster (siehe oben): Wird sehr schnell geklickt,
-            // ist das Loslassen da, bevor der Effekt den Zeiger am Fenster
-            // angemeldet hat. Doppelt schadet nicht – `pointerUp` räumt den Zug
-            // im Ref auf und tut beim zweiten Mal nichts.
-            onPointerUp={pointerUp}
-            onPointerCancel={pointerUp}
-          >
-            {raster.map((zeile, z) => (
-              <View key={z} style={[styles.zeile, { gap: abstand }]}>
-                {zeile.map((zelle, s) => {
-                  const platz = platzSchluessel(belegSchluessel, zelle.zeile, zelle.spalte);
-                  return (
-                    <Zelle
-                      key={s}
-                      zeile={z}
-                      spalte={s}
-                      zelle={zelle}
-                      masse={masse}
-                      platz={belegungJePlatz.get(platz)}
-                      nummer={nummern.get(platz)}
-                      personen={personen}
-                      ausgewaehlt={ausgewaehlt ?? null}
-                      anzeige={anzeige}
-                      gitter={mitGitter}
-                      verdeckt={verdeckt.has(`${zelle.zeile}|${zelle.spalte}`)}
-                      markiert={!!auswahl && imBereich(auswahl, zelle.zeile, zelle.spalte)}
-                      vorschau={
-                        (!!vorschau && imBereich(vorschau, z, s)) ||
-                        (!!zielZelle &&
-                          zielZelle.zeile === zelle.zeile &&
-                          zielZelle.spalte === zelle.spalte)
-                      }
-                      griff={
-                        !!bearbeiten &&
-                        !!auswahlAnzeige &&
-                        auswahlAnzeige.zeile + auswahlAnzeige.hoehe - 1 === z &&
-                        auswahlAnzeige.spalte + auswahlAnzeige.breite - 1 === s
-                      }
-                      interaktiv={!!onZellePress || !!bearbeiten}
-                      // Am `data-zelle` findet die Palette ihr Ziel – dort
-                      // zählt der Raum, denn bearbeitet wird sein Raster.
-                      datenSchluessel={platzSchluessel(schema.raum, zelle.zeile, zelle.spalte)}
-                      onPointerDown={zellDown}
-                      onGriffPointerDown={griffDown}
-                    />
-                  );
-                })}
-              </View>
-            ))}
-
-            {/* Verbundene Zellen liegen als eigene Felder über dem Raster – ein
-                Rechteck statt vieler Einzelzellen, damit der Text durchläuft. */}
-            {schema.beschriftungen.map((beschriftung) => (
-              <Textfeld
-                key={`${beschriftung.zeile}|${beschriftung.spalte}`}
-                beschriftung={beschriftung}
-                bereich={anzeigeBereich(beschriftung, schema, drehungen)}
-                masse={masse}
-                bearbeiten={!!bearbeiten}
-                markiert={!!auswahl && imBereich(auswahl, beschriftung.zeile, beschriftung.spalte)}
-                onAuswahl={onAuswahl}
-                onText={onBeschriftungText}
-                testID={testID ? `${testID}-text-${beschriftung.zeile}-${beschriftung.spalte}` : undefined}
-              />
-            ))}
-          </View>
+          {/* Verbundene Zellen liegen als eigene Felder über dem Raster – ein
+              Rechteck statt vieler Einzelzellen, damit der Text durchläuft. */}
+          {schema.beschriftungen.map((beschriftung) => (
+            <Textfeld
+              key={`${beschriftung.zeile}|${beschriftung.spalte}`}
+              beschriftung={beschriftung}
+              bereich={anzeigeBereich(beschriftung, schema, drehungen)}
+              masse={masse}
+              bearbeiten={!!bearbeiten}
+              markiert={!!auswahl && imBereich(auswahl, beschriftung.zeile, beschriftung.spalte)}
+              onAuswahl={onAuswahl}
+              onText={onBeschriftungText}
+              testID={testID ? `${testID}-text-${beschriftung.zeile}-${beschriftung.spalte}` : undefined}
+            />
+          ))}
         </View>
       </View>
-    </ScrollView>
+    </View>
+  );
+
+  // Beweglich: ein eigenes Fenster mit Ausschnitt – es scrollt in beide
+  // Richtungen, lässt sich mit dem Finger schieben und zoomen und begrenzt die
+  // Höhe, damit auf einem Handy Werkzeuge und Plan zugleich zu sehen bleiben.
+  // Sonst wie bisher: nur waagerecht scrollen, in die Höhe wachsen – so
+  // gehört der Plan auf Aushang und Papier.
+  if (!beweglich) {
+    return (
+      <ScrollView
+        horizontal
+        nestedScrollEnabled
+        showsHorizontalScrollIndicator
+        onLayout={merkeBreite}
+        testID={testID}
+      >
+        {inhalt}
+      </ScrollView>
+    );
+  }
+  return (
+    <View
+      ref={flaecheRef}
+      style={[styles.flaeche, { maxHeight: fensterHoehe }, scrollbaresFenster]}
+      onLayout={merkeBreite}
+      testID={testID}
+    >
+      {inhalt}
+    </View>
   );
 }
 
@@ -860,6 +1153,20 @@ const ohneBrowserGeste = {
   userSelect: 'none',
 } as unknown as object;
 
+/**
+ * Das Planfenster scrollt in beide Richtungen (RN kennt nur `scroll`, gemeint
+ * ist `auto`), und der Finger darauf gehört dem Plan: `touch-action: none`
+ * hält den Browser vom eigenen Scrollen und Zoomen ab, sonst zöge er die Seite
+ * mit, während der Plan geschoben wird. `overscroll-behavior: contain` hält
+ * das Gummiband am Rand des Plans auf, statt die Seite zu bewegen.
+ */
+const scrollbaresFenster = {
+  overflow: 'auto',
+  overscrollBehavior: 'contain',
+  touchAction: 'none',
+  userSelect: 'none',
+} as unknown as object;
+
 /** Im Textfeld gilt das Gegenteil: Dort will man tippen und markieren. */
 const mitTextauswahl = {
   touchAction: 'auto',
@@ -868,6 +1175,18 @@ const mitTextauswahl = {
 
 const styles = StyleSheet.create({
   aussen: { padding: spacing.xs, gap: 4 },
+  /**
+   * Im Planfenster wächst der Plan über den Ausschnitt hinaus: `flex-start`
+   * lässt ihn so breit werden, wie er ist (gestreckt wäre er so breit wie das
+   * Fenster und der Rest liefe darüber hinaus), `minWidth: 100%` hält ihn im
+   * kleinen Raum trotzdem über die volle Breite.
+   */
+  aussenBeweglich: { alignSelf: 'flex-start', minWidth: '100%' },
+  /**
+   * Der Ausschnitt selbst: nie breiter als sein Platz – sonst schöbe der Plan
+   * eines Hörsaals mit 44 Spalten die Schaltflächen daneben aus dem Bild.
+   */
+  flaeche: { width: '100%', maxWidth: '100%', backgroundColor: colors.background, borderRadius: radius.md },
   innen: { flexDirection: 'row' },
   raster: {},
   kopfZeile: { flexDirection: 'row' },

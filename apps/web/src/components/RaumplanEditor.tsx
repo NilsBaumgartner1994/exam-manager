@@ -33,10 +33,16 @@ import {
 } from './Raumplan';
 
 /**
- * Werkzeug im Bearbeiten-Modus: auswählen/verschieben, ein Element malen oder
- * ein Textfeld über verbundenen Zellen aufziehen.
+ * Werkzeug im Bearbeiten-Modus: auswählen/verschieben, den Ausschnitt schieben
+ * (die Hand), ein Element malen oder ein Textfeld über verbundenen Zellen
+ * aufziehen.
  */
-export type Werkzeug = 'auswahl' | 'text' | ZellTyp;
+export type Werkzeug = 'auswahl' | 'hand' | 'text' | ZellTyp;
+
+/** Werkzeuge, die am Raster nichts ändern. */
+function aendertNichts(werkzeug: Werkzeug): werkzeug is 'auswahl' | 'hand' {
+  return werkzeug === 'auswahl' || werkzeug === 'hand';
+}
 
 /**
  * Die Elemente der Palette.
@@ -50,6 +56,7 @@ export type Werkzeug = 'auswahl' | 'text' | ZellTyp;
  */
 export const PALETTE: { werkzeug: Werkzeug; titel: string; untertitel: string }[] = [
   { werkzeug: 'auswahl', titel: 'Auswählen', untertitel: 'markieren & verschieben' },
+  { werkzeug: 'hand', titel: 'Verschieben', untertitel: 'Ausschnitt ziehen' },
   { werkzeug: 'tisch', titel: 'Sitzplatz', untertitel: 'Tisch für Studierende · T' },
   { werkzeug: 'reserve', titel: 'Reserve', untertitel: 'Tisch bleibt frei · R' },
   { werkzeug: 'pult', titel: 'Pult', untertitel: 'Tisch ohne Sitzplatz · P' },
@@ -126,6 +133,8 @@ export interface RaumplanEditor {
   setzeAnsichtModus: (modus: Ansichtsmodus) => void;
   /** Frei zoomen wie in einem Bild – ausgehend von der gerade sichtbaren Größe. */
   zoomAendern: (richtung: 1 | -1) => void;
+  /** Zellgröße in Pixeln setzen – so meldet der Plan eine Zoom-Geste zurück. */
+  zoomSetzen: (zellGroesse: number) => void;
   /** Ein Plan meldet, wie groß seine Zellen gerade sind (für den Zoom). */
   merkeZellGroesse: (raum: string, groesse: number) => void;
   /** Gibt es einen Verlauf? Ohne `zustand` in der Anbindung: nein. */
@@ -276,7 +285,7 @@ export function useRaumplanEditor({
 
   /** Ein Element auf eine Zelle setzen und sie auswählen (Malen und Ablegen). */
   const elementSetzen = (raum: string, zeile: number, spalte: number, typ: Werkzeug) => {
-    if (typ === 'auswahl') return;
+    if (aendertNichts(typ)) return;
     // Ein Malzug über viele Zellen ist ein Schritt – bis der Zeiger losgelassen
     // wird (`zugBeendet`).
     merkeStand('malen');
@@ -314,6 +323,11 @@ export function useRaumplanEditor({
           ),
         };
       }),
+    zoomSetzen: (zellGroesse) =>
+      setzeAnsicht({
+        modus: 'frei',
+        zellGroesse: Math.round(Math.min(ZELLE_FREI_MAX, Math.max(ZELLE_FREI_MIN, zellGroesse))),
+      }),
     merkeZellGroesse: (raum, groesse) => {
       gezeichneteGroesse.current[raum] = groesse;
     },
@@ -332,8 +346,9 @@ export function useRaumplanEditor({
       setzeDrehungen((alt) => ({ ...alt, [raum]: ((((alt[raum] ?? 0) + richtung) % 4) + 4) % 4 })),
 
     zellePress: (raum, zeile, spalte) => {
-      // „Auswählen“ und „Text“ ziehen einen Bereich auf – das erledigt onAufziehen.
-      if (werkzeug !== 'auswahl' && werkzeug !== 'text') elementSetzen(raum, zeile, spalte, werkzeug);
+      // „Auswählen“ und „Text“ ziehen einen Bereich auf – das erledigt
+      // onAufziehen; „Verschieben“ rührt das Raster gar nicht an.
+      if (!aendertNichts(werkzeug) && werkzeug !== 'text') elementSetzen(raum, zeile, spalte, werkzeug);
     },
 
     /**
@@ -346,7 +361,7 @@ export function useRaumplanEditor({
     bereichAufziehen: (raum, neuerBereich) => {
       const alteAuswahl = auswahl && auswahl.raum === raum ? auswahl.bereich : neuerBereich;
       const schema = schemata.current.find((s) => s.raum === raum);
-      if (!schema) return;
+      if (!schema || werkzeug === 'hand') return;
       merkeStand();
       if (werkzeug === 'text') {
         // Mit dem Textwerkzeug wird aufgezogen, was verbunden werden soll.
@@ -409,7 +424,7 @@ export function useRaumplanEditor({
       setzeZielZelle(null);
       setzeWerkzeug(typ);
       const ziel = zelleUnterPunkt(x, y);
-      if (!ziel || typ === 'auswahl') return;
+      if (!ziel || aendertNichts(typ)) return;
       if (!schemata.current.some((schema) => schema.raum === ziel.raum)) return;
       elementSetzen(ziel.raum, ziel.zeile, ziel.spalte, typ);
       // Jedes Ablegen ist ein eigener Schritt im Verlauf.
@@ -421,6 +436,13 @@ export function useRaumplanEditor({
 /** Die Palette der Elemente – antippen wählt aus, ziehen legt direkt ab. */
 export function RaumPalette({ editor, testID }: { editor: RaumplanEditor; testID?: string }) {
   const { isCompact } = useResponsiveLayout();
+  /**
+   * Auf einem Handy stehen die Erklärungen erst auf Wunsch da: Ausgeschrieben
+   * füllen sie den halben Bildschirm, und der Plan darüber wäre weggescrollt,
+   * sobald man ein Werkzeug wählt.
+   */
+  const [hilfe, setzeHilfe] = useState(false);
+  const zeigeHilfe = !isCompact || hilfe;
   return (
     <View
       // Neben mehreren großen Räumen scrollt man weit; die Palette bleibt
@@ -442,14 +464,32 @@ export function RaumPalette({ editor, testID }: { editor: RaumplanEditor; testID
           testID={`raum-zelle-${eintrag.werkzeug}`}
         />
       ))}
-      <Text style={styles.hinweis}>
-        Auf eine Zelle ziehen setzt das Element dort. Antippen wählt es aus, dann im Plan über
-        Zellen ziehen – praktisch für eine ganze Wand. Mit „Auswählen“ ziehst du über mehrere
-        Zellen, ohne etwas zu ändern; gedrückt halten in der Auswahl und ziehen verschiebt den
-        ganzen Block, der blaue Griff an der unteren Ecke zieht ihn auf. Ein Sitzplatz ist ein
-        Tisch, an dem jemand geprüft wird (nur die werden nummeriert und belegt); das Pult ist der
-        einfache Tisch für alles andere. Rückgängig geht mit Strg/⌘ + Z.
-      </Text>
+      {isCompact ? (
+        <AppButton
+          title={hilfe ? 'Hinweise ausblenden' : 'Hinweise'}
+          variant="secondary"
+          kompakt
+          onPress={() => setzeHilfe((alt) => !alt)}
+          testID="raum-palette-hilfe"
+        />
+      ) : null}
+      {zeigeHilfe ? (
+        <>
+          <Text style={styles.hinweis}>
+            Auf eine Zelle ziehen setzt das Element dort. Antippen wählt es aus, dann im Plan über
+            Zellen ziehen – praktisch für eine ganze Wand. Mit „Auswählen“ ziehst du über mehrere
+            Zellen, ohne etwas zu ändern; gedrückt halten in der Auswahl und ziehen verschiebt den
+            ganzen Block, der blaue Griff an der unteren Ecke zieht ihn auf. Ein Sitzplatz ist ein
+            Tisch, an dem jemand geprüft wird (nur die werden nummeriert und belegt); das Pult ist
+            der einfache Tisch für alles andere. Rückgängig geht mit Strg/⌘ + Z.
+          </Text>
+          <Text style={styles.hinweis}>
+            Im Plan bewegst du dich mit zwei Fingern: schieben und zugleich auf- und zuziehen zum
+            Zoomen (am Rechner Strg + Mausrad). Mit „Verschieben“ genügt ein Finger – praktisch,
+            wenn gerade ein Element ausgewählt ist und jeder Wisch sonst malen würde.
+          </Text>
+        </>
+      ) : null}
     </View>
   );
 }
@@ -465,31 +505,37 @@ export function RaumPalette({ editor, testID }: { editor: RaumplanEditor; testID
  */
 export function PlanLeiste({ editor }: { editor: RaumplanEditor }) {
   const { ansicht } = editor;
+  const { isCompact } = useResponsiveLayout();
   return (
     <View style={styles.buttonZeile}>
       <Text style={styles.hinweis}>Ansicht:</Text>
       <AppButton
         title="Auf Breite"
         variant={ansicht.modus === 'breite' ? 'primary' : 'secondary'}
+        kompakt={isCompact}
         onPress={() => editor.setzeAnsichtModus('breite')}
         testID="raum-zoom-breite"
       />
       <AppButton
         title="Ganzer Raum"
         variant={ansicht.modus === 'einpassen' ? 'primary' : 'secondary'}
+        kompakt={isCompact}
         onPress={() => editor.setzeAnsichtModus('einpassen')}
         testID="raum-zoom-einpassen"
       />
-      <AppButton title="−" variant="secondary" onPress={() => editor.zoomAendern(-1)} testID="raum-zoom-kleiner" />
-      <AppButton title="+" variant="secondary" onPress={() => editor.zoomAendern(1)} testID="raum-zoom-groesser" />
+      <AppButton title="−" variant="secondary" kompakt={isCompact} onPress={() => editor.zoomAendern(-1)} testID="raum-zoom-kleiner" />
+      <AppButton title="+" variant="secondary" kompakt={isCompact} onPress={() => editor.zoomAendern(1)} testID="raum-zoom-groesser" />
       <Text style={styles.hinweis}>
         {ansicht.modus === 'frei' ? `${ansicht.zellGroesse} px je Feld` : 'Felder passen sich an'}
+        {' · '}
+        Zwei Finger schieben und zoomen
       </Text>
       {editor.mitVerlauf ? (
         <>
           <AppButton
             title="↶ Rückgängig"
             variant="secondary"
+            kompakt={isCompact}
             onPress={editor.rueckgaengig}
             disabled={!editor.kannRueckgaengig}
             testID="raum-rueckgaengig"
@@ -497,6 +543,7 @@ export function PlanLeiste({ editor }: { editor: RaumplanEditor }) {
           <AppButton
             title="↷ Wiederholen"
             variant="secondary"
+            kompakt={isCompact}
             onPress={editor.wiederholen}
             disabled={!editor.kannWiederholen}
             testID="raum-wiederholen"
@@ -562,6 +609,7 @@ export function RaumplanKarte({
 }: KarteProps) {
   const drehungen = editor.drehungen[schema.raum] ?? 0;
   const auswahl = editor.auswahlIn(schema.raum);
+  const { isCompact } = useResponsiveLayout();
   return (
     <View style={styles.planBlock}>
       <Text style={styles.raumUeberschrift}>
@@ -574,24 +622,27 @@ export function RaumplanKarte({
         <AppButton
           title="↺ 90°"
           variant="secondary"
+          kompakt={isCompact}
           onPress={() => editor.drehen(schema.raum, -1)}
           testID={`raum-drehen-links-${schema.raum}`}
         />
         <AppButton
           title="↻ 90°"
           variant="secondary"
+          kompakt={isCompact}
           onPress={() => editor.drehen(schema.raum, 1)}
           testID={`raum-drehen-rechts-${schema.raum}`}
         />
         {bearbeiten ? (
           <>
-            <AppButton title="+ Zeile" variant="secondary" onPress={() => editor.groesseAendern(schema.raum, 1, 0)} />
-            <AppButton title="− Zeile" variant="secondary" onPress={() => editor.groesseAendern(schema.raum, -1, 0)} />
-            <AppButton title="+ Spalte" variant="secondary" onPress={() => editor.groesseAendern(schema.raum, 0, 1)} />
-            <AppButton title="− Spalte" variant="secondary" onPress={() => editor.groesseAendern(schema.raum, 0, -1)} />
+            <AppButton title="+ Zeile" variant="secondary" kompakt={isCompact} onPress={() => editor.groesseAendern(schema.raum, 1, 0)} />
+            <AppButton title="− Zeile" variant="secondary" kompakt={isCompact} onPress={() => editor.groesseAendern(schema.raum, -1, 0)} />
+            <AppButton title="+ Spalte" variant="secondary" kompakt={isCompact} onPress={() => editor.groesseAendern(schema.raum, 0, 1)} />
+            <AppButton title="− Spalte" variant="secondary" kompakt={isCompact} onPress={() => editor.groesseAendern(schema.raum, 0, -1)} />
             <AppButton
               title="Zellen verbinden"
               variant="secondary"
+              kompakt={isCompact}
               onPress={editor.zellenVerbinden}
               disabled={!auswahl}
               testID={`raum-verbinden-${schema.raum}`}
@@ -599,6 +650,7 @@ export function RaumplanKarte({
             <AppButton
               title="Zellen trennen"
               variant="secondary"
+              kompakt={isCompact}
               onPress={editor.zellenTrennen}
               disabled={!auswahl}
               testID={`raum-trennen-${schema.raum}`}
@@ -623,9 +675,19 @@ export function RaumplanKarte({
         }
         ansicht={editor.ansicht}
         onZellGroesse={(groesse) => editor.merkeZellGroesse(schema.raum, groesse)}
+        // Im Editor sitzt der Plan in einem Fenster, das sich schieben und
+        // zoomen lässt – am Bildschirm arbeitet man in einem Ausschnitt.
+        beweglich
+        onZoomGeste={editor.zoomSetzen}
         bearbeiten={bearbeiten}
         werkzeug={
-          editor.werkzeug === 'auswahl' ? 'auswahl' : editor.werkzeug === 'text' ? 'aufziehen' : 'malen'
+          editor.werkzeug === 'auswahl'
+            ? 'auswahl'
+            : editor.werkzeug === 'hand'
+              ? 'schieben'
+              : editor.werkzeug === 'text'
+                ? 'aufziehen'
+                : 'malen'
         }
         auswahl={auswahl}
         onAuswahl={(bereich) => editor.setzeAuswahl({ raum: schema.raum, bereich })}
@@ -642,11 +704,24 @@ export function RaumplanKarte({
   );
 }
 
-/** Palette links, Pläne rechts – auf schmalen Fenstern untereinander. */
+/**
+ * Palette links, Pläne rechts – auf schmalen Fenstern untereinander, und dort
+ * steht der Plan **oben**: Auf einem Handy scrollte man sonst an der ganzen
+ * Palette vorbei, ehe der Raum zu sehen ist. Das Werkzeug wählt man darunter
+ * und arbeitet im Plan darüber weiter, wie bei einer Leiste unten am Bild.
+ */
 export function RaumplanFlaeche({ palette, children }: { palette?: ReactNode; children: ReactNode }) {
   const { isCompact } = useResponsiveLayout();
+  if (isCompact) {
+    return (
+      <View style={[styles.editorZeile, styles.editorZeileGestapelt]}>
+        <View style={styles.plaene}>{children}</View>
+        {palette}
+      </View>
+    );
+  }
   return (
-    <View style={[styles.editorZeile, isCompact && styles.editorZeileGestapelt]}>
+    <View style={styles.editorZeile}>
       {palette}
       <View style={styles.plaene}>{children}</View>
     </View>
@@ -657,11 +732,17 @@ export function RaumplanFlaeche({ palette, children }: { palette?: ReactNode; ch
 const klebtOben = { position: 'sticky', top: spacing.sm } as unknown as object;
 
 const styles = StyleSheet.create({
-  buttonZeile: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
-  planBlock: { gap: spacing.sm },
+  buttonZeile: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center', maxWidth: '100%' },
+  planBlock: { gap: spacing.sm, maxWidth: '100%' },
   raumUeberschrift: { fontSize: 15, fontWeight: '600', color: colors.text },
   editorZeile: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
-  editorZeileGestapelt: { flexDirection: 'column' },
+  /**
+   * Gestapelt muss `alignItems` mitwandern: `flex-start` misst die Kinder an
+   * ihrem Inhalt, und der Plan eines Hörsaals ist breiter als das Fenster –
+   * die Spalte wurde so breit wie er, und die Schaltflächen darüber standen
+   * neben dem Bildschirm. Untereinander gilt deshalb wieder die volle Breite.
+   */
+  editorZeileGestapelt: { flexDirection: 'column', alignItems: 'stretch' },
   palette: { gap: spacing.sm, flexShrink: 0, maxWidth: 200 },
   paletteBreit: { flexDirection: 'row', flexWrap: 'wrap', maxWidth: '100%', alignItems: 'center' },
   palettenTitel: { fontSize: 14, fontWeight: '700', color: colors.text },

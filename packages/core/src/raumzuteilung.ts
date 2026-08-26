@@ -9,13 +9,50 @@ import { Raum, Sitzplatz, Zulassung } from './types';
 
 export type Verteilmodus = 'balanced' | 'sequential';
 
-/** Raumliste (`Raum;Plätze;ReservierteZeit`) einlesen. */
+/**
+ * Raumliste (`Raum;Plätze;ReservierteZeit`) einlesen.
+ *
+ * Ein Raum darf mehrfach vorkommen – dann wird er in dieser Klausur mehrfach
+ * benutzt (Gruppe 1 vormittags, Gruppe 2 nachmittags). Der wievielte Einsatz
+ * das ist, steht nicht in der Datei, sondern ergibt sich aus der Reihenfolge:
+ * Die Zeilen werden beim Einlesen durchgezählt.
+ */
 export function parseRaeume(csvText: string): Raum[] {
-  return parseCsvObjects(csvText).map((row) => ({
-    raum: row['Raum'] ?? '',
-    plaetze: Number(row['Plätze'] ?? row['Plaetze'] ?? 0),
-    reservierteZeit: row['ReservierteZeit'] ?? '',
-  }));
+  const bisher = new Map<string, number>();
+  return parseCsvObjects(csvText).map((row) => {
+    const raum = row['Raum'] ?? '';
+    const durchgang = (bisher.get(raum) ?? 0) + 1;
+    bisher.set(raum, durchgang);
+    return {
+      raum,
+      plaetze: Number(row['Plätze'] ?? row['Plaetze'] ?? 0),
+      reservierteZeit: row['ReservierteZeit'] ?? '',
+      durchgang,
+    };
+  });
+}
+
+/**
+ * Schlüssel eines Raumeinsatzes: `01/E01` für den ersten, `01/E01 (2. Durchgang)`
+ * für den zweiten. Belegung, Sitzplatznummern und Sitzplan hängen daran –
+ * der Raumname allein wäre bei zwei Durchgängen zweimal derselbe.
+ */
+export function raumSchluessel(raum: Pick<Raum, 'raum' | 'durchgang'>): string {
+  const durchgang = raum.durchgang ?? 1;
+  return durchgang > 1 ? `${raum.raum} (${durchgang}. Durchgang)` : raum.raum;
+}
+
+/**
+ * Wievielter Einsatz jedes Raums – für Listen, die von Hand zusammengestellt
+ * werden (im Screen kann derselbe Raum mehrfach angeklickt werden).
+ */
+export function mitDurchgaengen(raeume: Omit<Raum, 'durchgang'>[]): Raum[] {
+  const bisher = new Map<string, number>();
+  return raeume.map((raum) => {
+    const durchgang = (bisher.get(raum.raum) ?? 0) + 1;
+    bisher.set(raum.raum, durchgang);
+    return { ...raum, durchgang };
+  });
 }
 
 export function raeumeToCsv(raeume: Raum[]): string {
@@ -72,10 +109,12 @@ export function erstelleRaumzuteilung(
     zuteilung.push({ person, raum: ziel.raum });
   }
 
-  // Sitzplatznummern: sortiert nach Zeit+Raum, dann Nachname (normalisiert)
+  // Sitzplatznummern: sortiert nach Zeit+Raum, dann Nachname (normalisiert).
+  // Sortiert wird über den Schlüssel des Einsatzes: Zwei Durchgänge desselben
+  // Raums sind zwei Gruppen, auch wenn der Name derselbe ist.
   zuteilung.sort((a, b) => {
-    const zeitRaumA = `${a.raum.reservierteZeit} - ${a.raum.raum}`;
-    const zeitRaumB = `${b.raum.reservierteZeit} - ${b.raum.raum}`;
+    const zeitRaumA = `${a.raum.reservierteZeit} - ${raumSchluessel(a.raum)}`;
+    const zeitRaumB = `${b.raum.reservierteZeit} - ${raumSchluessel(b.raum)}`;
     if (zeitRaumA !== zeitRaumB) return zeitRaumA.localeCompare(zeitRaumB);
     return normalizeName(a.person.nachname).localeCompare(normalizeName(b.person.nachname));
   });
@@ -87,6 +126,7 @@ export function erstelleRaumzuteilung(
     anfangNachname: praefixe.get(person) ?? person.nachname,
     sitzplatznummer: start + i,
     raum: raum.raum,
+    raumSchluessel: raumSchluessel(raum),
     reservierteZeit: raum.reservierteZeit,
     matrikelnummer: person.matrikelnummer,
     anwesend: '',
@@ -143,6 +183,9 @@ export function parseSitzplaetze(csvText: string): Sitzplatz[] {
     anfangNachname: row['Anfang_Nachname'] ?? '',
     sitzplatznummer: Number(row['Sitzplatznummer'] ?? 0),
     raum: row['Raum'] ?? '',
+    // Welcher Durchgang das war, steht nicht in der Datei: Wer sie einliest,
+    // ordnet sie über Raum und Zeit wieder einem Einsatz zu.
+    raumSchluessel: row['Raum'] ?? '',
     reservierteZeit: row['ReservierteZeit'] ?? '',
     matrikelnummer: row['Matrikelnummer'] ?? '',
     anwesend: row['Anwesend'] ?? '',

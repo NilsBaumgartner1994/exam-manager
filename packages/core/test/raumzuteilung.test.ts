@@ -1,12 +1,18 @@
 import { lies, liesRaumschemata, pfad } from './fixtures';
 import {
   eindeutigeNamenspraefixe,
+  einsatzRaster,
   erstelleRaumzuteilung,
+  mitDurchgaengen,
   parseRaeume,
   parseRaumschemaDateien,
+  parseRaumschemata,
   parseSitzplaetze,
+  raumSchluessel,
   sitzplaetzeToCsv,
+  sitzplatznummern,
   tischzellen,
+  verteileAufRaumschemata,
   Zulassung,
 } from '../src';
 
@@ -84,5 +90,59 @@ describe('Raumzuteilung (Screen 4)', () => {
     const sitzplaetze = parseSitzplaetze(lies(pfad.sitzplan));
     expect(sitzplaetze).toHaveLength(7);
     expect(sitzplaetze[0].sitzplatznummer).toBe(1001);
+  });
+});
+
+describe('Derselbe Raum mehrfach (zwei Durchgänge)', () => {
+  const ZWEI_DURCHGAENGE = parseRaeume(
+    'Raum;Plätze;ReservierteZeit\n' +
+      '94/E01;2;01.02.2026 Gruppe 1\n' +
+      '94/E01;2;01.02.2026 Gruppe 2\n',
+  );
+
+  it('zählt beim Einlesen die Durchgänge durch', () => {
+    expect(ZWEI_DURCHGAENGE.map((r) => r.durchgang)).toEqual([1, 2]);
+    expect(ZWEI_DURCHGAENGE.map(raumSchluessel)).toEqual(['94/E01', '94/E01 (2. Durchgang)']);
+  });
+
+  it('zählt auch eine von Hand zusammengestellte Liste durch', () => {
+    const liste = mitDurchgaengen([
+      { raum: '94/E01', plaetze: 2, reservierteZeit: 'Gruppe 1' },
+      { raum: '94/E03', plaetze: 2, reservierteZeit: 'Gruppe 1' },
+      { raum: '94/E01', plaetze: 2, reservierteZeit: 'Gruppe 2' },
+    ]);
+    expect(liste.map((r) => r.durchgang)).toEqual([1, 1, 2]);
+  });
+
+  it('behandelt jeden Durchgang als eigenen Raum mit eigenen Plätzen', () => {
+    const { sitzplaetze, ohnePlatz } = erstelleRaumzuteilung(TEILNEHMER.slice(0, 4), ZWEI_DURCHGAENGE, {
+      modus: 'sequential',
+    });
+    expect(ohnePlatz).toHaveLength(0);
+    // Beide Durchgänge heißen im Aushang gleich – auseinander hält sie der
+    // Schlüssel und die reservierte Zeit.
+    expect(new Set(sitzplaetze.map((s) => s.raum))).toEqual(new Set(['94/E01']));
+    expect(new Set(sitzplaetze.map((s) => s.raumSchluessel))).toEqual(
+      new Set(['94/E01', '94/E01 (2. Durchgang)']),
+    );
+    expect(sitzplaetze.filter((s) => s.raumSchluessel === '94/E01')).toHaveLength(2);
+  });
+
+  it('gibt jedem Durchgang eigene Tische, eigene Belegung und eigene Nummern', () => {
+    const schema = parseRaumschemata('Raum;94/E01\nT;T\n')[0];
+    const raster = einsatzRaster(ZWEI_DURCHGAENGE, [schema]);
+    expect(raster.map((r) => r.raum)).toEqual(['94/E01', '94/E01 (2. Durchgang)']);
+
+    const { sitzplaetze } = erstelleRaumzuteilung(TEILNEHMER.slice(0, 4), ZWEI_DURCHGAENGE, {
+      modus: 'sequential',
+    });
+    const { belegung, ohnePlatz } = verteileAufRaumschemata(sitzplaetze, raster);
+    expect(ohnePlatz).toHaveLength(0);
+    expect(belegung.filter((p) => p.raum === '94/E01 (2. Durchgang)')).toHaveLength(2);
+    // Die Nummern laufen über beide Durchgänge weiter – derselbe Tisch hat im
+    // zweiten Durchgang eine andere Nummer.
+    const nummern = sitzplatznummern(raster, 1001);
+    expect(nummern.get('94/E01|0|0')).toBe(1001);
+    expect(nummern.get('94/E01 (2. Durchgang)|0|0')).toBe(1003);
   });
 });

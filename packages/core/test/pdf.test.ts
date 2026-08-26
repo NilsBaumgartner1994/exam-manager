@@ -19,7 +19,7 @@ describe('PDF und ZIP (Screen 2 + 4)', () => {
 
   it('erzeugt ein Sitzplatz-PDF', async () => {
     const pdf = await sitzplatzPdf({
-      anfangNachname: 'S', sitzplatznummer: 1001, raum: '94/E01',
+      anfangNachname: 'S', sitzplatznummer: 1001, raum: '94/E01', raumSchluessel: '94/E01',
       reservierteZeit: '01.02.2026 09:30', matrikelnummer: '1000005', anwesend: '',
       nachname: 'Schrödinger', vorname: 'Erwin', zeitUndRaum: '01.02.2026 09:30 - 94/E01',
       email: 'erwin@test.de',

@@ -41,14 +41,21 @@ import { colors, spacing } from '../theme';
  * wieder gebraucht, sein Grundriss ändert sich fast nie. Im Projektordner
  * liegen sie deshalb in `Raeume/`, außerhalb der nummerierten Schritt-Ordner,
  * und hier lassen sie sich bearbeiten, ohne vorher eine Teilnehmerliste zu
- * laden. Schritt 4 nimmt das Ergebnis als Vorlage und legt die Belegung
- * darüber.
+ * laden. Hier steht der **Bestand des Hauses**; welche dieser Räume eine
+ * Klausur benutzt (und ob mehrfach), entscheidet Schritt 4.
+ *
+ * Bearbeitet wird immer **ein** Raum: Oben steht die Liste der Räume, darunter
+ * der Plan des gewählten. Nebeneinander sind ein Hörsaal mit 44 × 32 Feldern
+ * und vier weitere Räume nicht zu überblicken – und man bearbeitet ohnehin
+ * einen nach dem anderen.
  */
 export function RaeumeScreen() {
   const [zeilen, setZeilen] = useState<RaumZeile[]>([]);
   const [schemata, setSchemata] = useState<Raumschema[]>([]);
   const [fehler, setFehler] = useState<string | null>(null);
   const [hinweis, setHinweis] = useState<string | null>(null);
+  /** Welcher Raum gerade bearbeitet wird (Name); `null` = der erste. */
+  const [gewaehlt, setGewaehlt] = useState<string | null>(null);
 
   /**
    * Der Stand liegt zusätzlich in einem Ref: Beim Ziehen kommen viele
@@ -91,6 +98,21 @@ export function RaeumeScreen() {
     zustand: () => ({ schemata: schemataRef.current }),
     setzeZustand: (stand) => uebernehmeSchemata(stand.schemata),
   });
+
+  /**
+   * Der Raum, dessen Plan gerade zu sehen ist. Die Auswahl kann veralten (das
+   * Raster wurde entfernt, andere Dateien geladen) – dann rückt der erste
+   * Raum nach, statt dass gar nichts mehr zu sehen ist.
+   */
+  const aktiverRaum =
+    schemata.find((schema) => schema.raum === gewaehlt)?.raum ?? schemata[0]?.raum ?? null;
+  const aktivesSchema = schemata.find((schema) => schema.raum === aktiverRaum) ?? null;
+
+  const raumWechseln = (raum: string) => {
+    setGewaehlt(raum);
+    // Die Auswahl gehört zum vorherigen Plan – im neuen wäre sie geraten.
+    editor.setzeAuswahl(null);
+  };
 
   /** Räume der Liste, für die es noch kein Raster gibt. */
   const ohneRaster = useMemo(
@@ -143,6 +165,8 @@ export function RaeumeScreen() {
       ...schemataRef.current,
       ...ohneRaster.map((raum) => standardRaumschema(raum.raum, raum.plaetze)),
     ]);
+    // Was gerade entstanden ist, will man auch sehen.
+    if (ohneRaster.length > 0) setGewaehlt(ohneRaster[0].raum);
     setHinweis(`Raster angelegt für: ${ohneRaster.map((raum) => raum.raum).join(', ')}.`);
   };
 
@@ -150,6 +174,7 @@ export function RaeumeScreen() {
     setHinweis(null);
     editor.merkeStand();
     uebernehmeSchemata(schemataRef.current.filter((schema) => schema.raum !== raum));
+    setGewaehlt(null);
     editor.setzeAuswahl(null);
   };
 
@@ -213,7 +238,9 @@ export function RaeumeScreen() {
         <Text style={styles.hinweis}>
           Ein Raum überlebt die einzelne Klausur: Derselbe Hörsaal wird jedes Semester wieder
           gebraucht, sein Grundriss ändert sich fast nie. Im Projektordner liegen Raumliste und
-          Raster deshalb zusammen in <Text style={styles.pfad}>Raeume/</Text>.
+          Raster deshalb zusammen in <Text style={styles.pfad}>Raeume/</Text>. Hier steht der
+          Bestand des Hauses – welche dieser Räume eine Klausur benutzt (und ob mehrfach),
+          entscheidet Schritt 4.
         </Text>
         <RaumListe zeilen={zeilen} onChange={setZeilen} />
         <View style={styles.buttonZeile}>
@@ -245,6 +272,10 @@ export function RaeumeScreen() {
 
       <Section title="Raumpläne" testID="raeume-plaene">
         <Text style={styles.hinweis}>
+          Bearbeitet wird ein Raum nach dem anderen: oben den Raum wählen (in Klammern seine
+          Sitzplätze), darunter steht sein Plan. Gespeichert werden trotzdem immer alle Räume.
+        </Text>
+        <Text style={styles.hinweis}>
           Ein Element aus der Palette auf eine Zelle ziehen setzt es dort; antippen wählt es aus und
           man malt damit im Plan. Mit „Auswählen“ ziehst du erst einen Bereich auf – das ändert
           nichts, es markiert nur – und verschiebst ihn dann, indem du in der Auswahl gedrückt
@@ -255,41 +286,54 @@ export function RaeumeScreen() {
           Schritt lässt sich rückgängig machen (Strg/⌘ + Z).
         </Text>
 
-        {schemata.length === 0 ? (
+        {schemata.length === 0 || !aktivesSchema ? (
           <StatusText kind="info">
             Noch kein Raster geladen – oben Räume eintragen und „Fehlende Raster anlegen“ wählen,
             Raumschema-CSVs laden oder die Beispieldaten nehmen.
           </StatusText>
         ) : (
           <>
-            <PlanLeiste editor={editor} />
-            <RaumplanFlaeche palette={<RaumPalette editor={editor} testID="raeume-palette" />}>
+            {/* Welcher Raum bearbeitet wird: einer nach dem anderen, sonst
+                ist neben einem Hörsaal mit 44 × 32 Feldern nichts zu sehen. */}
+            <View style={styles.buttonZeile} testID="raeume-auswahl">
+              <Text style={styles.hinweis}>Raum:</Text>
               {schemata.map((schema) => (
-                <RaumplanKarte
+                <AppButton
                   key={schema.raum}
-                  editor={editor}
-                  schema={schema}
-                  bearbeiten
-                  kopfZusatz={kopfZusatz(schema)}
-                  knoepfe={
-                    <>
-                      <AppButton
-                        title="Plätze übernehmen"
-                        variant="secondary"
-                        onPress={() => plaetzeUebernehmen(schema)}
-                        disabled={!plaetzeJeRaum.has(schema.raum)}
-                        testID={`raeume-plaetze-${schema.raum}`}
-                      />
-                      <AppButton
-                        title="Raster entfernen"
-                        variant="secondary"
-                        onPress={() => rasterEntfernen(schema.raum)}
-                        testID={`raeume-raster-entfernen-${schema.raum}`}
-                      />
-                    </>
-                  }
+                  title={`${schema.raum} (${tischzellen(schema).length})`}
+                  variant={schema.raum === aktiverRaum ? 'primary' : 'secondary'}
+                  onPress={() => raumWechseln(schema.raum)}
+                  testID={`raeume-waehlen-${schema.raum}`}
                 />
               ))}
+            </View>
+
+            <PlanLeiste editor={editor} />
+            <RaumplanFlaeche palette={<RaumPalette editor={editor} testID="raeume-palette" />}>
+              <RaumplanKarte
+                key={aktivesSchema.raum}
+                editor={editor}
+                schema={aktivesSchema}
+                bearbeiten
+                kopfZusatz={kopfZusatz(aktivesSchema)}
+                knoepfe={
+                  <>
+                    <AppButton
+                      title="Plätze übernehmen"
+                      variant="secondary"
+                      onPress={() => plaetzeUebernehmen(aktivesSchema)}
+                      disabled={!plaetzeJeRaum.has(aktivesSchema.raum)}
+                      testID={`raeume-plaetze-${aktivesSchema.raum}`}
+                    />
+                    <AppButton
+                      title="Raster entfernen"
+                      variant="secondary"
+                      onPress={() => rasterEntfernen(aktivesSchema.raum)}
+                      testID={`raeume-raster-entfernen-${aktivesSchema.raum}`}
+                    />
+                  </>
+                }
+              />
             </RaumplanFlaeche>
           </>
         )}

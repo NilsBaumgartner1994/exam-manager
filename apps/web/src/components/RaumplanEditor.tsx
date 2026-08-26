@@ -511,6 +511,14 @@ const OHNE_PERSONEN = new Map<string, Sitzplatz>();
 interface KarteProps {
   editor: RaumplanEditor;
   schema: Raumschema;
+  /**
+   * Schlüssel des Raumeinsatzes für Belegung und Nummern (`raumSchluessel`) –
+   * ohne Angabe der Raumname. Bearbeitet wird immer das Raster des Raums:
+   * Zwei Durchgänge desselben Raums teilen es sich.
+   */
+  schluessel?: string;
+  /** Überschrift statt des Raumnamens, z. B. „94/E01 · 2. Durchgang“. */
+  titel?: string;
   /** Zeigt Palette-Werkzeuge, Auswahl und Ziehgriff im Plan. */
   bearbeiten: boolean;
   /** Zusatz in der Überschrift, z. B. „3/108 belegt“. */
@@ -533,6 +541,8 @@ interface KarteProps {
 export function RaumplanKarte({
   editor,
   schema,
+  schluessel,
+  titel,
   bearbeiten,
   kopfZusatz,
   knoepfe,
@@ -548,7 +558,7 @@ export function RaumplanKarte({
   return (
     <View style={styles.planBlock}>
       <Text style={styles.raumUeberschrift}>
-        {schema.raum}
+        {titel ?? schema.raum}
         {kopfZusatz ? ` (${kopfZusatz})` : ''} · Raster {schema.zellen[0]?.length ?? 0} Spalten ×{' '}
         {schema.zellen.length} Zeilen · {tischzellen(schema).length} Sitzplätze
         {auswahl ? ` · Auswahl ${bereichName(anzeigeBereich(auswahl, schema, drehungen))}` : ''}
@@ -592,6 +602,7 @@ export function RaumplanKarte({
       </View>
       <Raumplan
         schema={schema}
+        schluessel={schluessel}
         drehungen={drehungen}
         belegung={belegung}
         nummern={nummern}

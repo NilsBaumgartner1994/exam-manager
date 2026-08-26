@@ -20,8 +20,10 @@ export type DateiRolle =
   | 'zulassungsbestand'
   /** Anmeldungen des Prüfungsamts (HIS-Export, Excel). */
   | 'hisExport'
-  /** Raumliste `Raum;Plätze;ReservierteZeit`. */
+  /** Raumliste `Raum;Plätze;ReservierteZeit` – der Bestand des Hauses. */
   | 'raeume'
+  /** Räume, die **diese** Klausur benutzt (ein Raum darf mehrfach vorkommen). */
+  | 'klausurraeume'
   /** Raster eines Raums (Tische, Tür, Wand, Pult) – je Raum eine Datei. */
   | 'raumschema'
   /** Wer an welchem Tisch sitzt. */
@@ -41,6 +43,7 @@ export const ROLLEN_TITEL: Record<DateiRolle, string> = {
   zulassungsbestand: 'Zulassungsliste',
   hisExport: 'Klausuranmeldungen (HIS-Export)',
   raeume: 'Raumliste',
+  klausurraeume: 'Räume dieser Klausur',
   raumschema: 'Raumschema',
   raumbelegung: 'Raumbelegung',
   teilnehmer: 'Klausur-Teilnehmende',
@@ -104,7 +107,7 @@ export const PROJEKT_SCHEMA: OrdnerRegel[] = [
     endungen: ['.csv'],
     rollen: ['raeume', 'raumschema'],
     zweck:
-      'Raumliste (raeume.csv) und je Raum eine Raster-Datei (94_E01.csv) – ohne Studierende, jedes Jahr wiederverwendbar.',
+      'Bestand des Hauses: Raumliste (raeume.csv) und je Raum eine Raster-Datei (94_E01.csv) – ohne Studierende, jedes Jahr wiederverwendbar.',
   },
   {
     ordner: '2_Zulassungs_PDFs_Export',
@@ -122,8 +125,9 @@ export const PROJEKT_SCHEMA: OrdnerRegel[] = [
   {
     ordner: '4_Raumzuteilung_Export',
     endungen: ['.csv'],
-    rollen: ['sitzplan', 'raumbelegung'],
-    zweck: 'Sitzplan und Raumbelegung dieser Klausur (Schritt 4).',
+    rollen: ['sitzplan', 'raumbelegung', 'klausurraeume'],
+    zweck:
+      'Räume dieser Klausur, Sitzplan und Raumbelegung (Schritt 4). Ein Raum darf in klausurraeume.csv mehrfach stehen – dann wird er mehrfach belegt.',
   },
 ];
 
@@ -159,11 +163,11 @@ function rolleAusKopf(kopf: string | undefined, kandidaten: DateiRolle[]): Datei
 
   if (kopfzeile !== '') {
     if (passt('raumbelegung') && kopfzeile.startsWith('raum;zeile;spalte')) return 'raumbelegung';
-    if (
-      passt('raeume') &&
-      (kopfzeile.startsWith('raum;plätze') || kopfzeile.startsWith('raum;plaetze'))
-    ) {
-      return 'raeume';
+    // Dieselbe Kopfzeile, zwei Bedeutungen: In `Raeume/` steht der Bestand des
+    // Hauses, im Export-Ordner die Räume dieser einen Klausur.
+    if (kopfzeile.startsWith('raum;plätze') || kopfzeile.startsWith('raum;plaetze')) {
+      if (passt('klausurraeume')) return 'klausurraeume';
+      if (passt('raeume')) return 'raeume';
     }
     // Raumschema beginnt mit `Raum;<Name>` – Name statt Spaltenüberschriften.
     if (passt('raumschema') && kopfzeile.startsWith('raum;')) return 'raumschema';

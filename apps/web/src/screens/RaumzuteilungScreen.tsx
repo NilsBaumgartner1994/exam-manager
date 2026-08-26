@@ -6,6 +6,7 @@ import {
   Bereich,
   bereichAus,
   belegungToCsv,
+  einsatzRaster,
   erstelleRaumzuteilung,
   erstelleZip,
   ladeZulassungsBestand,
@@ -21,6 +22,7 @@ import {
   Raum,
   Raumschema,
   raeumeToCsv,
+  raumSchluessel,
   raumschemaDateien,
   schalteReserve,
   schalteVorgabe,
@@ -58,7 +60,7 @@ import {
   Section,
   StatusText,
   useRaumplanEditor,
-  zeileZuRaum,
+  zeilenZuRaeumen,
   type RaumZeile,
   type Verschiebung,
 } from '../components';
@@ -88,10 +90,10 @@ const PLAN_MODI = [
 type PlanModus = (typeof PLAN_MODI)[number]['key'];
 
 /**
- * Ansicht "Räume" – zugleich die Druckvorlage der Aushänge: pro Raum eine
- * Überschrift, der Sitzplan (falls ein Raumschema vorliegt) und die Tabelle
- * `Sitzplatz → Anfang Nachname`. Im Druck beginnt jeder Raum auf einer neuen
- * Seite.
+ * Ansicht "Räume" – zugleich die Druckvorlage der Aushänge: pro Raumeinsatz
+ * eine Überschrift, der Sitzplan (falls ein Raster vorliegt) und die Tabelle
+ * `Sitzplatz → Anfang Nachname`. Im Druck beginnt jeder Aushang auf einer
+ * neuen Seite. `schemata` sind die Raster der Einsätze (`einsatzRaster`).
  */
 function RaumAushaenge({
   sitzplaetze,
@@ -108,20 +110,24 @@ function RaumAushaenge({
   nummern: Map<string, number>;
   drehungen: Record<string, number>;
 }) {
-  const raumNamen = [...new Set(sitzplaetze.map((platz) => platz.raum))];
+  // Ein Aushang je Raumeinsatz: Wird derselbe Raum zweimal geprüft, hängen
+  // dort zwei Listen – auf beiden steht derselbe Raumname, aber die Zeit der
+  // Gruppe und ihre eigenen Sitzplatznummern.
+  const einsaetze = [...new Set(sitzplaetze.map((platz) => platz.raumSchluessel))];
   const personen = new Map(sitzplaetze.map((platz) => [platz.matrikelnummer, platz]));
   return (
     <View style={styles.raumTabellen}>
-      {raumNamen.map((raumName) => {
+      {einsaetze.map((schluessel) => {
         const plaetzeImRaum = sitzplaetze
-          .filter((platz) => platz.raum === raumName)
+          .filter((platz) => platz.raumSchluessel === schluessel)
           .sort((a, b) => a.sitzplatznummer - b.sitzplatznummer);
-        const raum = raeume.find((r) => r.raum === raumName);
+        const raum = raeume.find((r) => raumSchluessel(r) === schluessel);
+        const raumName = raum?.raum ?? plaetzeImRaum[0]?.raum ?? schluessel;
         const kapazitaet = raum ? raum.plaetze : plaetzeImRaum.length;
         const zeit = plaetzeImRaum[0]?.reservierteZeit ?? raum?.reservierteZeit ?? '';
-        const schema = schemata.find((s) => s.raum === raumName);
+        const schema = schemata.find((s) => s.raum === schluessel);
         return (
-          <View key={raumName} style={styles.raumTabelle} {...SEITENUMBRUCH}>
+          <View key={schluessel} style={styles.raumTabelle} {...SEITENUMBRUCH}>
             <Text style={styles.raumUeberschrift}>
               {raumName}
               {zeit ? ` – ${zeit}` : ''} ({plaetzeImRaum.length}/{kapazitaet} Plätze)
@@ -129,8 +135,11 @@ function RaumAushaenge({
             {schema ? (
               <Raumplan
                 schema={schema}
+                schluessel={schluessel}
+                // Gedreht wird die Ansicht des Raums – beide Durchgänge sehen
+                // ihn aus derselben Richtung.
                 drehungen={drehungen[raumName] ?? 0}
-                belegung={belegung.filter((platz) => platz.raum === raumName)}
+                belegung={belegung.filter((platz) => platz.raum === schluessel)}
                 nummern={nummern}
                 personen={personen}
                 anonym
@@ -176,7 +185,10 @@ export function RaumzuteilungScreen() {
   /** Aus den Anmeldungen abgeleitet, wenn keine Teilnehmerliste vorliegt. */
   const [anmeldungen, setAnmeldungen] = useState<AnmeldungsPruefung | null>(null);
   const [quelle, setQuelle] = useState<TeilnehmerQuelle | null>(null);
+  /** Die Räume, die **diese** Klausur benutzt – ein Raum darf mehrfach dabei sein. */
   const [zeilen, setZeilen] = useState<RaumZeile[]>([]);
+  /** Bestand des Hauses (aus `Raeume/`): daraus werden Räume hinzugefügt. */
+  const [katalog, setKatalog] = useState<Raum[]>([]);
   const [fehler, setFehler] = useState<string | null>(null);
   const [hinweis, setHinweis] = useState<string | null>(null);
 
@@ -195,7 +207,6 @@ export function RaumzuteilungScreen() {
   // Sitzplan im Raum.
   const [schemata, setSchemata] = useState<Raumschema[]>([]);
   const [belegung, setBelegung] = useState<Platzbelegung[]>([]);
-  const [drehungen, setDrehungen] = useState<Record<string, number>>({});
   const [planModus, setPlanModus] = useState<PlanModus>('verschieben');
   const [ausgewaehlt, setAusgewaehlt] = useState<{ raum: string; matrikelnummer: string } | null>(null);
   const [ohnePlanPlatz, setOhnePlanPlatz] = useState<Sitzplatz[]>([]);
@@ -222,7 +233,7 @@ export function RaumzuteilungScreen() {
     setBelegung(neu);
   };
 
-  const raeume = zeilen.map(zeileZuRaum);
+  const raeume = zeilenZuRaeumen(zeilen);
 
   /**
    * Teilnehmerliste direkt aus den Anmeldungen übernehmen – wahlweise alle
@@ -250,7 +261,10 @@ export function RaumzuteilungScreen() {
   useEffect(() => {
     if (teilnehmer.length > 0 || zeilen.length > 0 || anmeldungen !== null) return;
     const liste = projekt.datei('teilnehmer');
+    // Bestand des Hauses und – falls schon einmal gespeichert – die Räume
+    // dieser Klausur. Ohne die zweite Datei dient der Bestand als Vorschlag.
     const raumDatei = projekt.datei('raeume');
+    const klausurDatei = projekt.datei('klausurraeume');
     // Je Raum eine Datei: Gelesen werden alle, nicht nur die erste.
     const schemaTexte = projekt
       .dateienMit('raumschema')
@@ -264,7 +278,7 @@ export function RaumzuteilungScreen() {
       .map((datei) => datei.text ?? '')
       .filter((text) => text !== '');
     const ausAnmeldungen = !liste?.text && !!hisDatei?.bytes && bestandTexte.length > 0;
-    if (!liste?.text && !raumDatei?.text && !ausAnmeldungen) return;
+    if (!liste?.text && !raumDatei?.text && !klausurDatei?.text && !ausAnmeldungen) return;
 
     const uebernehmen = async () => {
       if (liste?.text) {
@@ -281,7 +295,11 @@ export function RaumzuteilungScreen() {
         // Sind alle zugelassen, gibt es nichts zu fragen – direkt übernehmen.
         if (pruefung.alleZugelassen) uebernimmAnmeldungen(pruefung, 'anmeldungenAlle');
       }
-      if (raumDatei?.text) setZeilen(parseRaeume(raumDatei.text).map(raumZuZeile));
+      if (raumDatei?.text) setKatalog(parseRaeume(raumDatei.text));
+      // Die Räume dieser Klausur, falls schon einmal gespeichert – sonst
+      // dient der Bestand des Hauses als Vorschlag.
+      const gewaehlt = klausurDatei?.text ?? raumDatei?.text;
+      if (gewaehlt) setZeilen(parseRaeume(gewaehlt).map(raumZuZeile));
       if (schemaTexte.length > 0) uebernehmeSchemata(parseRaumschemaDateien(schemaTexte));
       if (belegungDatei?.text) uebernehmeBelegung(parseBelegung(belegungDatei.text));
     };
@@ -290,10 +308,17 @@ export function RaumzuteilungScreen() {
     );
   }, [projekt, teilnehmer, zeilen, anmeldungen]);
 
-  /** Tischnummern: über alle Räume fortlaufend, in Lesereihenfolge des Rasters. */
+  /**
+   * Zu jedem Raumeinsatz sein Raster. Zwei Durchgänge desselben Raums zeigen
+   * dasselbe Raster – es ist derselbe Raum –, laufen hier aber unter ihrem
+   * eigenen Schlüssel: Belegung und Sitzplatznummern gehören je Durchgang.
+   */
+  const raster = useMemo(() => einsatzRaster(raeume, schemata), [raeume, schemata]);
+
+  /** Tischnummern: über alle Einsätze fortlaufend, in Lesereihenfolge des Rasters. */
   const nummern = useMemo(
-    () => sitzplatznummern(schemata, startnummer ?? 1001),
-    [schemata, startnummer],
+    () => sitzplatznummern(raster, startnummer ?? 1001),
+    [raster, startnummer],
   );
 
   /**
@@ -302,11 +327,11 @@ export function RaumzuteilungScreen() {
    */
   const angezeigteSitzplaetze = useMemo(() => {
     if (sitzplaetze === null) return null;
-    if (schemata.length === 0 || belegung.length === 0) return sitzplaetze;
+    if (raster.length === 0 || belegung.length === 0) return sitzplaetze;
     return sitzplaetzeMitBelegung(sitzplaetze, belegung, nummern);
-  }, [sitzplaetze, schemata, belegung, nummern]);
+  }, [sitzplaetze, raster, belegung, nummern]);
 
-  /** Belegung je Raum – einmal gruppiert, damit `React.memo` in den Zellen greift. */
+  /** Belegung je Einsatz – einmal gruppiert, damit `React.memo` in den Zellen greift. */
   const belegungJeRaum = useMemo(() => {
     const gruppen = new Map<string, Platzbelegung[]>();
     for (const platz of belegung) {
@@ -337,7 +362,9 @@ export function RaumzuteilungScreen() {
   const beispielLaden = () => {
     setFehler(null);
     setTeilnehmer(parseZulassungsliste(BEISPIEL_KLAUSUR_TEILNEHMER));
-    setZeilen(parseRaeume(BEISPIEL_RAEUME).map(raumZuZeile));
+    const bestand = parseRaeume(BEISPIEL_RAEUME);
+    setKatalog(bestand);
+    setZeilen(bestand.map(raumZuZeile));
     uebernehmeSchemata(parseRaumschemaDateien(Object.values(BEISPIEL_RAUMSCHEMATA)));
     uebernehmeBelegung([]);
     setQuelle('beispiel');
@@ -347,21 +374,64 @@ export function RaumzuteilungScreen() {
   const raeumeLaden = async (files: File[]) => {
     setFehler(null);
     try {
-      setZeilen(parseRaeume(await readFileAsText(files[0])).map(raumZuZeile));
+      const geladen = parseRaeume(await readFileAsText(files[0]));
+      setKatalog((alt) => (alt.length === 0 ? geladen : alt));
+      setZeilen(geladen.map(raumZuZeile));
     } catch (e) {
       setFehler(`Räume-CSV konnte nicht gelesen werden: ${String(e)}`);
     }
   };
 
-  /** Schemata für alle Räume sicherstellen – fehlende werden vorgeschlagen. */
-  const schemataFuer = (fuerRaeume: Raum[]): Raumschema[] =>
-    fuerRaeume.map(
-      (raum) =>
-        schemataRef.current.find((s) => s.raum === raum.raum) ??
-        standardRaumschema(raum.raum, raum.plaetze),
-    );
+  /**
+   * Räume, die sich hinzufügen lassen: der Bestand aus `Raeume/` plus jeder
+   * Raum, für den ein Raster vorliegt. Die Plätze kommen aus dem Raster (die
+   * Tische darin), sonst aus dem Bestand.
+   */
+  const verfuegbareRaeume = useMemo(() => {
+    const namen = [
+      ...new Set([...katalog.map((raum) => raum.raum), ...schemata.map((schema) => schema.raum)]),
+    ].filter((name) => name !== '');
+    return namen.map((name) => {
+      const schema = schemata.find((s) => s.raum === name);
+      const bestand = katalog.find((raum) => raum.raum === name);
+      return {
+        raum: name,
+        plaetze: schema ? tischzellen(schema).length : (bestand?.plaetze ?? 0),
+        reservierteZeit: bestand?.reservierteZeit ?? '',
+      };
+    });
+  }, [katalog, schemata]);
 
-  /** Belegung neu aufbauen. `vonVorne` verwirft alles außer Reserven und Vorgaben. */
+  /**
+   * Einen Raum in die Liste dieser Klausur aufnehmen. Ein zweites Mal
+   * derselbe Raum heißt: Er wird zweimal belegt (Gruppe 1 und Gruppe 2) – die
+   * reservierte Zeit unterscheidet die beiden, deshalb steht sie zum Ändern da.
+   */
+  const raumHinzufuegen = (raum: Raum) => {
+    setHinweis(null);
+    setZeilen((alt) => [...alt, raumZuZeile(raum)]);
+  };
+
+  /**
+   * Für jeden benutzten Raum ein Raster sicherstellen – fehlende werden
+   * vorgeschlagen. Die Raster der übrigen Räume bleiben liegen: Sie gehören
+   * zum Bestand und dürfen beim Speichern nicht verschwinden.
+   */
+  const schemataErgaenzen = (fuerRaeume: Raum[]): Raumschema[] => {
+    const fehlende: Raumschema[] = [];
+    for (const raum of fuerRaeume) {
+      if (raum.raum === '') continue;
+      const bekannt = [...schemataRef.current, ...fehlende].some((s) => s.raum === raum.raum);
+      if (!bekannt) fehlende.push(standardRaumschema(raum.raum, raum.plaetze));
+    }
+    return [...schemataRef.current, ...fehlende];
+  };
+
+  /**
+   * Belegung neu aufbauen. `vonVorne` verwirft alles außer Reserven und
+   * Vorgaben. Verteilt wird auf die Raster der **Einsätze**: Zwei Durchgänge
+   * desselben Raums bekommen zwei Belegungen.
+   */
   const belegungAktualisieren = (
     fuerSchemata: Raumschema[],
     fuerSitzplaetze: Sitzplatz[],
@@ -370,7 +440,7 @@ export function RaumzuteilungScreen() {
   ) => {
     const ergebnis = verteileAufRaumschemata(
       fuerSitzplaetze,
-      fuerSchemata,
+      einsatzRaster(raeume, fuerSchemata),
       vonVorne ? ohneFreieBelegung(basis) : basis,
     );
     uebernehmeBelegung(ergebnis.belegung);
@@ -379,9 +449,11 @@ export function RaumzuteilungScreen() {
   };
 
   /**
-   * Schema eines Raums ändern und die Belegung nachziehen. Wandert ein ganzer
+   * Raster eines Raums ändern und die Belegung nachziehen. Wandert ein ganzer
    * Block, wandern die Personen darin mit – sonst stünden die Tische woanders
-   * als ihre Belegung.
+   * als ihre Belegung. Das Raster gehört zum **Raum**, die Belegung zum
+   * **Durchgang**: Wird derselbe Raum zweimal geprüft, ändert sich sein Raster
+   * für beide, und die Personen wandern in jedem Durchgang mit.
    */
   const schemaAendern = (
     raum: string,
@@ -390,15 +462,18 @@ export function RaumzuteilungScreen() {
   ) => {
     const neu = schemataRef.current.map((s) => (s.raum === raum ? aendern(s) : s));
     uebernehmeSchemata(neu);
-    const basisBelegung = verschiebung
-      ? verschiebeBelegung(
-          belegungRef.current,
-          raum,
+    let basisBelegung = belegungRef.current;
+    if (verschiebung) {
+      for (const einsatz of raeume.filter((r) => r.raum === raum)) {
+        basisBelegung = verschiebeBelegung(
+          basisBelegung,
+          raumSchluessel(einsatz),
           verschiebung.bereich,
           verschiebung.dZeile,
           verschiebung.dSpalte,
-        )
-      : belegungRef.current;
+        );
+      }
+    }
     if (sitzplaetze) belegungAktualisieren(neu, sitzplaetze, basisBelegung);
     else uebernehmeBelegung(basisBelegung);
   };
@@ -434,7 +509,7 @@ export function RaumzuteilungScreen() {
     setAnsicht('aushang');
     setAusgewaehlt(null);
 
-    const neueSchemata = schemataFuer(raeume);
+    const neueSchemata = schemataErgaenzen(raeume);
     uebernehmeSchemata(neueSchemata);
     belegungAktualisieren(neueSchemata, ergebnis.sitzplaetze, belegungRef.current, true);
   };
@@ -484,39 +559,43 @@ export function RaumzuteilungScreen() {
     else uebernehmeBelegung(neu);
   };
 
-  /** Zelle im Sitzplan angetippt – was passiert, hängt vom Modus ab. */
-  const zellePress = (schema: Raumschema, zeile: number, spalte: number) => {
+  /**
+   * Zelle im Sitzplan angetippt – was passiert, hängt vom Modus ab. Gemeint
+   * ist immer ein Raum**einsatz**: Reserve, Vorgabe und Platzierung gehören
+   * zum Durchgang, nicht zum Raum.
+   */
+  const zellePress = (schluessel: string, zeile: number, spalte: number) => {
     setHinweis(null);
     if (planModus === 'reserve') {
       editor.merkeStand();
-      belegungSetzen(schalteReserve(belegungRef.current, schema.raum, zeile, spalte));
+      belegungSetzen(schalteReserve(belegungRef.current, schluessel, zeile, spalte));
       return;
     }
     if (planModus === 'vorgabe') {
       editor.merkeStand();
-      uebernehmeBelegung(schalteVorgabe(belegungRef.current, schema.raum, zeile, spalte));
+      uebernehmeBelegung(schalteVorgabe(belegungRef.current, schluessel, zeile, spalte));
       return;
     }
 
     // Platzieren: erst Person wählen, dann Zieltisch.
     const platz = belegungRef.current.find(
-      (b) => b.raum === schema.raum && b.zeile === zeile && b.spalte === spalte,
+      (b) => b.raum === schluessel && b.zeile === zeile && b.spalte === spalte,
     );
     if (!platz) return;
-    if (ausgewaehlt && ausgewaehlt.raum === schema.raum) {
+    if (ausgewaehlt && ausgewaehlt.raum === schluessel) {
       if (platz.matrikelnummer === ausgewaehlt.matrikelnummer) {
         setAusgewaehlt(null);
         return;
       }
       editor.merkeStand();
       belegungSetzen(
-        setzePerson(belegungRef.current, schema.raum, zeile, spalte, ausgewaehlt.matrikelnummer),
+        setzePerson(belegungRef.current, schluessel, zeile, spalte, ausgewaehlt.matrikelnummer),
       );
       setAusgewaehlt(null);
       return;
     }
     if (platz.matrikelnummer !== '') {
-      setAusgewaehlt({ raum: schema.raum, matrikelnummer: platz.matrikelnummer });
+      setAusgewaehlt({ raum: schluessel, matrikelnummer: platz.matrikelnummer });
     }
   };
 
@@ -580,8 +659,9 @@ export function RaumzuteilungScreen() {
     .map((person) => `${person.nachname}, ${person.vorname} (${person.matrikelnummer})`)
     .join('; ');
 
+  // Gezählt werden Einsätze: Wird ein Raum zweimal geprüft, sind das zwei.
   const anzahlRaeume = angezeigteSitzplaetze
-    ? new Set(angezeigteSitzplaetze.map((platz) => platz.raum)).size
+    ? new Set(angezeigteSitzplaetze.map((platz) => platz.raumSchluessel)).size
     : 0;
   const modusHinweis = PLAN_MODI.find((m) => m.key === planModus)?.hinweis ?? '';
 
@@ -644,22 +724,53 @@ export function RaumzuteilungScreen() {
         ) : null}
       </Section>
 
-      <Section title="Räume">
+      <Section title="Räume der Klausur" testID="raum-raeume">
         <Text style={styles.hinweis}>
-          Die Räume selbst und ihre leeren Raster gehören zu keiner einzelnen Klausur – bearbeitet
-          werden sie in Schritt 5, hier stehen sie zum Nachbessern.
+          Die Räume selbst und ihre Raster gehören zu keiner einzelnen Klausur: Sie liegen als
+          Bestand in <Text style={styles.pfad}>Raeume/</Text> und werden in Schritt 5 gepflegt.
+          Hier steht, welche davon <Text style={styles.pfad}>diese</Text> Klausur benutzt.
         </Text>
-        <RaumListe zeilen={zeilen} onChange={setZeilen} />
+        <Text style={styles.hinweis}>
+          Denselben Raum mehrfach hinzufügen heißt: Er wird mehrfach belegt – etwa Gruppe 1
+          vormittags und Gruppe 2 nachmittags. Beide Durchgänge haben dasselbe Raster, aber je
+          eigene Belegung und eigene Sitzplatznummern; auseinander hält sie die reservierte Zeit.
+        </Text>
+        {verfuegbareRaeume.length > 0 ? (
+          <View style={styles.buttonZeile} testID="raum-verfuegbar">
+            <Text style={styles.hinweis}>Hinzufügen:</Text>
+            {verfuegbareRaeume.map((raum) => (
+              <AppButton
+                key={raum.raum}
+                title={`+ ${raum.raum} (${raum.plaetze})`}
+                variant="secondary"
+                onPress={() => raumHinzufuegen(raum)}
+                testID={`raum-hinzufuegen-${raum.raum}`}
+              />
+            ))}
+          </View>
+        ) : null}
+        <RaumListe
+          zeilen={zeilen}
+          onChange={setZeilen}
+          mitDurchgang
+          hinzufuegenTitel="Leere Zeile hinzufügen"
+        />
         <FilePickerButton label="Räume-CSV laden" accept=".csv" onFiles={raeumeLaden} />
+        <ProjektQuelle rolle="klausurraeume" testID="raum-quelle-klausurraeume" />
         <ProjektQuelle rolle="raeume" testID="raum-quelle-raeume" />
         <ProjektQuelle rolle="raumschema" alle testID="raum-quelle-schema" />
         <AppButton
-          title="Räume als CSV speichern"
+          title="Räume der Klausur speichern"
           variant="secondary"
           onPress={() => {
+            // Nicht in `Raeume/`: Dort steht der Bestand des Hauses, hier die
+            // Auswahl für diese eine Klausur (mit ihren Durchgängen).
             const csv = raeumeToCsv(raeume);
-            downloadCsv('raeume.csv', csv);
-            projekt.schreibe('raeume.csv', csv, 'raeume');
+            downloadCsv('klausurraeume.csv', csv);
+            projekt.schreibe('klausurraeume.csv', csv, 'klausurraeume');
+            setHinweis(
+              'Räume der Klausur gespeichert – im Projekt unter 4_Raumzuteilung_Export/klausurraeume.csv.',
+            );
           }}
           testID="raum-speichern"
         />
@@ -704,7 +815,7 @@ export function RaumzuteilungScreen() {
         {hinweis ? <StatusText kind="info">{hinweis}</StatusText> : null}
       </Section>
 
-      {angezeigteSitzplaetze && schemata.length > 0 ? (
+      {angezeigteSitzplaetze && raster.length > 0 ? (
         <Section title="Sitzplan im Raum" testID="raum-sitzplan">
           <Text style={styles.hinweis}>
             Der Sitzplan zeigt, wo im Raum die Tische stehen. Die Sitzplatznummer gehört zum Tisch –
@@ -748,24 +859,35 @@ export function RaumzuteilungScreen() {
               ) : null
             }
           >
-            {schemata.map((schema) => {
+            {/* Ein Plan je Raumeinsatz: Zwei Durchgänge desselben Raums zeigen
+                dasselbe Raster, aber jeder seine eigene Belegung. */}
+            {raeume.map((raum) => {
+              const schema = schemata.find((s) => s.raum === raum.raum);
+              if (!schema) return null;
+              const schluessel = raumSchluessel(raum);
               const tische = tischzellen(schema).length;
               const belegt = belegung.filter(
-                (p) => p.raum === schema.raum && p.matrikelnummer !== '',
+                (p) => p.raum === schluessel && p.matrikelnummer !== '',
               ).length;
-              const reserven = belegung.filter((p) => p.raum === schema.raum && p.reserviert).length;
+              const reserven = belegung.filter((p) => p.raum === schluessel && p.reserviert).length;
               return (
                 <RaumplanKarte
-                  key={schema.raum}
+                  key={schluessel}
                   editor={editor}
                   schema={schema}
+                  schluessel={schluessel}
+                  titel={
+                    (raum.durchgang ?? 1) > 1
+                      ? `${raum.raum} · ${raum.durchgang}. Durchgang`
+                      : raum.raum
+                  }
                   bearbeiten={planModus === 'bearbeiten'}
                   kopfZusatz={`${belegt}/${tische} belegt${reserven > 0 ? `, ${reserven} Reserve` : ''}`}
-                  belegung={belegungJeRaum.get(schema.raum) ?? []}
+                  belegung={belegungJeRaum.get(schluessel) ?? []}
                   nummern={nummern}
                   personen={personenJeMatrikel}
-                  ausgewaehlt={ausgewaehlt?.raum === schema.raum ? ausgewaehlt.matrikelnummer : null}
-                  onZellePress={(zeile, spalte) => zellePress(schema, zeile, spalte)}
+                  ausgewaehlt={ausgewaehlt?.raum === schluessel ? ausgewaehlt.matrikelnummer : null}
+                  onZellePress={(zeile, spalte) => zellePress(schluessel, zeile, spalte)}
                 />
               );
             })}
@@ -889,10 +1011,13 @@ export function RaumzuteilungScreen() {
               <RaumAushaenge
                 sitzplaetze={angezeigteSitzplaetze}
                 raeume={raeume}
-                schemata={schemata}
+                schemata={raster}
                 belegung={belegung}
                 nummern={nummern}
-                drehungen={drehungen}
+                // Gedreht wird im Editor je Raum; der Aushang zeigt ihn aus
+                // derselben Richtung – sonst stünde auf dem Papier ein anderer
+                // Raum als auf dem Bildschirm.
+                drehungen={editor.drehungen}
               />
             </View>
           ) : null}
@@ -949,4 +1074,5 @@ const styles = StyleSheet.create({
   raumTabelle: { gap: spacing.xs },
   raumUeberschrift: { fontSize: 15, fontWeight: '600', color: colors.text },
   hinweis: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
+  pfad: { fontWeight: '600', color: colors.text },
 });

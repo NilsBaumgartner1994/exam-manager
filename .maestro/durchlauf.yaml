@@ -73,6 +73,10 @@ url: http://localhost:8081
 - tapOn: '4. Raumzuteilung & Sitzplan'
 - tapOn: 'Beispieldaten laden'
 - assertVisible: 'Beispieldaten geladen.'
+# Welche Räume die Klausur benutzt, steht hier – aus dem Bestand in Raeume/
+# ausgewählt; derselbe Raum darf mehrfach dabei sein (zwei Durchgänge).
+- scrollUntilVisible:
+    element: 'Räume der Klausur'
 - scrollUntilVisible:
     element: 'Zuteilung erstellen'
 - tapOn: 'Zuteilung erstellen'
@@ -83,7 +87,8 @@ url: http://localhost:8081
     element: 'Aushang'
 - tapOn: 'Dozent'
 - tapOn: 'Tutor'
-- tapOn: 'Räume'
+- tapOn:
+    id: 'raum-ansicht-raeume'
 - tapOn: 'Aushang'
 - scrollUntilVisible:
     element: 'Sitzplan-CSV herunterladen'
@@ -98,6 +103,10 @@ url: http://localhost:8081
 - scrollUntilVisible:
     element: 'Raumpläne'
 - assertVisible: 'Elemente'
+# Bearbeitet wird ein Raum nach dem anderen – oben steht die Auswahl.
+- tapOn:
+    id: 'raeume-waehlen-66/E33'
+- assertVisible: 'Raster 19 Spalten'
 - scrollUntilVisible:
     element: 'Räume als CSV speichern'
 - tapOn: 'Räume als CSV speichern'

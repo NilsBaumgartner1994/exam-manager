@@ -18,6 +18,7 @@ export {
   RaumListe,
   raumZuZeile,
   zeileZuRaum,
+  zeilenZuRaeumen,
   type RaumZeile,
 } from './RaumListe';
 export {

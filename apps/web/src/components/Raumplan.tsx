@@ -39,6 +39,13 @@ export type PlanWerkzeug = 'auswahl' | 'aufziehen' | 'malen';
 
 interface Props {
   schema: Raumschema;
+  /**
+   * Schlüssel des Raumeinsatzes für Belegung und Sitzplatznummern
+   * (`raumSchluessel`) – ohne Angabe der Raumname. Zwei Durchgänge desselben
+   * Raums zeigen dasselbe Raster, haben aber je eigene Belegung: Das Raster
+   * gehört zum Raum, die Belegung zum Durchgang.
+   */
+  schluessel?: string;
   /** Anzahl der 90°-Drehungen der Ansicht (0–3). Dreht nur die Darstellung. */
   drehungen: number;
   /** Belegung dieses Raums. */
@@ -227,6 +234,7 @@ type Rastermasse = ReturnType<typeof rastermasse>;
  */
 export function Raumplan({
   schema,
+  schluessel,
   drehungen,
   belegung,
   nummern,
@@ -262,6 +270,9 @@ export function Raumplan({
     zugRef.current = neu;
     setZug(neu);
   };
+
+  /** Woran Belegung und Nummern hängen (Durchgang), nicht am Raster (Raum). */
+  const belegSchluessel = schluessel ?? schema.raum;
 
   const raster = useMemo(() => anzeigeRaster(schema, drehungen), [schema, drehungen]);
   const spaltenAnzahl = raster[0]?.length ?? 0;
@@ -517,7 +528,7 @@ export function Raumplan({
             {raster.map((zeile, z) => (
               <View key={z} style={[styles.zeile, { gap: abstand }]}>
                 {zeile.map((zelle, s) => {
-                  const schluessel = platzSchluessel(schema.raum, zelle.zeile, zelle.spalte);
+                  const platz = platzSchluessel(belegSchluessel, zelle.zeile, zelle.spalte);
                   return (
                     <Zelle
                       key={s}
@@ -525,8 +536,8 @@ export function Raumplan({
                       spalte={s}
                       zelle={zelle}
                       masse={masse}
-                      platz={belegungJePlatz.get(schluessel)}
-                      nummer={nummern.get(schluessel)}
+                      platz={belegungJePlatz.get(platz)}
+                      nummer={nummern.get(platz)}
                       personen={personen}
                       ausgewaehlt={ausgewaehlt ?? null}
                       anonym={anonym ?? false}
@@ -546,7 +557,9 @@ export function Raumplan({
                         auswahlAnzeige.spalte + auswahlAnzeige.breite - 1 === s
                       }
                       interaktiv={!!onZellePress || !!bearbeiten}
-                      datenSchluessel={schluessel}
+                      // Am `data-zelle` findet die Palette ihr Ziel – dort
+                      // zählt der Raum, denn bearbeitet wird sein Raster.
+                      datenSchluessel={platzSchluessel(schema.raum, zelle.zeile, zelle.spalte)}
                       onPointerDown={zellDown}
                       onGriffPointerDown={griffDown}
                     />

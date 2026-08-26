@@ -177,6 +177,26 @@ Konventionen des Datensatzes:
   Projektordner liegen sie in `Raeume/`, außerhalb der nummerierten
   Schritt-Ordner. Screen 5 (`RaeumeScreen`) bearbeitet sie für sich, Screen 4
   legt die Belegung darüber.
+- **Bestand und Benutzung sind zwei Listen.** `Raeume/raeume.csv` ist der
+  Bestand des Hauses (jeder Raum einmal), `4_Raumzuteilung_Export/klausurraeume.csv`
+  (Rolle `klausurraeume`) die Räume **dieser** Klausur. Dort darf derselbe Raum
+  mehrfach stehen: Dann wird er mehrfach belegt (Gruppe 1 vormittags, Gruppe 2
+  nachmittags). Der wievielte Einsatz das ist, steht nicht in der Datei –
+  `parseRaeume` zählt die Wiederholungen beim Einlesen durch (`Raum.durchgang`),
+  die Reihenfolge der Zeilen ist also bedeutungstragend.
+- **Was am Raum hängt und was am Durchgang:** Das Raster gehört zum Raum (ein
+  Umbau gilt für beide Durchgänge), Belegung und Sitzplatznummern gehören zum
+  Durchgang. Angesprochen wird ein Einsatz über `raumSchluessel(raum)` –
+  `01/E01` bzw. `01/E01 (2. Durchgang)`. Der Schlüssel steht in
+  `Platzbelegung.raum`, in `Sitzplatz.raumSchluessel` und als Name der Raster
+  aus `einsatzRaster(raeume, schemata)`; `Sitzplatz.raum` bleibt der Raumname,
+  denn der steht auf Aushang und PDF. Wer im Screen etwas an der Belegung tut,
+  nimmt den Schlüssel; wer am Raster arbeitet, den Raumnamen (`RaumplanKarte`
+  bekommt beides: `schema` den Raum, `schluessel` den Einsatz).
+- **Screen 5 zeigt genau einen Raum.** Über den Plänen steht die Raumliste als
+  Knopfreihe; gezeichnet wird nur der gewählte. Fünf Pläne nebeneinander –
+  darunter ein Hörsaal mit 44 × 32 Feldern – sind weder zu überblicken noch
+  flüssig zu rendern. Gespeichert werden weiterhin alle Räume.
 - Damit beide dasselbe tun, liegt das Bearbeiten in Bausteinen und nicht in
   einem der Screens: `components/RaumListe.tsx` (die Raumliste als Formular)
   und `components/RaumplanEditor.tsx` (`useRaumplanEditor` mit Werkzeug,

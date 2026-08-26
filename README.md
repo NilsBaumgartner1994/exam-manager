@@ -98,7 +98,7 @@ Alle CSV-Dateien: Trennzeichen `;`, UTF-8, Zeilenende `\n`.
 | Anmeldungen (`check.csv`) | `Nachname;Vorname;Matrikelnummer` (ohne Kopfzeile) |
 | VIPS-Notenliste | `Nachname;Vorname;Kennung;Matrikelnr.;<Aufgabenblatt …>;Summe` (Zeile 2 = Maximalpunktzahl, Datei mit BOM) |
 | Stud.IP-Export | `Status;Anrede;Titel;Vorname;Nachname;…;E-Mail;Anmeldedatum;Matrikelnummer;Studiengänge;Position` (alle Felder in `"`) |
-| Raumliste | `Raum;Plätze;ReservierteZeit` |
+| Raumliste | `Raum;Plätze;ReservierteZeit`. In `Raeume/raeume.csv` steht der Bestand des Hauses (jeder Raum einmal), in `4_Raumzuteilung_Export/klausurraeume.csv` die Räume **dieser** Klausur – dort darf ein Raum mehrfach stehen, dann wird er mehrfach belegt (Gruppe 1 / Gruppe 2) |
 | Raumschema (je Raum eine Datei, `94_E01.csv`) | Raster statt Kopfzeile: `Raum;<Name>` beginnt einen Raum, jede weitere Zeile ist eine Reihe im Raum. Zellen: `T` Sitzplatz (Tisch für Studierende), `P` Pult (Tisch ohne Sitzplatz), `D` Tür, `W` Wand, `.` frei. Freier Text über verbundenen Zellen steht in eigenen Zeilen: `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>` – er liegt über dem Raster, die Zellen darunter bleiben erhalten |
 | Raumbelegung (`raumbelegung.csv`) | `Raum;Zeile;Spalte;Sitzplatznummer;Matrikelnummer;Nachname;Vorname;Reserviert;Vorgabe` (Sitzplatznummer, Nachname und Vorname stehen nur zur Lesbarkeit darin und werden beim Einlesen ignoriert) |
 
@@ -210,7 +210,7 @@ optionalen **Projektordner**:
    Raeume/                                *.csv               raeume.csv + je Raum ein Raster (blanko)
    2_Zulassungs_PDFs_Export/              *.pdf               erzeugte Zulassungs-PDFs (Schritt 2)
    3_Klausur_Teilnehmende_Export/         *.csv               Angemeldete mit/ohne Zulassung (Schritt 3, optional)
-   4_Raumzuteilung_Export/                *.csv               Sitzplan und Belegung (Schritt 4)
+   4_Raumzuteilung_Export/                *.csv               Räume dieser Klausur, Sitzplan, Belegung (Schritt 4)
    ```
 
    Die `0_Input_…`-Ordner nehmen auf, was von außen kommt; die nummerierten
@@ -255,8 +255,9 @@ Und die vier Schritte selbst:
    Zulassungsbestand prüfen; Zugelassene/Nicht-Zugelassene anzeigen und als
    CSV herunterladen. Der Export ist nur für den Klausurdruck nötig – Schritt 4
    kommt auch ohne ihn aus (siehe dort).
-4. **Raumzuteilung & Sitzplan** – Teilnehmer-CSV aus Schritt 3 laden, Räume
-   modellieren (und als Blanko-CSVs speichern), Sitzplätze ab Startnummer
+4. **Raumzuteilung & Sitzplan** – Teilnehmende aus Schritt 3 (oder aus den
+   Anmeldungen selbst, siehe unten), die Räume dieser Klausur
+   zusammenstellen, Sitzplätze ab Startnummer
    (Default 1001) vergeben; Ansichten: Aushang (anonym), Dozent (nach
    Sitzplatz), Tutor (nach Nachname), Räume/Aushänge je Raum; Export als CSV,
    Sitzplatz-PDFs (ZIP) und alle Aushänge als PDF über den Druckdialog.
@@ -270,6 +271,18 @@ Und die vier Schritte selbst:
    alle Anmeldungen verwenden – oder doch eine eigene Teilnehmer-CSV auswählen.
    Die E-Mail-Adressen kommen dabei aus dem Zulassungsbestand; der HIS-Export
    hat keine.
+
+   **Räume der Klausur:** Der Bestand des Hauses steht in `Raeume/` (Schritt 5)
+   und gilt für jedes Jahr. Hier wird ausgewählt, welche dieser Räume die
+   Klausur benutzt: ein Klick auf `+ 01/E01` nimmt den Raum auf, Plätze und
+   reservierte Zeit lassen sich danach ändern. **Denselben Raum mehrfach
+   hinzufügen heißt: Er wird mehrfach belegt** – etwa Gruppe 1 vormittags und
+   Gruppe 2 nachmittags. Jeder dieser Durchgänge bekommt einen eigenen
+   Sitzplan, eine eigene Belegung und eigene Sitzplatznummern; das Raster
+   teilen sie sich, denn es ist derselbe Raum. Auseinander hält sie die
+   reservierte Zeit, die auf Aushang und PDF neben dem Raumnamen steht. Die
+   Liste landet als `klausurraeume.csv` in `4_Raumzuteilung_Export/` – nicht in
+   `Raeume/`, denn sie gilt nur für diese eine Klausur.
 
    **Sitzplan im Raum:** Zu jedem Raum lässt sich ein Raster hinterlegen, das
    den Aufbau des Raumes abbildet – wo Tische stehen, wo Tür, Wand und Pult
@@ -339,8 +352,15 @@ Und die vier Schritte selbst:
    die einzelne Klausur – derselbe Hörsaal wird jedes Semester wieder
    gebraucht, sein Grundriss ändert sich fast nie –, deshalb liegen Raumliste
    und Raster im Projektordner zusammen in `Raeume/`, außerhalb der
-   nummerierten Schritt-Ordner. Schritt 4 nimmt sie von dort als Vorlage und
-   legt nur noch die Belegung darüber.
+   nummerierten Schritt-Ordner. Hier steht der **Bestand des Hauses**; welche
+   davon eine Klausur benutzt (und ob mehrfach), entscheidet Schritt 4 und legt
+   nur noch die Belegung darüber.
+
+   **Bearbeitet wird ein Raum nach dem anderen:** Über den Plänen steht die
+   Liste der Räume (in Klammern ihre Sitzplätze) – der angeklickte ist zu sehen
+   und zu bearbeiten. Nebeneinander wären ein Hörsaal mit 44 × 32 Feldern und
+   vier weitere Räume nicht zu überblicken. Gespeichert werden trotzdem immer
+   alle Räume, je Raum eine Datei.
 
    Der Editor ist derselbe wie in Schritt 4 (Palette, verbundene Zellen,
    Ansicht/Zoom, Rückgängig, Drehen); dazu kommen:

@@ -63,8 +63,10 @@ EXPORT_ORDNER = {
         "Zulassungsbestand und fragt nach, falls jemand ohne Zulassung dabei ist.\n"
     ),
     "4_Raumzuteilung_Export": (
-        "Hier legt Schritt 4 den Sitzplan und die Raumbelegung dieser Klausur ab.\n"
-        "Die leeren Raumraster bleiben in `Raeume/` – sie gelten für jedes Jahr.\n"
+        "Hier legt Schritt 4 ab, was zu dieser einen Klausur gehört: die Räume, die sie\n"
+        "benutzt (`klausurraeume.csv` – ein Raum darf mehrfach darin stehen, dann wird er\n"
+        "mehrfach belegt), den Sitzplan und die Raumbelegung.\n\n"
+        "Der Bestand des Hauses bleibt in `Raeume/` – er gilt für jedes Jahr.\n"
     ),
 }
 
@@ -87,7 +89,7 @@ als „nicht zugeordnet“ an und rührt es nicht an.
 | Raeume/ | *.csv | Raumliste und je Raum ein leeres Raster, jedes Jahr wiederverwendbar |
 | 2_Zulassungs_PDFs_Export/ | *.pdf | erzeugte Zulassungs-PDFs (Schritt 2) |
 | 3_Klausur_Teilnehmende_Export/ | *.csv | Angemeldete mit und ohne Zulassung (Schritt 3, optional) |
-| 4_Raumzuteilung_Export/ | *.csv | Sitzplan und Raumbelegung (Schritt 4) |
+| 4_Raumzuteilung_Export/ | *.csv | Räume dieser Klausur, Sitzplan, Belegung (Schritt 4) |
 
 Die Export-Ordner füllt die App. Der Browser darf nicht auf die Festplatte
 zurückschreiben – deshalb gibt es auf jedem Screen „Aktualisiertes Projekt

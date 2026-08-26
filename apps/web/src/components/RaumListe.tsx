@@ -1,5 +1,5 @@
-import { StyleSheet, TextInput, View } from 'react-native';
-import { Raum } from '@exam-manager/core';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { mitDurchgaengen, Raum } from '@exam-manager/core';
 import { useResponsiveLayout } from '../responsive';
 import { colors, radius, spacing } from '../theme';
 import { AppButton } from './AppButton';
@@ -31,6 +31,28 @@ export function zeileZuRaum(zeile: RaumZeile): Raum {
 }
 
 export const LEERE_RAUM_ZEILE: RaumZeile = { raum: '', plaetzeText: '', reservierteZeit: '' };
+
+/**
+ * Die Zeilen als Räume – mit durchgezählten Durchgängen. Derselbe Raum darf
+ * mehrfach in der Liste stehen: Dann wird er in dieser Klausur mehrfach
+ * belegt (Gruppe 1 vormittags, Gruppe 2 nachmittags).
+ */
+export function zeilenZuRaeumen(zeilen: RaumZeile[]): Raum[] {
+  return mitDurchgaengen(zeilen.map(zeileZuRaum));
+}
+
+/** Der wievielte Eintrag dieses Raums die Zeile ist (1-basiert). */
+function durchgangDerZeile(zeilen: RaumZeile[], index: number): number {
+  const name = zeilen[index].raum.trim();
+  return zeilen.slice(0, index + 1).filter((zeile) => zeile.raum.trim() === name).length;
+}
+
+/** Kommt der Raum dieser Zeile mehrfach in der Liste vor? */
+function mehrfach(zeilen: RaumZeile[], index: number): boolean {
+  const name = zeilen[index].raum.trim();
+  if (name === '') return false;
+  return zeilen.filter((zeile) => zeile.raum.trim() === name).length > 1;
+}
 
 /** Eine Eingabezeile des Raum-Editors. */
 function RaumEditorZeile({
@@ -81,6 +103,12 @@ interface Props {
   onChange: (zeilen: RaumZeile[]) => void;
   /** Beschriftung des Knopfes zum Anlegen – je nach Screen anders formuliert. */
   hinzufuegenTitel?: string;
+  /**
+   * Denselben Raum mehrfach eintragen ist erlaubt und benannt den Durchgang
+   * („2. Durchgang“). Nur in Schritt 4 sinnvoll: Im Bestand des Hauses
+   * (Schritt 5) gibt es jeden Raum genau einmal.
+   */
+  mitDurchgang?: boolean;
   testIDPrefix?: string;
 }
 
@@ -90,17 +118,29 @@ interface Props {
  * eine konkrete Klausur, Schritt 5 losgelöst davon –, deshalb liegt sie hier
  * als Baustein und nicht in einem der beiden.
  */
-export function RaumListe({ zeilen, onChange, hinzufuegenTitel = 'Raum hinzufügen', testIDPrefix = 'raum' }: Props) {
+export function RaumListe({
+  zeilen,
+  onChange,
+  hinzufuegenTitel = 'Raum hinzufügen',
+  mitDurchgang,
+  testIDPrefix = 'raum',
+}: Props) {
   return (
     <>
       {zeilen.map((zeile, i) => (
-        <RaumEditorZeile
-          key={i}
-          zeile={zeile}
-          onChange={(neu) => onChange(zeilen.map((alt, j) => (j === i ? neu : alt)))}
-          onRemove={() => onChange(zeilen.filter((_, j) => j !== i))}
-          testID={`${testIDPrefix}-zeile-${i}`}
-        />
+        <View key={i} style={styles.eintrag}>
+          {mitDurchgang && mehrfach(zeilen, i) ? (
+            <Text style={styles.durchgang} testID={`${testIDPrefix}-durchgang-${i}`}>
+              {`${durchgangDerZeile(zeilen, i)}. Durchgang`}
+            </Text>
+          ) : null}
+          <RaumEditorZeile
+            zeile={zeile}
+            onChange={(neu) => onChange(zeilen.map((alt, j) => (j === i ? neu : alt)))}
+            onRemove={() => onChange(zeilen.filter((_, j) => j !== i))}
+            testID={`${testIDPrefix}-zeile-${i}`}
+          />
+        </View>
       ))}
       <AppButton
         title={hinzufuegenTitel}
@@ -112,6 +152,8 @@ export function RaumListe({ zeilen, onChange, hinzufuegenTitel = 'Raum hinzufüg
 }
 
 const styles = StyleSheet.create({
+  eintrag: { gap: 2 },
+  durchgang: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
   raumZeile: {
     flexDirection: 'row',
     flexWrap: 'wrap',

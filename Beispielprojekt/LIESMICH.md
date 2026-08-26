@@ -17,7 +17,7 @@ als „nicht zugeordnet“ an und rührt es nicht an.
 | Raeume/ | *.csv | Raumliste und je Raum ein leeres Raster, jedes Jahr wiederverwendbar |
 | 2_Zulassungs_PDFs_Export/ | *.pdf | erzeugte Zulassungs-PDFs (Schritt 2) |
 | 3_Klausur_Teilnehmende_Export/ | *.csv | Angemeldete mit und ohne Zulassung (Schritt 3, optional) |
-| 4_Raumzuteilung_Export/ | *.csv | Sitzplan und Raumbelegung (Schritt 4) |
+| 4_Raumzuteilung_Export/ | *.csv | Räume dieser Klausur, Sitzplan, Belegung (Schritt 4) |
 
 Die Export-Ordner füllt die App. Der Browser darf nicht auf die Festplatte
 zurückschreiben – deshalb gibt es auf jedem Screen „Aktualisiertes Projekt

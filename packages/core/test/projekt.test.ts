@@ -75,6 +75,16 @@ describe('Projektordner: Dateien erkennen', () => {
     expect(erkenneRolle('Raeume/x.csv', 'Raum;94/E01')).toBe('raumschema');
   });
 
+  it('erkennt die Räume dieser Klausur im Export-Ordner', () => {
+    // Dieselbe Kopfzeile, zwei Bedeutungen: In `Raeume/` steht der Bestand des
+    // Hauses, im Export-Ordner die Räume dieser einen Klausur.
+    expect(erkenneRolle('4_Raumzuteilung_Export/klausurraeume.csv', 'Raum;Plätze;ReservierteZeit')).toBe(
+      'klausurraeume',
+    );
+    expect(erkenneRolle('Raeume/raeume.csv', 'Raum;Plätze;ReservierteZeit')).toBe('raeume');
+    expect(PROJEKT_ORDNER.klausurraeume).toBe('4_Raumzuteilung_Export');
+  });
+
   it('unterscheidet Sitzplan und Belegung im Export-Ordner an der Kopfzeile', () => {
     expect(erkenneRolle('4_Raumzuteilung_Export/x.csv', 'Raum;Zeile;Spalte;Sitzplatznummer')).toBe(
       'raumbelegung',

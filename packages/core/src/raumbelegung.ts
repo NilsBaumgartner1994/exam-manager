@@ -18,9 +18,15 @@
  */
 import { parseCsvObjects, toCsv } from './csv';
 import { Bereich, imBereich, Raumschema, tischzellen } from './raumschema';
-import { Sitzplatz } from './types';
+import { raumSchluessel } from './raumzuteilung';
+import { Raum, Sitzplatz } from './types';
 
 export interface Platzbelegung {
+  /**
+   * Schlüssel des Raumeinsatzes (`raumSchluessel`), nicht bloß der Raumname:
+   * Wird derselbe Raum zweimal geprüft, hat jeder Durchgang seine eigene
+   * Belegung.
+   */
   raum: string;
   zeile: number;
   spalte: number;
@@ -32,7 +38,22 @@ export interface Platzbelegung {
   vorgabe: boolean;
 }
 
-/** Schlüssel eines Platzes (Raum + Rasterposition). */
+/**
+ * Zu jedem Raumeinsatz sein Raster. Zwei Durchgänge desselben Raums teilen
+ * sich das Raster – es ist ja derselbe Raum –, laufen hier aber unter ihrem
+ * eigenen Schlüssel: Belegung und Sitzplatznummern gehören je Durchgang.
+ * Räume ohne Raster fallen weg.
+ */
+export function einsatzRaster(raeume: Raum[], schemata: Raumschema[]): Raumschema[] {
+  const raster: Raumschema[] = [];
+  for (const raum of raeume) {
+    const schema = schemata.find((s) => s.raum === raum.raum);
+    if (schema) raster.push({ ...schema, raum: raumSchluessel(raum) });
+  }
+  return raster;
+}
+
+/** Schlüssel eines Platzes (Raumeinsatz + Rasterposition). */
 export function platzSchluessel(raum: string, zeile: number, spalte: number): string {
   return `${raum}|${zeile}|${spalte}`;
 }
@@ -105,7 +126,9 @@ export function verteileImRaum(
 
 /**
  * Alle Räume verteilen. `sitzplaetze` stammt aus `erstelleRaumzuteilung` und
- * legt fest, wer in welchen Raum kommt; das Schema legt fest, wo.
+ * legt fest, wer in welchen Raumeinsatz kommt; das Schema legt fest, wo.
+ * Die Raster kommen aus `einsatzRaster` und tragen deshalb den Schlüssel des
+ * Einsatzes als Namen – zwei Durchgänge desselben Raums sind zwei Raster.
  */
 export function verteileAufRaumschemata(
   sitzplaetze: Sitzplatz[],
@@ -116,7 +139,7 @@ export function verteileAufRaumschemata(
   const ohnePlatz: Sitzplatz[] = [];
 
   for (const schema of schemata) {
-    const imRaum = sitzplaetze.filter((platz) => platz.raum === schema.raum);
+    const imRaum = sitzplaetze.filter((platz) => platz.raumSchluessel === schema.raum);
     const ergebnis = verteileImRaum(schema, imRaum.map((p) => p.matrikelnummer), bestehend);
     belegung.push(...ergebnis.belegung);
     for (const nummer of ergebnis.ohnePlatz) {
@@ -128,7 +151,7 @@ export function verteileAufRaumschemata(
   // Personen in Räumen ohne Schema gelten als nicht platziert.
   const bekannteRaeume = new Set(schemata.map((s) => s.raum));
   for (const platz of sitzplaetze) {
-    if (!bekannteRaeume.has(platz.raum)) ohnePlatz.push(platz);
+    if (!bekannteRaeume.has(platz.raumSchluessel)) ohnePlatz.push(platz);
   }
 
   return { belegung, ohnePlatz };

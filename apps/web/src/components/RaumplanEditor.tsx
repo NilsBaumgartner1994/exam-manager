@@ -646,36 +646,40 @@ function VollbildRahmen({
   const { ansicht } = editor;
   return (
     <View style={styles.vollbild} testID="raum-vollbild">
+      {/*
+        Eine einzige umbrechende Zeile – Titel, Werkzeuge und der Weg hinaus in
+        derselben. Jedes Stück nimmt genau seine Breite und rückt in die Zeile
+        davor, wenn es dort noch passt. Lag der Knopf daneben in einem eigenen
+        Kasten, fehlte **jeder** Zeile dessen Breite, und rechts blieb Platz
+        liegen. `marginLeft: auto` schiebt ihn ans rechte Ende seiner Zeile –
+        passt alles nebeneinander, steht er wie erwartet oben rechts.
+      */}
       <View style={styles.vollbildLeiste}>
-        {/* Alle Werkzeuge stehen da; passt eine Zeile nicht, wird die Leiste
-            höher. Zur Seite geschoben wären die hinteren nicht zu finden. */}
-        <View style={styles.leisteWerkzeuge}>
-          <Text style={styles.vollbildTitel}>{titel}</Text>
-          {bearbeiten
-            ? PALETTE.map((eintrag) => (
-                <PaletteElement
-                  key={eintrag.werkzeug}
-                  titel={eintrag.titel}
-                  kompakt
-                  aktiv={editor.werkzeug === eintrag.werkzeug}
-                  onTippen={() => editor.setzeWerkzeug(eintrag.werkzeug)}
-                  onZiehen={editor.paletteZiehen}
-                  onAblegen={editor.paletteAblegen(eintrag.werkzeug)}
-                  testID={`raum-vollbild-zelle-${eintrag.werkzeug}`}
-                />
-              ))
-            : null}
-          {werkzeugKnoepfe}
+        <Text style={styles.vollbildTitel}>{titel}</Text>
+        {bearbeiten
+          ? PALETTE.map((eintrag) => (
+              <PaletteElement
+                key={eintrag.werkzeug}
+                titel={eintrag.titel}
+                kompakt
+                aktiv={editor.werkzeug === eintrag.werkzeug}
+                onTippen={() => editor.setzeWerkzeug(eintrag.werkzeug)}
+                onZiehen={editor.paletteZiehen}
+                onAblegen={editor.paletteAblegen(eintrag.werkzeug)}
+                testID={`raum-vollbild-zelle-${eintrag.werkzeug}`}
+              />
+            ))
+          : null}
+        {werkzeugKnoepfe}
+        <View style={styles.leisteEnde}>
+          <AppButton
+            title="⤢ Vollbild aus"
+            variant="secondary"
+            kompakt
+            onPress={() => editor.setzeVollbild(null)}
+            testID="raum-vollbild-aus"
+          />
         </View>
-        {/* Der Weg hinaus bleibt oben rechts stehen, auch wenn davor umbrochen
-            wird – dort sucht man ihn. */}
-        <AppButton
-          title="⤢ Vollbild aus"
-          variant="secondary"
-          kompakt
-          onPress={() => editor.setzeVollbild(null)}
-          testID="raum-vollbild-aus"
-        />
       </View>
 
       {/* Alles dazwischen gehört dem Plan. */}
@@ -778,10 +782,14 @@ export function RaumplanKarte({
   /** Was im Vollbild zwischen Kopf- und Fußleiste übrig bleibt. */
   const [planHoehe, setzePlanHoehe] = useState(0);
 
-  const ueberschrift = `${titel ?? schema.raum}${kopfZusatz ? ` (${kopfZusatz})` : ''}`;
+  const name = titel ?? schema.raum;
+  const ueberschrift = `${name}${kopfZusatz ? ` (${kopfZusatz})` : ''}`;
   const rasterText = `Raster ${schema.zellen[0]?.length ?? 0} Spalten × ${schema.zellen.length} Zeilen · ${tischzellen(schema).length} Sitzplätze${
     auswahl ? ` · Auswahl ${bereichName(anzeigeBereich(auswahl, schema, drehungen))}` : ''
   }`;
+  // Oben in der Leiste zählt jeder Millimeter: Dort steht nur der Raum, alles
+  // Weitere (Plätze, Belegung, Raster, Auswahl) unten in der Fußzeile.
+  const fussText = `${kopfZusatz ? `${kopfZusatz} · ` : ''}${rasterText}`;
 
   const plan = (hoehe?: number) => (
     <Raumplan
@@ -887,8 +895,8 @@ export function RaumplanKarte({
     imVollbild ? (
       <VollbildRahmen
         editor={editor}
-        titel={ueberschrift}
-        rasterText={rasterText}
+        titel={name}
+        rasterText={fussText}
         bearbeiten={bearbeiten}
         werkzeugKnoepfe={werkzeugKnoepfe}
         onHoehe={setzePlanHoehe}
@@ -1105,31 +1113,22 @@ const styles = StyleSheet.create({
   vollbildLeiste: {
     flexShrink: 0,
     flexDirection: 'row',
-    // Oben ausgerichtet: Bricht die Werkzeugleiste um, bleibt der Knopf rechts
-    // in der ersten Zeile stehen, statt in die Mitte zu rutschen.
-    alignItems: 'flex-start',
-    gap: spacing.sm,
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.xs,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  /** Alle Werkzeuge nebeneinander – und in der nächsten Zeile weiter. */
-  leisteWerkzeuge: {
-    flexGrow: 1,
-    flexShrink: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
+  /** Schiebt den Knopf ans rechte Ende seiner Zeile. */
+  leisteEnde: { marginLeft: 'auto' },
   vollbildTitel: {
     fontSize: 14,
     fontWeight: '700',
     color: colors.text,
-    paddingRight: spacing.sm,
+    paddingRight: spacing.xs,
     // Auf dem Handy weicht der Name zuerst: Die Werkzeuge sind wichtiger.
     flexShrink: 1,
   },

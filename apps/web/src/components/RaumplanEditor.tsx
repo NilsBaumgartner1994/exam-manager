@@ -1,5 +1,5 @@
 import { MutableRefObject, ReactNode, useEffect, useRef, useState } from 'react';
-import { LayoutChangeEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import {
   anzeigeBereich,
   Bereich,
@@ -647,26 +647,28 @@ function VollbildRahmen({
   return (
     <View style={styles.vollbild} testID="raum-vollbild">
       <View style={styles.vollbildLeiste}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.leisteScroller}>
-          <View style={styles.leisteZeile}>
-            <Text style={styles.vollbildTitel}>{titel}</Text>
-            {bearbeiten
-              ? PALETTE.map((eintrag) => (
-                  <PaletteElement
-                    key={eintrag.werkzeug}
-                    titel={eintrag.titel}
-                    kompakt
-                    aktiv={editor.werkzeug === eintrag.werkzeug}
-                    onTippen={() => editor.setzeWerkzeug(eintrag.werkzeug)}
-                    onZiehen={editor.paletteZiehen}
-                    onAblegen={editor.paletteAblegen(eintrag.werkzeug)}
-                    testID={`raum-vollbild-zelle-${eintrag.werkzeug}`}
-                  />
-                ))
-              : null}
-            {werkzeugKnoepfe}
-          </View>
-        </ScrollView>
+        {/* Alle Werkzeuge stehen da; passt eine Zeile nicht, wird die Leiste
+            höher. Zur Seite geschoben wären die hinteren nicht zu finden. */}
+        <View style={styles.leisteWerkzeuge}>
+          <Text style={styles.vollbildTitel}>{titel}</Text>
+          {bearbeiten
+            ? PALETTE.map((eintrag) => (
+                <PaletteElement
+                  key={eintrag.werkzeug}
+                  titel={eintrag.titel}
+                  kompakt
+                  aktiv={editor.werkzeug === eintrag.werkzeug}
+                  onTippen={() => editor.setzeWerkzeug(eintrag.werkzeug)}
+                  onZiehen={editor.paletteZiehen}
+                  onAblegen={editor.paletteAblegen(eintrag.werkzeug)}
+                  testID={`raum-vollbild-zelle-${eintrag.werkzeug}`}
+                />
+              ))
+            : null}
+          {werkzeugKnoepfe}
+        </View>
+        {/* Der Weg hinaus bleibt oben rechts stehen, auch wenn davor umbrochen
+            wird – dort sucht man ihn. */}
         <AppButton
           title="⤢ Vollbild aus"
           variant="secondary"
@@ -1103,7 +1105,9 @@ const styles = StyleSheet.create({
   vollbildLeiste: {
     flexShrink: 0,
     flexDirection: 'row',
-    alignItems: 'center',
+    // Oben ausgerichtet: Bricht die Werkzeugleiste um, bleibt der Knopf rechts
+    // in der ersten Zeile stehen, statt in die Mitte zu rutschen.
+    alignItems: 'flex-start',
     gap: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
@@ -1111,15 +1115,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  /** Die Werkzeuge scrollen zur Seite, statt die Leiste hoch wachsen zu lassen. */
-  leisteScroller: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
-  leisteZeile: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  vollbildTitel: { fontSize: 14, fontWeight: '700', color: colors.text, paddingRight: spacing.sm },
+  /** Alle Werkzeuge nebeneinander – und in der nächsten Zeile weiter. */
+  leisteWerkzeuge: {
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  vollbildTitel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    paddingRight: spacing.sm,
+    // Auf dem Handy weicht der Name zuerst: Die Werkzeuge sind wichtiger.
+    flexShrink: 1,
+  },
   /** `minHeight: 0` ist Pflicht: Sonst wächst der Körper über den Bildschirm hinaus. */
   vollbildKoerper: { flexGrow: 1, flexShrink: 1, minHeight: 0 },
   vollbildFuss: {
     flexShrink: 0,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,

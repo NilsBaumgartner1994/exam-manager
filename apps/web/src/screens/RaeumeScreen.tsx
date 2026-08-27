@@ -245,11 +245,8 @@ export function RaeumeScreen() {
     >
       <Section title="Räume">
         <Text style={styles.hinweis}>
-          Ein Raum überlebt die einzelne Klausur: Derselbe Hörsaal wird jedes Semester wieder
-          gebraucht, sein Grundriss ändert sich fast nie. Im Projektordner liegen Raumliste und
-          Raster deshalb zusammen in <Text style={styles.pfad}>Raeume/</Text>. Hier steht der
-          Bestand des Hauses – welche dieser Räume eine Klausur benutzt (und ob mehrfach),
-          entscheidet Schritt 4.
+          Bestand des Hauses – gilt für jede Klausur. Liegt in{' '}
+          <Text style={styles.pfad}>Raeume/</Text>. Wer welchen Raum benutzt: Schritt 4.
         </Text>
         <RaumListe zeilen={zeilen} onChange={setZeilen} />
         <View style={styles.buttonZeile}>
@@ -280,29 +277,11 @@ export function RaeumeScreen() {
       </Section>
 
       <Section title="Raumpläne" testID="raeume-plaene">
+        {/* Kurz halten: Wer hier arbeitet, will den Plan sehen, nicht lesen.
+            Das Ausführliche steht in der README. */}
+        <Text style={styles.hinweis}>Ein Raum nach dem anderen. Gespeichert werden alle.</Text>
         <Text style={styles.hinweis}>
-          Bearbeitet wird ein Raum nach dem anderen: oben den Raum wählen (in Klammern seine
-          Sitzplätze), darunter steht sein Plan. Gespeichert werden trotzdem immer alle Räume.
-        </Text>
-        <Text style={styles.hinweis}>
-          Voreingestellt ist der <Text style={styles.pfad}>Zeiger</Text>: Ein Klick in den Plan
-          zeigt, was an dieser Stelle ist, und ändert nichts – im Blatt steht auch der Text dieser
-          Stelle zum Hineinschreiben. Ein Element aus der Palette auf eine Zelle ziehen setzt es
-          dort; antippen wählt es aus und man malt damit im Plan. Mit „Auswählen“ ziehst du erst
-          einen Bereich auf – das ändert nichts, es markiert nur – und verschiebst ihn dann, indem
-          du in der Auswahl gedrückt hältst und ziehst. Am blauen Griff an der unteren Ecke ziehst
-          du sie über mehrere Felder auf und füllst sie dabei. Mit „Text“ (oder „Zellen verbinden“)
-          entsteht über den ausgewählten Feldern ein Feld zum Reinschreiben – es legt sich über den
-          Plan, ohne ihn zu ersetzen, beschriftet also auch Tür, Pult oder eine Tischreihe;
-          hineingeschrieben wird per Doppelklick oder im Blatt des Zeigers. Jeder Schritt lässt
-          sich rückgängig machen (Strg/⌘ + Z).
-        </Text>
-        <Text style={styles.hinweis}>
-          Ein <Text style={styles.pfad}>Reserve</Text>-Tisch bleibt in diesem Raum dauerhaft frei
-          und bekommt keine Sitzplatznummer – für einen defekten Tisch, den Platz direkt an der
-          Tafel oder den der Aufsicht. Warum er frei bleibt, schreibt man mit dem Textwerkzeug
-          darauf; der Text steht dann im Kasten. Wer nur für diese eine Klausur einen Platz
-          freihalten will, tut das in Schritt 4 – das landet in der Belegung, nicht im Raster.
+          Reserve: Tisch bleibt frei, ohne Nummer. Nur für diese Klausur: Schritt 4.
         </Text>
 
         {schemata.length === 0 || !aktivesSchema ? (
@@ -364,11 +343,8 @@ export function RaeumeScreen() {
 
       <Section title="Speichern">
         <Text style={styles.hinweis}>
-          Beides landet im Projektordner unter <Text style={styles.pfad}>Raeume/</Text> und wird
-          zusätzlich heruntergeladen – Schritt 4 findet es dort beim nächsten Laden wieder. Jeder
-          Raum bekommt seine eigene Datei mit seinem Namen (
-          <Text style={styles.pfad}>Raeume/94_E01.csv</Text>); bei mehreren Räumen kommt der
-          Download als ZIP, entpackt liegen die Dateien direkt richtig.
+          Ziel: <Text style={styles.pfad}>Raeume/</Text>, je Raum eine Datei (
+          <Text style={styles.pfad}>94_E01.csv</Text>). Mehrere Räume: als ZIP.
         </Text>
         <View style={styles.buttonZeile}>
           <AppButton title="Räume als CSV speichern" onPress={raeumeSpeichern} testID="raeume-speichern" />

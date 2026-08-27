@@ -454,16 +454,24 @@ export function useRaumplanEditor({
   };
 }
 
+/**
+ * Kurzanleitung der Palette – **eine Zeile je Sache**. Wer hier arbeitet, will
+ * den Plan sehen und nicht lesen; das Ausführliche steht in der README.
+ */
+const PALETTEN_HINWEISE: { was: string; wie: string }[] = [
+  { was: 'Zeiger', wie: 'zeigt Infos' },
+  { was: 'Element ziehen', wie: 'setzt es' },
+  { was: 'Element antippen', wie: 'dann malen' },
+  { was: 'Auswählen', wie: 'markieren, ziehen verschiebt' },
+  { was: 'Blauer Griff', wie: 'Auswahl aufziehen' },
+  { was: 'Doppelklick', wie: 'Text schreiben' },
+  { was: 'Zwei Finger', wie: 'schieben & zoomen' },
+  { was: 'Strg/⌘ + Z', wie: 'rückgängig' },
+];
+
 /** Die Palette der Elemente – antippen wählt aus, ziehen legt direkt ab. */
 export function RaumPalette({ editor, testID }: { editor: RaumplanEditor; testID?: string }) {
   const { isCompact } = useResponsiveLayout();
-  /**
-   * Auf einem Handy stehen die Erklärungen erst auf Wunsch da: Ausgeschrieben
-   * füllen sie den halben Bildschirm, und der Plan darüber wäre weggescrollt,
-   * sobald man ein Werkzeug wählt.
-   */
-  const [hilfe, setzeHilfe] = useState(false);
-  const zeigeHilfe = !isCompact || hilfe;
   return (
     <View
       // Neben mehreren großen Räumen scrollt man weit; die Palette bleibt
@@ -485,40 +493,13 @@ export function RaumPalette({ editor, testID }: { editor: RaumplanEditor; testID
           testID={`raum-zelle-${eintrag.werkzeug}`}
         />
       ))}
-      {isCompact ? (
-        <AppButton
-          title={hilfe ? 'Hinweise ausblenden' : 'Hinweise'}
-          variant="secondary"
-          kompakt
-          onPress={() => setzeHilfe((alt) => !alt)}
-          testID="raum-palette-hilfe"
-        />
-      ) : null}
-      {zeigeHilfe ? (
-        <>
-          <Text style={styles.hinweis}>
-            Voreingestellt ist der <Text style={styles.betont}>Zeiger</Text>: Ein Klick in den Plan
-            zeigt in einem Blatt, was an dieser Stelle ist – Art der Zelle, Sitzplatznummer, wer
-            dort sitzt – und ändert nichts. Dort steht auch der Text dieser Stelle zum
-            Hineinschreiben. Erst wer ein Element wählt, zeichnet damit.
+      <View style={isCompact ? styles.hinweiseBreit : undefined}>
+        {PALETTEN_HINWEISE.map((eintrag) => (
+          <Text key={eintrag.was} style={styles.hinweis}>
+            <Text style={styles.betont}>{eintrag.was}</Text> · {eintrag.wie}
           </Text>
-          <Text style={styles.hinweis}>
-            Auf eine Zelle ziehen setzt das Element dort. Antippen wählt es aus, dann im Plan über
-            Zellen ziehen – praktisch für eine ganze Wand. Mit „Auswählen“ ziehst du über mehrere
-            Zellen, ohne etwas zu ändern; gedrückt halten in der Auswahl und ziehen verschiebt den
-            ganzen Block, der blaue Griff an der unteren Ecke zieht ihn auf. In ein Textfeld
-            schreibt man wie in einer Tabellenkalkulation per <Text style={styles.betont}>Doppelklick</Text>
-            {' '}– oder eben im Blatt des Zeigers. Ein Sitzplatz ist ein Tisch, an dem jemand
-            geprüft wird (nur die werden nummeriert und belegt); das Pult ist der einfache Tisch
-            für alles andere. Rückgängig geht mit Strg/⌘ + Z.
-          </Text>
-          <Text style={styles.hinweis}>
-            Im Plan bewegst du dich mit zwei Fingern: schieben und zugleich auf- und zuziehen zum
-            Zoomen (am Rechner Strg + Mausrad). Mit „Verschieben“ genügt ein Finger – praktisch,
-            wenn gerade ein Element ausgewählt ist und jeder Wisch sonst malen würde.
-          </Text>
-        </>
-      ) : null}
+        ))}
+      </View>
     </View>
   );
 }
@@ -555,9 +536,7 @@ export function PlanLeiste({ editor }: { editor: RaumplanEditor }) {
       <AppButton title="−" variant="secondary" kompakt={isCompact} onPress={() => editor.zoomAendern(-1)} testID="raum-zoom-kleiner" />
       <AppButton title="+" variant="secondary" kompakt={isCompact} onPress={() => editor.zoomAendern(1)} testID="raum-zoom-groesser" />
       <Text style={styles.hinweis}>
-        {ansicht.modus === 'frei' ? `${ansicht.zellGroesse} px je Feld` : 'Felder passen sich an'}
-        {' · '}
-        Zwei Finger schieben und zoomen
+        {ansicht.modus === 'frei' ? `${ansicht.zellGroesse} px je Feld` : 'passt sich an'}
       </Text>
       {editor.mitVerlauf ? (
         <>
@@ -921,4 +900,6 @@ const styles = StyleSheet.create({
   hinweis: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
   infoBlock: { gap: spacing.sm },
   betont: { fontWeight: '600', color: colors.text },
+  /** Auf dem Handy stehen die Kurzhinweise nebeneinander statt untereinander. */
+  hinweiseBreit: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, maxWidth: '100%' },
 });

@@ -12,8 +12,24 @@
  * Core). Gelesen wird trotzdem alles: Auch Dateien, die zu keiner Regel
  * passen, bleiben unverändert im Stand und damit in der ZIP – sonst würde ein
  * Herunterladen-und-Ersetzen die eigene LIESMICH oder Notizen verschlucken.
+ *
+ * **Der Stand überlebt das Neuladen.** Er liegt im `localStorage` dieses
+ * Browsers (`projektSpeicher.ts`): Wer den Ordner einmal ausgewählt hat,
+ * findet ihn samt aller Ergebnisse wieder vor, und jede Änderung wandert
+ * gleich mit hinein. Das sind Personendaten – sie bleiben liegen, bis sie
+ * jemand entfernt („Projekt schließen“ auf der Startseite). Ein neuer Ordner
+ * räumt vorher auf: erst löschen, dann laden, damit sich nie zwei Klausuren
+ * vermischen.
  */
-import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   DateiRolle,
   erkenneRolle,
@@ -22,6 +38,12 @@ import {
   projektVorlage,
 } from '@exam-manager/core';
 import { readFileAsArrayBuffer, readFileAsText } from './files';
+import {
+  ladeStand,
+  loescheStand,
+  sichereStand,
+  type SpeicherErgebnis,
+} from './projektSpeicher';
 
 export interface ProjektDatei {
   /** Pfad innerhalb des Projektordners, z. B. `Zulassungen/pv2025_zulassungen.csv`. */
@@ -42,6 +64,13 @@ export interface ProjektStand {
 interface ProjektWert extends ProjektStand {
   ladeOrdner: (files: File[]) => Promise<void>;
   leeren: () => void;
+  /**
+   * Was vom Stand im Browser liegt: alles, nur die Textdateien (für Binäres
+   * war kein Platz) oder nichts (privates Fenster). Die Startseite schreibt es
+   * hin – ein stiller Verlust beim nächsten Öffnen wäre die schlechtere
+   * Überraschung.
+   */
+  speicher: SpeicherErgebnis;
   datei: (rolle: DateiRolle) => ProjektDatei | undefined;
   dateienMit: (rolle: DateiRolle) => ProjektDatei[];
   /** Ergebnis in den Projektstand schreiben (überschreibt gleiche Pfade). */
@@ -73,9 +102,40 @@ const nachPfad = (a: ProjektDatei, b: ProjektDatei) => a.pfad.localeCompare(b.pf
 const ProjektContext = createContext<ProjektWert | null>(null);
 
 export function ProjektProvider({ children }: { children: ReactNode }) {
-  const [stand, setStand] = useState<ProjektStand>({ ordner: null, dateien: [] });
+  // Beim ersten Rendern gleich aus dem Browserspeicher: Sonst liefe ein Screen
+  // einmal mit leerem Stand und würde melden, es liege nichts vor.
+  const [stand, setStand] = useState<ProjektStand>(() => {
+    const gespeichert = ladeStand();
+    if (!gespeichert) return { ordner: null, dateien: [] };
+    return {
+      ordner: gespeichert.ordner,
+      dateien: gespeichert.dateien.map((datei) => ({
+        ...datei,
+        rolle: datei.rolle as DateiRolle,
+      })),
+    };
+  });
+  const [speicher, setzeSpeicher] = useState<SpeicherErgebnis>({ art: 'alles' });
+
+  /**
+   * Jede Änderung wandert in den Browserspeicher – gebündelt, damit ein
+   * Malzug im Raumplan nicht bei jeder Zelle die ganze Klausur neu schreibt.
+   */
+  useEffect(() => {
+    if (stand.dateien.length === 0 && stand.ordner === null) {
+      loescheStand();
+      setzeSpeicher({ art: 'alles' });
+      return;
+    }
+    const gleich = setTimeout(() => setzeSpeicher(sichereStand(stand)), 300);
+    return () => clearTimeout(gleich);
+  }, [stand]);
 
   const ladeOrdner = useCallback(async (files: File[]) => {
+    // Ein neuer Ordner beginnt bei null: erst den alten Stand wegräumen, dann
+    // einlesen. Sonst stünde die halbe Klausur vom letzten Mal noch daneben.
+    loescheStand();
+    setStand({ ordner: null, dateien: [] });
     let ordnerName: string | null = null;
     const dateien: ProjektDatei[] = [];
 
@@ -98,7 +158,10 @@ export function ProjektProvider({ children }: { children: ReactNode }) {
     setStand({ ordner: ordnerName, dateien });
   }, []);
 
-  const leeren = useCallback(() => setStand({ ordner: null, dateien: [] }), []);
+  const leeren = useCallback(() => {
+    loescheStand();
+    setStand({ ordner: null, dateien: [] });
+  }, []);
 
   const schreibe = useCallback((dateiname: string, inhalt: string | Uint8Array, rolle: DateiRolle) => {
     setStand((vorher) => {
@@ -143,13 +206,14 @@ export function ProjektProvider({ children }: { children: ReactNode }) {
       ...stand,
       ladeOrdner,
       leeren,
+      speicher,
       schreibe,
       ersetze,
       alsZip,
       datei: (rolle) => stand.dateien.find((datei) => datei.rolle === rolle),
       dateienMit: (rolle) => stand.dateien.filter((datei) => datei.rolle === rolle),
     }),
-    [stand, ladeOrdner, leeren, schreibe, ersetze, alsZip],
+    [stand, speicher, ladeOrdner, leeren, schreibe, ersetze, alsZip],
   );
 
   return <ProjektContext.Provider value={wert}>{children}</ProjektContext.Provider>;

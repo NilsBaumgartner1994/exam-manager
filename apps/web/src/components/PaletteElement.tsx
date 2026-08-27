@@ -6,6 +6,11 @@ interface Props {
   titel: string;
   /** Kurze Erklärung unter dem Titel (z. B. das Zeichen in der CSV). */
   untertitel?: string;
+  /**
+   * Nur der Titel, kleiner und schmaler – für die Werkzeugleiste im Vollbild,
+   * wo zehn Elemente in eine Zeile passen müssen.
+   */
+  kompakt?: boolean;
   aktiv?: boolean;
   /** Angetippt (ohne Ziehen): Element als Werkzeug wählen. */
   onTippen: () => void;
@@ -29,7 +34,7 @@ const ZIEH_SCHWELLE = 6;
  * scrollen. Wo das Element landet, entscheidet deshalb die Koordinate beim
  * Loslassen, nicht das Ereignisziel.
  */
-export function PaletteElement({ titel, untertitel, aktiv, onTippen, onZiehen, onAblegen, testID }: Props) {
+export function PaletteElement({ titel, untertitel, kompakt, aktiv, onTippen, onZiehen, onAblegen, testID }: Props) {
   const ref = useRef<View>(null);
   const [zieht, setZieht] = useState(false);
   const start = useRef<{ x: number; y: number } | null>(null);
@@ -68,7 +73,13 @@ export function PaletteElement({ titel, untertitel, aktiv, onTippen, onZiehen, o
       ref={ref}
       accessibilityRole="button"
       testID={testID}
-      style={[styles.element, aktiv && styles.aktiv, zieht && styles.zieht, ohneBrowserGeste]}
+      style={[
+        styles.element,
+        kompakt && styles.elementKompakt,
+        aktiv && styles.aktiv,
+        zieht && styles.zieht,
+        ohneBrowserGeste,
+      ]}
       onPointerDown={pointerDown}
       onPointerMove={pointerMove}
       onPointerUp={pointerUp}
@@ -77,8 +88,10 @@ export function PaletteElement({ titel, untertitel, aktiv, onTippen, onZiehen, o
         setZieht(false);
       }}
     >
-      <Text style={[styles.titel, aktiv && styles.titelAktiv]}>{titel}</Text>
-      {untertitel ? (
+      <Text style={[styles.titel, kompakt && styles.titelKompakt, aktiv && styles.titelAktiv]}>
+        {titel}
+      </Text>
+      {untertitel && !kompakt ? (
         <Text style={[styles.untertitel, aktiv && styles.untertitelAktiv]}>{untertitel}</Text>
       ) : null}
     </View>
@@ -98,9 +111,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     minWidth: 96,
   },
+  elementKompakt: { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm, minWidth: 0 },
   aktiv: { backgroundColor: colors.primary },
   zieht: { opacity: 0.6 },
   titel: { fontSize: 15, fontWeight: '600', color: colors.primary },
+  titelKompakt: { fontSize: 13 },
   titelAktiv: { color: colors.primaryText },
   untertitel: { fontSize: 12, color: colors.textMuted },
   untertitelAktiv: { color: colors.primaryText },

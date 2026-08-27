@@ -228,9 +228,14 @@ optionalen **Projektordner**:
    je Ordner. `Beispielprojekt/` in diesem Repository ist ein gefüllter
    Ordner zum direkten Ausprobieren.
 
-   Der Ordner bleibt nur im Speicher der geöffneten Seite: Ein Neuladen leert
-   ihn, gespeichert wird bewusst nichts, und der Browser darf auch nicht in
-   den Ordner zurückschreiben – daher der Umweg über die ZIP.
+   Der Stand bleibt **in diesem Browser** – auch nach einem Neuladen, samt
+   aller Änderungen (er liegt im `localStorage` dieses Geräts, nicht auf einem
+   Server). Ein neuer Ordner ersetzt ihn vollständig; „Projekt schließen“ auf
+   der Startseite entfernt ihn wieder. Das sind Personendaten – am fremden
+   Rechner also unbedingt schließen. Für PDFs und Excel-Dateien reicht der
+   Browserspeicher nicht immer; sagt die Startseite das, hilft nur die ZIP.
+   Zurückschreiben in den Ordner darf der Browser ohnehin nicht – daher der
+   Umweg über die ZIP.
 
 Und die vier Schritte selbst:
 
@@ -384,6 +389,10 @@ Und die vier Schritte selbst:
      man die Zellgröße selbst ein wie beim Zoomen in ein Bild; die Leiste
      nennt sie dann in Pixeln. Der Zoom setzt auf der gerade sichtbaren Größe
      auf, springt also nicht.
+   - **Vollbild** – „⤢ Vollbild“ über dem Plan gibt ihm den ganzen Bildschirm,
+     wie in einer Tabellenkalkulation: oben die Werkzeugleiste (Elemente,
+     Drehen, Zeilen/Spalten, Rückgängig), unten rechts der Zoom, dazwischen
+     nichts als der Raum. Hinaus geht es oben rechts oder mit <kbd>Esc</kbd>.
    - **Schieben und Zoomen (auch auf dem Handy)** – der Plan liegt am
      Bildschirm in einem eigenen Fenster: **zwei Finger** schieben ihn und
      zoomen zugleich (am Rechner <kbd>Strg</kbd> + Mausrad, ohne Taste

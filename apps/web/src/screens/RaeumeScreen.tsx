@@ -98,6 +98,34 @@ export function RaeumeScreen() {
     }
   }, [projekt, zeilen, schemata]);
 
+  /**
+   * Änderungen wandern gleich in den Projektstand – und damit in den
+   * Browserspeicher. Ein Neuladen soll nichts kosten: Vorher war ein Raster
+   * erst dann sicher, wenn jemand „Raster als CSV speichern“ gedrückt hatte.
+   * Gebündelt (400 ms), sonst schriebe ein Malzug bei jeder Zelle alle Räume
+   * neu; die Knöpfe bleiben für den Download.
+   */
+  const { ersetze: projektErsetze, schreibe: projektSchreibe } = projekt;
+  /** Erst schreiben, wenn hier je etwas lag – sonst leerte der erste Besuch den Ordner. */
+  const schonGeschrieben = useRef(false);
+  useEffect(() => {
+    if (schemata.length === 0 && !schonGeschrieben.current) return;
+    const gleich = setTimeout(() => {
+      projektErsetze('raumschema', raumschemaDateien(schemata));
+      schonGeschrieben.current = true;
+    }, 400);
+    return () => clearTimeout(gleich);
+  }, [schemata, projektErsetze]);
+  const listeGeschrieben = useRef(false);
+  useEffect(() => {
+    if (zeilen.length === 0 && !listeGeschrieben.current) return;
+    const gleich = setTimeout(() => {
+      projektSchreibe('raeume.csv', raeumeToCsv(zeilen.map(zeileZuRaum)), 'raeume');
+      listeGeschrieben.current = true;
+    }, 400);
+    return () => clearTimeout(gleich);
+  }, [zeilen, projektSchreibe]);
+
   const editor = useRaumplanEditor({
     schemata: schemataRef,
     aendere: (raum, wandel) =>
@@ -202,7 +230,7 @@ export function RaeumeScreen() {
     const csv = raeumeToCsv(raeume);
     downloadCsv('raeume.csv', csv);
     projekt.schreibe('raeume.csv', csv, 'raeume');
-    setHinweis('Raumliste gespeichert – im Projekt unter Raeume/raeume.csv.');
+    setHinweis('Raumliste heruntergeladen – im Projekt liegt sie ohnehin schon.');
   };
 
   /**
@@ -224,7 +252,7 @@ export function RaeumeScreen() {
       );
       downloadZip('raumschema.zip', await erstelleZip(inhalte));
     }
-    setHinweis(`Raster gespeichert – je Raum eine Datei in Raeume/: ${namen.join(', ')}.`);
+    setHinweis(`Raster heruntergeladen (${namen.join(', ')}) – im Projekt liegen sie ohnehin schon.`);
   };
 
   /** Plätze laut Liste je Raum – zum Abgleich mit den Tischen im Raster. */

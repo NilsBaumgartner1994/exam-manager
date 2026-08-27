@@ -152,10 +152,22 @@ export function HomeScreen() {
         {status ? <StatusText kind={status.kind}>{status.text}</StatusText> : null}
 
         <Text style={styles.hinweis}>
-          Der Projektstand lebt nur, solange diese Seite offen ist: Ein Neuladen leert ihn, und der
-          Ordner muss neu ausgewählt werden. Gespeichert wird bewusst nichts – Personendaten haben
-          im Browserspeicher nichts verloren.
+          Der Stand bleibt in diesem Browser – auch nach einem Neuladen, samt aller Änderungen.
+          Ein neuer Ordner ersetzt ihn vollständig. Das sind Personendaten: Sie liegen im Profil
+          dieses Geräts, bis „Projekt schließen“ sie entfernt. Am fremden Rechner: unbedingt
+          schließen.
         </Text>
+        {projekt.speicher.art === 'ohneBinaer' ? (
+          <StatusText kind="info" testID="home-speicher-hinweis">
+            {`Für ${projekt.speicher.ausgelassen} Datei(en) reicht der Browserspeicher nicht – PDFs und Excel-Dateien sind nach einem Neuladen weg. Vorher die ZIP herunterladen.`}
+          </StatusText>
+        ) : null}
+        {projekt.speicher.art === 'nichts' ? (
+          <StatusText kind="info" testID="home-speicher-hinweis">
+            Dieser Browser speichert nichts (privates Fenster?) – nach einem Neuladen ist der Stand
+            weg. Vorher die ZIP herunterladen.
+          </StatusText>
+        ) : null}
         <Text style={styles.hinweis}>
           Der Browser darf nicht in den Ordner zurückschreiben – deshalb der Umweg über die ZIP:
           herunterladen, entpacken und den eigenen Ordner damit ersetzen. Die Vorlage-ZIP enthält

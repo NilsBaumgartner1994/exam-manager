@@ -85,6 +85,12 @@ interface Props {
    */
   beweglich?: boolean;
   /**
+   * Feste Höhe des Planfensters (nur mit `beweglich`). Das Vollbild gibt hier
+   * an, was zwischen Kopf- und Fußleiste übrig ist – ohne Angabe richtet sich
+   * das Fenster nach der Fensterhöhe (`planFensterHoehe`).
+   */
+  hoehe?: number;
+  /**
    * Neue Zellgröße aus einer Zoom-Geste (Zwei-Finger-Zoom, Strg + Mausrad).
    * Ohne diesen Rückruf zoomt die Geste nicht – die Ansicht gehört dem, der
    * den Plan einbindet.
@@ -331,6 +337,7 @@ export function Raumplan({
   ansicht = PLAN_ANSICHT,
   onZellGroesse,
   beweglich,
+  hoehe,
   onZoomGeste,
   bearbeiten,
   werkzeug = 'auswahl',
@@ -370,7 +377,8 @@ export function Raumplan({
   const spaltenAnzahl = raster[0]?.length ?? 0;
   const mitGitter = gitter;
 
-  const fensterHoehe = planFensterHoehe(fenster.height);
+  // Im Vollbild zählt der Platz zwischen den Leisten, sonst die Fensterhöhe.
+  const fensterHoehe = hoehe && hoehe > 0 ? hoehe : planFensterHoehe(fenster.height);
   const masse = rastermasse(
     raster.length,
     spaltenAnzahl,
@@ -913,7 +921,11 @@ export function Raumplan({
   return (
     <View
       ref={flaecheRef}
-      style={[styles.flaeche, { maxHeight: fensterHoehe }, scrollbaresFenster]}
+      style={[
+        styles.flaeche,
+        hoehe && hoehe > 0 ? { height: hoehe } : { maxHeight: fensterHoehe },
+        scrollbaresFenster,
+      ]}
       onLayout={merkeBreite}
       testID={testID}
     >

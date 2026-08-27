@@ -37,26 +37,40 @@ export function ModalProvider({ children }: { children: ReactNode }) {
    * Geisterklicks abfangen.
    *
    * Auf dem Touchgerät schickt der Browser nach dem Loslassen noch einen
-   * `click` hinterher – auf das Element, das dann an dieser Stelle liegt. Ein
-   * Tippen in den Plan öffnet aber genau dort ein Blatt: Der Klick trifft die
-   * frisch gezeichnete Fläche dahinter und schließt es sofort wieder (oder,
-   * schlimmer, drückt einen Knopf darin, den niemand angetippt hat).
+   * `click` hinterher – auf das Element, das **dann** an dieser Stelle liegt.
+   * Ein Tippen in den Plan öffnet aber genau dort ein Blatt: Der Klick trifft
+   * die frisch gezeichnete Fläche dahinter und schließt es sofort wieder
+   * (oder, schlimmer, drückt einen Knopf darin, den niemand angetippt hat).
    *
-   * Die Regel dagegen kommt ohne Zeitfenster aus: Ein echter Klick in der
-   * Ebene beginnt mit einem `pointerdown` **in** der Ebene. Fehlt das, gehört
-   * der Klick zu einer Geste, die woanders begonnen hat – der wird geschluckt.
+   * Die Regel dagegen ist die des Browsers selbst: Ein echter Klick trifft das
+   * Element, auf dem gedrückt wurde, oder eines darüber. Trifft er etwas ganz
+   * anderes, während das gedrückte Element noch im Dokument steht, ist zwischen
+   * Drücken und Loslassen etwas Neues aufgetaucht – das ist der Geisterklick,
+   * und der wird geschluckt. Wurde in der Ebene gar nicht erst gedrückt, gilt
+   * dasselbe: Dann kommt der Klick von einer Geste außerhalb.
+   *
+   * Kein Zeitfenster, keine Ausnahme fürs Vollbild: Dort liegt der ganze Editor
+   * in der Ebene, ein „hier wurde gedrückt“ allein würde also nichts mehr
+   * unterscheiden.
    */
   useEffect(() => {
     if (!flaeche) return;
-    let hierGedrueckt = false;
-    const gedrueckt = () => {
-      hierGedrueckt = true;
+    let gedruecktesZiel: Node | null = null;
+    const gedrueckt = (ereignis: PointerEvent) => {
+      gedruecktesZiel = ereignis.target as Node | null;
     };
     const geklickt = (ereignis: MouseEvent) => {
-      if (hierGedrueckt) {
-        hierGedrueckt = false;
-        return;
-      }
+      const ziel = ereignis.target as Node | null;
+      const echt =
+        !!gedruecktesZiel &&
+        !!ziel &&
+        // Entweder gehört das Gedrückte zum Geklickten …
+        (ziel.contains(gedruecktesZiel) ||
+          // … oder es ist inzwischen aus dem Dokument verschwunden; dann lässt
+          // sich nichts mehr sagen, und Zulassen ist die harmlosere Wahl.
+          !document.contains(gedruecktesZiel));
+      gedruecktesZiel = null;
+      if (echt) return;
       ereignis.stopPropagation();
       ereignis.preventDefault();
     };

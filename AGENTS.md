@@ -170,9 +170,22 @@ Konventionen des Datensatzes:
   welche dadurch liegen bleiben) oder sagt, dass im erwarteten Ordner nichts
   liegt. Ohne diese Zeile ist von außen nicht zu sehen, woher die Zahlen
   stammen.
-- Bewusst **kein** localStorage: Der Ordner enthält Personendaten, die nach dem
-  Schließen der Seite nicht im Browserprofil zurückbleiben sollen. Ein Neuladen
-  leert den Stand, das ist so gewollt und auf der Startseite erklärt.
+- **Der Stand liegt im `localStorage`** (`src/projektSpeicher.ts`): Ein
+  Neuladen soll nichts kosten, und jede Änderung eines Screens wandert
+  gebündelt mit hinein. Ein neuer Ordner räumt vorher auf (`ladeOrdner`:
+  erst `loescheStand`, dann lesen) – zwei Klausuren dürfen sich nie mischen;
+  Datei-Uploads einzelner Screens fassen den Stand nicht an. Das sind
+  Personendaten: Sie bleiben im Browserprofil, bis „Projekt schließen“ sie
+  entfernt – die Startseite sagt das dazu, und wer daran etwas ändert, lässt
+  den Hinweis stehen. `localStorage` fasst nur wenige Megabyte und nur Text:
+  Binärdateien stehen Base64-kodiert darin und fliegen bei Platznot zuerst
+  heraus; **was fehlt, meldet `speicher`** und die Startseite schreibt es hin
+  (ein stiller Verlust beim nächsten Öffnen wäre die schlechtere Überraschung).
+- Was ein Screen nur bei sich hält (eine geladene CSV, die noch nirgends
+  hingeschrieben wurde), überlebt das Neuladen **nicht** – gesichert ist, was
+  im Projektstand steht. Screen 5 schreibt Raster und Raumliste deshalb von
+  selbst dorthin (gebündelt, 400 ms); wer eine ähnliche Bearbeitung baut,
+  macht es genauso, statt auf einen Knopf zu warten.
 - Der Browser darf nicht in den gewählten Ordner zurückschreiben; der Weg
   zurück auf die Platte ist immer die ZIP.
 - `Beispielprojekt/` im Repo ist ein gefüllter Projektordner zum Ausprobieren.
@@ -203,6 +216,14 @@ Konventionen des Datensatzes:
   denn der steht auf Aushang und PDF. Wer im Screen etwas an der Belegung tut,
   nimmt den Schlüssel; wer am Raster arbeitet, den Raumnamen (`RaumplanKarte`
   bekommt beides: `schema` den Raum, `schluessel` den Einsatz).
+- **Vollbild wie in einer Tabellenkalkulation:** `editor.vollbild` hält den
+  Schlüssel des Plans, der gerade den Bildschirm füllt (in Schritt 4 stehen
+  mehrere untereinander, deshalb ein Schlüssel und kein „an/aus“).
+  `VollbildRahmen` zeichnet ihn in die Modal-Ebene: oben die Werkzeugleiste
+  (Palette, Drehen, Raster, Verlauf, rechts hinaus), unten die Fußleiste mit
+  dem Zoom, dazwischen nichts als der Plan. Wie hoch der sein darf, misst der
+  Rahmen (`onLayout`) und gibt es als `hoehe` weiter – ohne die Zahl kann
+  „Ganzer Raum“ nicht rechnen.
 - **Screen 5 zeigt genau einen Raum.** Über den Plänen steht die Raumliste als
   Knopfreihe; gezeichnet wird nur der gewählte. Fünf Pläne nebeneinander –
   darunter ein Hörsaal mit 44 × 32 Feldern – sind weder zu überblicken noch

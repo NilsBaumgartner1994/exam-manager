@@ -1,6 +1,6 @@
 {
   "report_version": "^0.1.103",
-  "report_timestamp": "2026-08-26T21:00:20.715Z",
+  "report_timestamp": "2026-08-27T07:24:55.603Z",
   "target_language": "typescript",
   "report_summary": {
     "additional": {
@@ -28,18 +28,18 @@
         }
       },
       "timer_information": {
-        "ast_generation_time_ms": 659,
+        "ast_generation_time_ms": 654,
         "detection_time_ms": 13,
         "machine_information": {
           "os": "Linux",
           "os_release": "6.17.0-1022-azure",
           "os_platform": "linux",
           "os_arch": "x64",
-          "os_uptime": 299.51,
-          "os_memory_free": 15047852032,
-          "os_memory_total": 16770748416,
+          "os_uptime": 57.67,
+          "os_memory_free": 14895972352,
+          "os_memory_total": 16766414848,
           "os_cpu_cores": 4,
-          "os_cpu_model": "AMD EPYC 7763 64-Core Processor",
+          "os_cpu_model": "AMD EPYC 9V74 80-Core Processor",
           "os_cpu_speed": 0
         }
       }
@@ -55,10 +55,10 @@
   "project_info": {
     "project_url": "https://github.com/NilsBaumgartner1994/exam-manager",
     "project_name": "exam-manager",
-    "project_version": "c81f9b527ff8ff0031c1568227f4abe0f227f18e",
-    "project_commit_hash": "c81f9b527ff8ff0031c1568227f4abe0f227f18e",
+    "project_version": "8247e403804571f33bb9e098353d0f70d66f3f02",
+    "project_commit_hash": "8247e403804571f33bb9e098353d0f70d66f3f02",
     "project_tag": null,
-    "project_commit_date": "1787777980",
+    "project_commit_date": "1787815459",
     "additional": {
       "relative_path_to_source_folder_in_project": ""
     },
@@ -1380,9 +1380,9 @@
             "type": "Raumschema",
             "modifiers": [],
             "position": {
-              "startLine": 612,
+              "startLine": 591,
               "startColumn": 3,
-              "endLine": 612,
+              "endLine": 591,
               "endColumn": 22
             }
           },
@@ -1405,9 +1405,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 618,
+              "startLine": 597,
               "startColumn": 3,
-              "endLine": 618,
+              "endLine": 597,
               "endColumn": 23
             }
           },
@@ -1430,9 +1430,9 @@
             "type": "Platzbelegung[]",
             "modifiers": [],
             "position": {
-              "startLine": 627,
+              "startLine": 606,
               "startColumn": 3,
-              "endLine": 627,
+              "endLine": 606,
               "endColumn": 30
             }
           },
@@ -1455,9 +1455,9 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 628,
+              "startLine": 607,
               "startColumn": 3,
-              "endLine": 628,
+              "endLine": 607,
               "endColumn": 33
             }
           },
@@ -1480,9 +1480,9 @@
             "type": "Map<string, Sitzplatz>",
             "modifiers": [],
             "position": {
-              "startLine": 629,
+              "startLine": 608,
               "startColumn": 3,
-              "endLine": 629,
+              "endLine": 608,
               "endColumn": 37
             }
           },
@@ -1505,9 +1505,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 632,
+              "startLine": 611,
               "startColumn": 3,
-              "endLine": 632,
+              "endLine": 611,
               "endColumn": 31
             }
           },
@@ -1530,9 +1530,9 @@
             "type": "boolean",
             "modifiers": [],
             "position": {
-              "startLine": 622,
+              "startLine": 601,
               "startColumn": 3,
-              "endLine": 622,
+              "endLine": 601,
               "endColumn": 23
             }
           },
@@ -1555,9 +1555,9 @@
             "type": "PlanAnzeige",
             "modifiers": [],
             "position": {
-              "startLine": 631,
+              "startLine": 610,
               "startColumn": 3,
-              "endLine": 631,
+              "endLine": 610,
               "endColumn": 25
             }
           },
@@ -1580,9 +1580,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 635,
+              "startLine": 614,
               "startColumn": 3,
-              "endLine": 635,
+              "endLine": 614,
               "endColumn": 19
             }
           },
@@ -1731,9 +1731,9 @@
             }
           },
           "position": {
-            "startLine": 612,
+            "startLine": 591,
             "startColumn": 3,
-            "endLine": 612,
+            "endLine": 591,
             "endColumn": 22
           }
         },
@@ -1756,9 +1756,9 @@
             }
           },
           "position": {
-            "startLine": 618,
+            "startLine": 597,
             "startColumn": 3,
-            "endLine": 618,
+            "endLine": 597,
             "endColumn": 23
           }
         },
@@ -1781,9 +1781,9 @@
             }
           },
           "position": {
-            "startLine": 622,
+            "startLine": 601,
             "startColumn": 3,
-            "endLine": 622,
+            "endLine": 601,
             "endColumn": 23
           }
         },
@@ -1806,9 +1806,9 @@
             }
           },
           "position": {
-            "startLine": 627,
+            "startLine": 606,
             "startColumn": 3,
-            "endLine": 627,
+            "endLine": 606,
             "endColumn": 30
           }
         },
@@ -1831,9 +1831,9 @@
             }
           },
           "position": {
-            "startLine": 628,
+            "startLine": 607,
             "startColumn": 3,
-            "endLine": 628,
+            "endLine": 607,
             "endColumn": 33
           }
         },
@@ -1856,9 +1856,9 @@
             }
           },
           "position": {
-            "startLine": 629,
+            "startLine": 608,
             "startColumn": 3,
-            "endLine": 629,
+            "endLine": 608,
             "endColumn": 37
           }
         },
@@ -1881,9 +1881,9 @@
             }
           },
           "position": {
-            "startLine": 631,
+            "startLine": 610,
             "startColumn": 3,
-            "endLine": 631,
+            "endLine": 610,
             "endColumn": 25
           }
         },
@@ -1906,9 +1906,9 @@
             }
           },
           "position": {
-            "startLine": 632,
+            "startLine": 611,
             "startColumn": 3,
-            "endLine": 632,
+            "endLine": 611,
             "endColumn": 31
           }
         },
@@ -1931,9 +1931,9 @@
             }
           },
           "position": {
-            "startLine": 635,
+            "startLine": 614,
             "startColumn": 3,
-            "endLine": 635,
+            "endLine": 614,
             "endColumn": 19
           }
         }
@@ -1978,9 +1978,9 @@
             }
           },
           "position": {
-            "startLine": 618,
+            "startLine": 597,
             "startColumn": 3,
-            "endLine": 618,
+            "endLine": 597,
             "endColumn": 23
           }
         },
@@ -2003,9 +2003,9 @@
             }
           },
           "position": {
-            "startLine": 620,
+            "startLine": 599,
             "startColumn": 3,
-            "endLine": 620,
+            "endLine": 599,
             "endColumn": 18
           }
         },
@@ -2028,9 +2028,9 @@
             }
           },
           "position": {
-            "startLine": 628,
+            "startLine": 607,
             "startColumn": 3,
-            "endLine": 628,
+            "endLine": 607,
             "endColumn": 33
           }
         }
@@ -2262,9 +2262,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 620,
+              "startLine": 599,
               "startColumn": 3,
-              "endLine": 620,
+              "endLine": 599,
               "endColumn": 18
             }
           },
@@ -2287,9 +2287,9 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 628,
+              "startLine": 607,
               "startColumn": 3,
-              "endLine": 628,
+              "endLine": 607,
               "endColumn": 33
             }
           },
@@ -2312,9 +2312,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 618,
+              "startLine": 597,
               "startColumn": 3,
-              "endLine": 618,
+              "endLine": 597,
               "endColumn": 23
             }
           },

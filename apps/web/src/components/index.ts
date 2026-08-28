@@ -17,6 +17,7 @@ export {
   type PlanAnsicht,
   type PlanWerkzeug,
 } from './Raumplan';
+export { RaumBestandListe, type RaumBestandEintrag } from './RaumBestandListe';
 export {
   LEERE_RAUM_ZEILE,
   RaumListe,

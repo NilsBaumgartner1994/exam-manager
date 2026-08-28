@@ -143,6 +143,18 @@ url: http://localhost:8081
     id: 'raeume-menue-datei'
 - tapOn: 'Beispieldaten laden'
 - assertVisible: 'Bestand des Hauses'
+# Die Raumliste ist der Bestand: je Raum sein Raster – und von dort aus zu öffnen.
+- scrollUntilVisible:
+    element:
+      id: 'raeume-plan-94/E01'
+- assertVisible: '28 Sitzplätze im Raster'
+- tapOn:
+    id: 'raeume-plan-94/E01'
+- assertVisible: 'Raster 9 Spalten'
+- tapOn:
+    id: 'raeume-menue-raeume'
+- tapOn:
+    id: 'raeume-reiter-liste'
 # Bearbeitet wird ein Raum nach dem anderen – die Räume stehen im Menü „Räume“.
 - tapOn:
     id: 'raeume-menue-raeume'

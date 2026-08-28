@@ -277,17 +277,31 @@ Konventionen des Datensatzes:
 - **Ein Raum ist Zeile *und* Raster.** Wer in Schritt 5 einen Raum anlegt,
   dupliziert, umbenennt oder löscht, fasst beides an: `raeume.csv` und die
   Datei in `Raeume/`. Nur die Zeile zu ändern ließe ein Raster zu einem Raum
-  liegen, den es nicht mehr gibt – und der Raum stünde ohne Grundriss da. Das
-  gilt auch für das Namensfeld der Raumliste (`zeilenGeaendert` zieht das
-  Raster nach). Kopiert wird mit `kopiereRaumschema` (Core) – eine echte
+  liegen, den es nicht mehr gibt – und der Raum stünde ohne Grundriss da.
+  Deshalb wird der Name in Schritt 5 **nicht getippt**: Die Bestandsliste hat
+  kein Namensfeld, umbenannt wird über das Blatt, das Zeile und Raster
+  zusammen anfasst. Kopiert wird mit `kopiereRaumschema` (Core) – eine echte
   Kopie, sonst änderte ein Strich im Duplikat auch das Original. Zwei Räume
   mit demselben Namen lässt die App nicht zu: Der Name ist der Dateiname in
   `Raeume/`.
+- **Die Bestandsliste ist der Bestand, kein Formular daneben.** Schritt 5
+  zeigt sie als `components/RaumBestandListe.tsx`: je Raum ein Kasten mit den
+  Sitzplätzen seines Rasters, den Feldern für Plätze und reservierte Zeit und
+  den Vorgängen, die ihn betreffen („Plan bearbeiten“ bzw. „Raster anlegen“,
+  „Umbenennen …“, „Duplizieren …“, „Entfernen“). Darin steht **jeder** Raum,
+  zu dem es eine Zeile *oder* ein Raster gibt: Ein Raster ohne Zeile bekommt
+  beim Laden eine (Plätze = Tische im Raster), sonst wäre der Raum nur im Menü
+  zu finden und stünde in `raeume.csv` gar nicht. Leere Zeilen legt der Screen
+  nicht an – ein Raum ohne Namen hat kein Raster und gehört nicht in den
+  Bestand; er entsteht über „Neuer Raum …“. Die Klausur-Liste aus Schritt 4
+  (`components/RaumListe.tsx`) bleibt davon unberührt: Dort sind Zeilen
+  **Einsätze**, derselbe Raum darf mehrfach vorkommen, und eine leere Zeile
+  ist ein Raum, den man gleich noch einträgt.
 - **Namen werden gefragt, nicht geraten.** Anlegen, Duplizieren, Umbenennen
   und Löschen laufen über ein Blatt (`RaumVorgangBlatt`, ein `RaumVorgang`) –
   kein „Raum 3“, der hinterher auf dem Aushang steht, und vor dem Löschen eine
   Rückfrage. Die Vorgänge stehen im Menü „Räume“ **und** an jeder Zeile der
-  Raumliste: Wer den Bestand pflegt, ist mal im Plan und mal in der Liste.
+  Bestandsliste: Wer den Bestand pflegt, ist mal im Plan und mal in der Liste.
 - **Screen 5 zeigt genau einen Raum** – den aus dem Menü „Räume“. Gespeichert
   werden weiterhin alle Räume. Speichern, Laden und PDF liegen im Menü
   „Datei“, wie das Dateimenü einer Tabellenkalkulation, nicht in einer Section
@@ -305,8 +319,9 @@ Konventionen des Datensatzes:
   (`textfeldAnlegen` legt eines über eine einzelne Zelle). Alles andere ändert
   ein Element aus der Palette – ein Nachschlagen soll den Raum nicht umbauen.
 - Damit beide dasselbe tun, liegt das Bearbeiten in Bausteinen und nicht in
-  einem der Screens: `components/RaumListe.tsx` (die Raumliste als Formular)
-  und `components/RaumplanEditor.tsx` (`useRaumplanEditor` mit Werkzeug,
+  einem der Screens: `components/RaumListe.tsx` (die Räume einer Klausur als
+  Formular), `components/RaumBestandListe.tsx` (der Bestand des Hauses samt
+  Rastern) und `components/RaumplanEditor.tsx` (`useRaumplanEditor` mit Werkzeug,
   Auswahl, Ansicht, Verlauf und Drehung, dazu `paletteEintraege` und
   `rasterEintraege` fürs Menü „Werkzeuge“, `RaumplanBuehne` für den Plan selbst
   und `PlanFuss` für die Fußleiste). Voreingestellt ist „Ganzer Raum“

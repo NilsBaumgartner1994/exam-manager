@@ -461,6 +461,17 @@ Und die vier Schritte selbst:
    für den gezeigten Raum. Auf schmalen Bildschirmen dasselbe als Schublade
    hinter dem **☰**.
 
+   **Die Raumliste ist der Bestand, nicht ein Formular daneben:** Sie zeigt
+   *jeden* Raum des Hauses – auch einen, zu dem bisher nur ein Raster in
+   `Raeume/` liegt und der in `raeume.csv` fehlte (die Zeile entsteht dann von
+   selbst, mit den Tischen des Rasters als Platzzahl). Je Raum steht dort, wie
+   viele Sitzplätze sein Raster hat, dazu Plätze und reservierte Zeit zum
+   Ändern und die Knöpfe **Plan bearbeiten** (bzw. **Raster anlegen**, wenn es
+   noch keines gibt), **Umbenennen …**, **Duplizieren …** und **Entfernen**.
+   Der Name wird nicht getippt, sondern umbenannt: Er ist zugleich der
+   Dateiname des Rasters. Leere Zeilen gibt es hier nicht – ein Raum entsteht
+   über **Neuer Raum …**, mit Namen und Vorschlagsraster.
+
    **Bearbeitet wird ein Raum nach dem anderen:** Nebeneinander wären ein
    Hörsaal mit 44 × 32 Feldern und vier weitere Räume nicht zu überblicken.
    Gespeichert werden trotzdem immer alle Räume, je Raum eine Datei.
@@ -474,16 +485,16 @@ Und die vier Schritte selbst:
      unter neuem Namen – zwei Hörsäle sind sich ähnlicher, als man denkt),
      **Raum umbenennen …** und **Raum löschen …**. Umbenennen und Löschen
      fassen immer **beides** an, Raumliste und Raster: Sonst läge in
-     `Raeume/` eine Datei zu einem Raum, den es nicht mehr gibt. Dasselbe gilt
-     für den Namen direkt im Listenfeld – das Raster wandert mit. Jeder dieser
+     `Raeume/` eine Datei zu einem Raum, den es nicht mehr gibt. Jeder dieser
      Schritte lässt sich mit <kbd>Strg</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd>
      zurücknehmen.
    - **Fehlende Raster anlegen** – für jeden Raum der Liste ohne Raster einen
      Vorschlag erzeugen (Tische in Zweierblöcken mit Gang, Pult vorne, Tür
      hinten). Von Hand zu zeichnen ist nur noch, was davon abweicht.
    - **Plätze übernehmen** – die Platzzahl der Raumliste aus dem Raster setzen
-     (die Tische zählen). Weicht beides ab, steht das in der Fußleiste –
-     sonst meldet Schritt 4 später Teilnehmende „ohne Tisch“.
+     (die Tische zählen). Weicht beides ab, steht das in der Fußleiste und an
+     der Zeile der Raumliste, dort mit **Plätze aus Raster** daneben – sonst
+     meldet Schritt 4 später Teilnehmende „ohne Tisch“.
    - **Raumplan als PDF** – den Grundriss des gezeigten Raums als PDF-Seite
      (`66_E33.pdf`), gezeichnet von derselben Funktion wie der Sitzplan in
      Schritt 4 – nur ohne Belegung. Je Raum eine Datei: Hier arbeitet man an

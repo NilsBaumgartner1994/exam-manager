@@ -1,4 +1,3 @@
-import { ReactNode } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { mitDurchgaengen, Raum } from '@exam-manager/core';
 import { useResponsiveLayout } from '../responsive';
@@ -60,14 +59,11 @@ function RaumEditorZeile({
   zeile,
   onChange,
   onRemove,
-  aktionen,
   testID,
 }: {
   zeile: RaumZeile;
   onChange: (zeile: RaumZeile) => void;
   onRemove: () => void;
-  /** Weitere Knöpfe der Zeile – Schritt 5 hängt hier Plan und Duplizieren an. */
-  aktionen?: ReactNode;
   testID?: string;
 }) {
   const { isCompact } = useResponsiveLayout();
@@ -97,7 +93,6 @@ function RaumEditorZeile({
         placeholder="Reservierte Zeit"
         placeholderTextColor={colors.textMuted}
       />
-      {aktionen}
       <AppButton title="Entfernen" variant="secondary" onPress={onRemove} />
     </View>
   );
@@ -109,34 +104,25 @@ interface Props {
   /** Beschriftung des Knopfes zum Anlegen – je nach Screen anders formuliert. */
   hinzufuegenTitel?: string;
   /**
-   * Was „Entfernen“ tut, wenn der Screen mehr daran hängen hat als die Zeile:
-   * In Schritt 5 verschwindet mit dem Raum auch sein Raster, und danach wird
-   * gefragt. Ohne Angabe wird die Zeile einfach gestrichen.
-   */
-  onEntfernen?: (index: number) => void;
-  /** Weitere Knöpfe je Zeile (Schritt 5: „Plan“, „Duplizieren“). */
-  aktionen?: (zeile: RaumZeile, index: number) => ReactNode;
-  /**
-   * Denselben Raum mehrfach eintragen ist erlaubt und benannt den Durchgang
+   * Denselben Raum mehrfach eintragen ist erlaubt und benennt den Durchgang
    * („2. Durchgang“). Nur in Schritt 4 sinnvoll: Im Bestand des Hauses
-   * (Schritt 5) gibt es jeden Raum genau einmal.
+   * (Schritt 5) gibt es jeden Raum genau einmal – der steht als
+   * `RaumBestandListe` da, mit dem Raster an jedem Raum.
    */
   mitDurchgang?: boolean;
   testIDPrefix?: string;
 }
 
 /**
- * Die Raumliste (`raeume.csv`) als Formular: je Raum Name, Plätze und die
- * reservierte Zeit. Zwei Screens bearbeiten dieselbe Liste – Schritt 4 für
- * eine konkrete Klausur, Schritt 5 losgelöst davon –, deshalb liegt sie hier
- * als Baustein und nicht in einem der beiden.
+ * Die Räume **einer Klausur** (`klausurraeume.csv`) als Formular: je Zeile
+ * Name, Plätze und die reservierte Zeit, derselbe Raum darf mehrfach
+ * vorkommen. Den Bestand des Hauses zeigt Schritt 5 dagegen als
+ * `RaumBestandListe` – dort hängt an jedem Raum sein Raster.
  */
 export function RaumListe({
   zeilen,
   onChange,
   hinzufuegenTitel = 'Raum hinzufügen',
-  onEntfernen,
-  aktionen,
   mitDurchgang,
   testIDPrefix = 'raum',
 }: Props) {
@@ -152,10 +138,7 @@ export function RaumListe({
           <RaumEditorZeile
             zeile={zeile}
             onChange={(neu) => onChange(zeilen.map((alt, j) => (j === i ? neu : alt)))}
-            onRemove={() =>
-              onEntfernen ? onEntfernen(i) : onChange(zeilen.filter((_, j) => j !== i))
-            }
-            aktionen={aktionen?.(zeile, i)}
+            onRemove={() => onChange(zeilen.filter((_, j) => j !== i))}
             testID={`${testIDPrefix}-zeile-${i}`}
           />
         </View>

@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { oeffneDateiDialog } from '../files';
 import { colors, spacing } from '../theme';
 import { AppButton } from './AppButton';
 
@@ -19,33 +20,23 @@ interface Props {
 /**
  * Datei-/Ordner-Auswahl über den Browser-Dialog. Die Dateien werden nur
  * lokal gelesen – nichts verlässt den Rechner.
+ *
+ * Den Dialog selbst öffnet `oeffneDateiDialog` (`src/files.ts`) – dieselbe
+ * Stelle, an der auch ein Menüeintrag „… laden“ hängt.
  */
 export function FilePickerButton({ label, accept, multiple, directory, kompakt, onFiles, testID }: Props) {
   const [namen, setNamen] = useState<string[]>([]);
-  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const oeffneDialog = () => {
-    let input = inputRef.current;
-    if (!input) {
-      input = document.createElement('input');
-      input.type = 'file';
-      input.style.display = 'none';
-      document.body.appendChild(input);
-      inputRef.current = input;
-    }
-    input.accept = accept ?? '';
-    input.multiple = multiple ?? false;
-    (input as HTMLInputElement & { webkitdirectory: boolean }).webkitdirectory = directory ?? false;
-    input.onchange = () => {
-      const files = Array.from(input!.files ?? []);
-      if (files.length > 0) {
-        setNamen(files.map((f) => f.name));
-        onFiles(files);
-      }
-      input!.value = '';
-    };
-    input.click();
-  };
+  const oeffneDialog = () =>
+    oeffneDateiDialog({
+      accept,
+      mehrere: multiple,
+      ordner: directory,
+      onDateien: (dateien) => {
+        setNamen(dateien.map((datei) => datei.name));
+        onFiles(dateien);
+      },
+    });
 
   if (kompakt) {
     return (

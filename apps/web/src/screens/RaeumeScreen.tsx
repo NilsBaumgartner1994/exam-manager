@@ -14,26 +14,27 @@ import {
   tischzellen,
 } from '@exam-manager/core';
 import {
-  Aktionsleiste,
   AppButton,
   Arbeitsflaeche,
-  FilePickerButton,
+  Menueleiste,
   PALETTEN_HINWEIS_ZEILE,
-  PalettenLeiste,
+  paletteEintraege,
   PlanFuss,
-  PlanWerkzeugKnoepfe,
-  ProjektDownload,
   ProjektQuelle,
+  rasterEintraege,
   rasterText,
   RaumListe,
   RaumplanBuehne,
   raumZuZeile,
   Reiterinhalt,
-  Reiterleiste,
   Section,
   StatusText,
+  useProjektDownloadEintrag,
   useRaumplanEditor,
+  werkzeugTitel,
   zeileZuRaum,
+  type MenuEintrag,
+  type MenuGruppe,
   type RaumZeile,
 } from '../components';
 import { downloadCsv, downloadFile, downloadZip, readFileAsText } from '../files';
@@ -61,9 +62,10 @@ const REITER_RAEUME = '#raeume';
  * Klausur benutzt (und ob mehrfach), entscheidet Schritt 4.
  *
  * Der Screen ist als **Arbeitsfläche** gebaut, wie eine Tabellenkalkulation:
- * oben das Menüband (Datei, Reiter, Werkzeuge), unten die Fußleiste mit
- * Ansicht und Meldungen, dazwischen nichts als der Plan in voller Breite. Ein
- * Reiter je Raum – bearbeitet wird immer **einer**: Nebeneinander sind ein
+ * oben das Menüband („Datei“, „Werkzeuge“, „Räume“ – jedes klappt auf), unten
+ * die Fußleiste mit Ansicht und Meldungen, dazwischen nichts als der Plan in
+ * voller Breite. Welcher Raum offen ist, steht im Menü „Räume“ und hinter
+ * dessen Namen – bearbeitet wird immer **einer**: Nebeneinander sind ein
  * Hörsaal mit 44 × 32 Feldern und vier weitere Räume nicht zu überblicken, und
  * man bearbeitet ohnehin einen nach dem anderen. Gespeichert werden alle.
  */
@@ -305,87 +307,145 @@ export function RaeumeScreen() {
     return laut === tische ? `${laut} Plätze` : `Liste: ${laut} Plätze – weicht ab`;
   };
 
-  const kopf = (
-    <>
-      <Aktionsleiste titel="Datei" testID="raeume-datei">
-        <AppButton
-          title="Räume als CSV speichern"
-          variant="secondary"
-          kompakt
-          onPress={raeumeSpeichern}
-          testID="raeume-speichern"
-        />
-        <AppButton
-          title="Raster als CSV speichern"
-          variant="secondary"
-          kompakt
-          onPress={schemaSpeichern}
-          disabled={schemata.length === 0}
-          testID="raeume-schema-speichern"
-        />
-        <AppButton
-          title={pdfLaeuft ? 'PDF läuft …' : 'Raumplan als PDF'}
-          variant="secondary"
-          kompakt
-          onPress={() => aktivesSchema && planAlsPdf(aktivesSchema)}
-          disabled={pdfLaeuft || !aktivesSchema}
-          testID="raeume-plan-pdf"
-        />
-        <FilePickerButton label="Räume-CSV laden" accept=".csv" kompakt onFiles={raeumeLaden} />
-        <FilePickerButton
-          label="Raumschema-CSVs laden"
-          accept=".csv"
-          multiple
-          kompakt
-          onFiles={schemaLaden}
-        />
-        <AppButton
-          title="Beispieldaten laden"
-          variant="secondary"
-          kompakt
-          onPress={beispielLaden}
-          testID="raeume-beispiel"
-        />
-        <ProjektDownload kompakt testID="raeume-projekt-download" />
-      </Aktionsleiste>
+  const projektEintrag = useProjektDownloadEintrag(setFehler, 'raeume-projekt-download');
 
-      <Reiterleiste
-        reiter={[
-          { key: REITER_RAEUME, titel: 'Räume', testID: 'raeume-reiter-liste' },
-          ...schemata.map((schema) => ({
-            key: schema.raum,
-            titel: `${schema.raum} (${tischzellen(schema).length})`,
+  /**
+   * Das Menüband: „Datei“, „Werkzeuge“ und „Räume“ – wie die Menüleiste einer
+   * Tabellenkalkulation. Was es zu tun gibt, steht hier als Beschreibung;
+   * ob daraus ein herunterklappendes Menü wird oder auf dem Handy eine
+   * Schublade, entscheidet `Menueleiste`.
+   *
+   * „Werkzeuge“ gibt es nur mit offenem Raum: Ohne Plan wäre jeder Eintrag
+   * darin grau.
+   */
+  const menus: MenuGruppe[] = [
+    {
+      titel: 'Datei',
+      testID: 'raeume-menue-datei',
+      eintraege: [
+        { art: 'trenner', titel: 'Speichern' },
+        {
+          art: 'aktion',
+          titel: 'Räume als CSV speichern',
+          hinweis: 'die Raumliste als Raeume/raeume.csv',
+          onWaehlen: raeumeSpeichern,
+          testID: 'raeume-speichern',
+        },
+        {
+          art: 'aktion',
+          titel: 'Raster als CSV speichern',
+          hinweis: 'je Raum eine Datei in Raeume/',
+          deaktiviert: schemata.length === 0,
+          onWaehlen: schemaSpeichern,
+          testID: 'raeume-schema-speichern',
+        },
+        {
+          art: 'aktion',
+          titel: pdfLaeuft ? 'PDF läuft …' : 'Raumplan als PDF',
+          hinweis: aktivesSchema
+            ? `der Grundriss von ${aktivesSchema.raum}`
+            : 'erst einen Raum öffnen',
+          deaktiviert: pdfLaeuft || !aktivesSchema,
+          onWaehlen: () => aktivesSchema && planAlsPdf(aktivesSchema),
+          testID: 'raeume-plan-pdf',
+        },
+        { art: 'trenner', titel: 'Laden' },
+        {
+          art: 'datei',
+          titel: 'Räume-CSV laden',
+          accept: '.csv',
+          onDateien: raeumeLaden,
+          testID: 'raeume-csv-laden',
+        },
+        {
+          art: 'datei',
+          titel: 'Raumschema-CSVs laden',
+          hinweis: 'mehrere auf einmal – je Raum eine Datei',
+          accept: '.csv',
+          mehrere: true,
+          onDateien: schemaLaden,
+          testID: 'raeume-schema-laden',
+        },
+        {
+          art: 'aktion',
+          titel: 'Beispieldaten laden',
+          onWaehlen: beispielLaden,
+          testID: 'raeume-beispiel',
+        },
+        { art: 'trenner', titel: 'Projekt' },
+        projektEintrag,
+      ],
+    },
+    ...(aktivesSchema
+      ? [
+          {
+            titel: 'Werkzeuge',
+            // Welches Werkzeug gerade malt, steht hinter dem Namen – in einer
+            // Knopfreihe war es die hervorgehobene Kachel.
+            wert: werkzeugTitel(editor),
+            testID: 'raeume-menue-werkzeuge',
+            eintraege: [
+              { art: 'trenner', titel: 'Palette' } as MenuEintrag,
+              ...paletteEintraege(editor),
+              ...rasterEintraege(editor, aktivesSchema.raum, true),
+            ],
+          },
+        ]
+      : []),
+    {
+      titel: 'Räume',
+      wert: aktivesSchema ? aktivesSchema.raum : 'Liste',
+      testID: 'raeume-menue-raeume',
+      eintraege: [
+        {
+          art: 'aktion',
+          titel: 'Raumliste',
+          hinweis: 'Bestand des Hauses bearbeiten',
+          gewaehlt: !aktivesSchema,
+          onWaehlen: () => reiterWechseln(REITER_RAEUME),
+          testID: 'raeume-reiter-liste',
+        },
+        { art: 'trenner', titel: 'Raumpläne' },
+        ...schemata.map(
+          (schema): MenuEintrag => ({
+            art: 'aktion',
+            titel: schema.raum,
+            hinweis: `${tischzellen(schema).length} Sitzplätze`,
+            gewaehlt: schema.raum === offenerReiter,
+            onWaehlen: () => reiterWechseln(schema.raum),
             testID: `raeume-waehlen-${schema.raum}`,
-          })),
-        ]}
-        aktiv={offenerReiter}
-        onWaehlen={reiterWechseln}
-        testID="raeume-reiter"
-      />
-
-      {aktivesSchema ? (
-        <Aktionsleiste titel="Raum" testID="raeume-werkzeuge">
-          <PalettenLeiste editor={editor} />
-          <PlanWerkzeugKnoepfe editor={editor} raum={aktivesSchema.raum} bearbeiten />
-          <AppButton
-            title="Plätze übernehmen"
-            variant="secondary"
-            kompakt
-            onPress={() => plaetzeUebernehmen(aktivesSchema)}
-            disabled={!plaetzeJeRaum.has(aktivesSchema.raum)}
-            testID={`raeume-plaetze-${aktivesSchema.raum}`}
-          />
-          <AppButton
-            title="Raster entfernen"
-            variant="secondary"
-            kompakt
-            onPress={() => rasterEntfernen(aktivesSchema.raum)}
-            testID={`raeume-raster-entfernen-${aktivesSchema.raum}`}
-          />
-        </Aktionsleiste>
-      ) : null}
-    </>
-  );
+          }),
+        ),
+        ohneRaster.length > 0 && ({ art: 'trenner' } as MenuEintrag),
+        ohneRaster.length > 0 &&
+          ({
+            art: 'aktion',
+            titel: 'Fehlende Raster anlegen',
+            hinweis: ohneRaster.map((raum) => raum.raum).join(', '),
+            onWaehlen: rasterAnlegen,
+            testID: 'raeume-raster-anlegen-menue',
+          } as MenuEintrag),
+        aktivesSchema && ({ art: 'trenner', titel: aktivesSchema.raum } as MenuEintrag),
+        aktivesSchema &&
+          ({
+            art: 'aktion',
+            titel: 'Plätze übernehmen',
+            hinweis: 'die Tische des Rasters in die Raumliste',
+            deaktiviert: !plaetzeJeRaum.has(aktivesSchema.raum),
+            onWaehlen: () => plaetzeUebernehmen(aktivesSchema),
+            testID: `raeume-plaetze-${aktivesSchema.raum}`,
+          } as MenuEintrag),
+        aktivesSchema &&
+          ({
+            art: 'aktion',
+            titel: 'Raster entfernen',
+            hinweis: 'der Raum bleibt in der Liste',
+            onWaehlen: () => rasterEntfernen(aktivesSchema.raum),
+            testID: `raeume-raster-entfernen-${aktivesSchema.raum}`,
+          } as MenuEintrag),
+      ],
+    },
+  ];
 
   /**
    * Links in der Fußleiste – die Statuszeile: erst die Meldung, dann der Stand.
@@ -404,7 +464,7 @@ export function RaeumeScreen() {
 
   return (
     <Arbeitsflaeche
-      kopf={kopf}
+      kopf={<Menueleiste menus={menus} testID="raeume-menue" />}
       fuss={
         <PlanFuss
           editor={editor}

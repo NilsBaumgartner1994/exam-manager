@@ -71,20 +71,53 @@ export function nichtDarstellbareZeichen(text: string): string[] {
   return [...new Set([...text].filter((zeichen) => !WINANSI.has(zeichen)))];
 }
 
-async function textPdf(rohAbsaetze: string[]): Promise<Uint8Array> {
-  const absaetze = rohAbsaetze.map(winAnsiText);
+/** Ein Absatz einer Text-PDF – ohne weitere Angaben Fließtext in Helvetica. */
+export interface TextAbsatz {
+  text: string;
+  /** Halbfett – für Überschriften und die Sitzplatznummer. */
+  fett?: boolean;
+  /** Schriftgröße in Punkt (Vorgabe: die des Fließtexts). */
+  groesse?: number;
+  /** Leerzeilen über dem Absatz. */
+  abstandOben?: number;
+}
+
+interface TextPdfOptionen {
+  /** Schriftgröße des Fließtexts. */
+  groesse?: number;
+  /** Abstand von Zeile zu Zeile. */
+  zeilenhoehe?: number;
+  /** Abstand nach jedem Absatz, in Zeilen. */
+  absatzAbstand?: number;
+}
+
+async function textPdf(
+  rohAbsaetze: (string | TextAbsatz)[],
+  optionen: TextPdfOptionen = {},
+): Promise<Uint8Array> {
+  const { groesse = FONT_SIZE, zeilenhoehe = LINE_HEIGHT, absatzAbstand = 0.5 } = optionen;
   const doc = await PDFDocument.create();
   const page = doc.addPage([A4.width, A4.height]);
   const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fett = await doc.embedFont(StandardFonts.HelveticaBold);
   const maxWidth = A4.width - 2 * MARGIN;
   let y = A4.height - 80;
 
-  for (const absatz of absaetze) {
-    for (const zeile of wrap(absatz, font, FONT_SIZE, maxWidth)) {
-      page.drawText(zeile, { x: MARGIN, y, size: FONT_SIZE, font, color: rgb(0, 0, 0) });
-      y -= LINE_HEIGHT;
+  for (const roh of rohAbsaetze) {
+    const absatz: TextAbsatz = typeof roh === 'string' ? { text: roh } : roh;
+    const schrift = absatz.fett ? fett : font;
+    const schriftgroesse = absatz.groesse ?? groesse;
+    // Größerer Text braucht mehr Luft, sonst berühren sich die Zeilen.
+    const hoehe = schriftgroesse === groesse ? zeilenhoehe : schriftgroesse * 1.3;
+
+    y -= (absatz.abstandOben ?? 0) * zeilenhoehe;
+    for (const zeile of wrap(winAnsiText(absatz.text), schrift, schriftgroesse, maxWidth)) {
+      page.drawText(zeile, {
+        x: MARGIN, y, size: schriftgroesse, font: schrift, color: rgb(0, 0, 0),
+      });
+      y -= hoehe;
     }
-    y -= LINE_HEIGHT / 2; // Absatzabstand
+    y -= absatzAbstand * zeilenhoehe;
   }
   return doc.save();
 }
@@ -118,23 +151,41 @@ export async function zulassungsPdf(zulassung: Zulassung): Promise<Uint8Array> {
   ]);
 }
 
-/** Raum-/Sitzplatz-PDF (`<Matrikelnummer>.pdf`) mit den Klausurinformationen. */
+/**
+ * Raum-/Sitzplatz-PDF (`<Matrikelnummer>.pdf`) mit den Klausurinformationen –
+ * derselbe Wortlaut wie in `2_generate_studip_pdfs.py`. Die Sitzplatznummer
+ * steht groß und fett am Ende: Sie ist das, was am Prüfungstag gesucht wird.
+ */
 export async function sitzplatzPdf(platz: Sitzplatz): Promise<Uint8Array> {
-  return textPdf([
-    'Klausur Information',
-    '',
-    `Liebe/r ${platz.vorname},`,
-    '',
-    'Sie haben sich für die Klausur angemeldet. Bitte beachten Sie folgende Informationen:',
-    '',
-    '- Um an der Prüfung teilnehmen zu können, müssen Sie unbedingt Ihr Stud.IP-Login ' +
-      '(User und Passwort) auswendig wissen.',
-    '- Bitte bringen Sie Ihren Studierendenausweis und ein Ausweisdokument mit.',
-    '',
-    `Raum: ${platz.raum}`,
-    `Sitzplatznummer: ${platz.sitzplatznummer}`,
-    `Zeit: ${platz.reservierteZeit}`,
-  ]);
+  return textPdf(
+    [
+      { text: 'Klausur Information', fett: true, groesse: 14 },
+      { text: `Liebe/r ${platz.vorname},`, abstandOben: 0.5 },
+      {
+        text: 'Sie haben sich für die Klausur angemeldet. Bitte beachten Sie folgende Informationen:',
+        abstandOben: 0.5,
+      },
+      '- Um an der Prüfung teilnehmen zu können, müssen Sie unbedingt Ihr Stud.IP-Login ' +
+        '(User und Passwort) auswendig wissen.',
+      'Tipp: Passen Sie Ihr Passwort ggf. vor der Prüfung temporär so an, dass Sie es sich ' +
+        'sicher merken können.',
+      '- Bitte halten Sie zu Beginn und während der Prüfung Ihren Studierendenausweis / ' +
+        'Ihre Immatrikulationsbescheinigung (und ggf. den EXA-Anmeldenachweis) bereit.',
+      '- Bitte kommen Sie mit etwas zeitlichem Vorlauf zum Prüfungsraum und planen Sie am ' +
+        'Ende zusätzliche Zeit ein, da am Anfang etwas Zeit für Organisatorisches benötigt wird.',
+      { text: 'Datum / Gruppe / Zeiten:', abstandOben: 0.5 },
+      platz.reservierteZeit,
+      { text: 'Raum:', abstandOben: 0.5 },
+      platz.raum,
+      {
+        text: `SITZPLATZNUMMER: ${platz.sitzplatznummer}`,
+        fett: true,
+        groesse: 18,
+        abstandOben: 1.5,
+      },
+    ],
+    { groesse: 11, zeilenhoehe: 14, absatzAbstand: 0 },
+  );
 }
 
 // ---------------------------------------------------------------------------

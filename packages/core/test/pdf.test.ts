@@ -1,3 +1,4 @@
+import { inflateSync } from 'zlib';
 import { PDFDocument } from 'pdf-lib';
 import {
   erstelleZip,
@@ -12,6 +13,30 @@ import {
   zulassungsPdf,
 } from '../src';
 
+/**
+ * Der Text einer PDF, Zeile für Zeile – die Seiteninhalte sind Flate-gepackt
+ * und schreiben ihre Zeilen als `<hex> Tj`. Reicht, um zu prüfen, dass der
+ * Wortlaut wirklich im Dokument landet.
+ */
+function pdfZeilen(pdf: Uint8Array): string[] {
+  const roh = Buffer.from(pdf);
+  const zeilen: string[] = [];
+  for (const treffer of roh.toString('latin1').matchAll(/stream\r?\n/g)) {
+    const start = treffer.index! + treffer[0].length;
+    const ende = roh.indexOf('endstream', start, 'latin1');
+    let inhalt: string;
+    try {
+      inhalt = inflateSync(roh.subarray(start, ende)).toString('latin1');
+    } catch {
+      continue;
+    }
+    for (const text of inhalt.matchAll(/<([0-9A-Fa-f]+)> Tj/g)) {
+      zeilen.push(Buffer.from(text[1], 'hex').toString('latin1'));
+    }
+  }
+  return zeilen;
+}
+
 const ZULASSUNG = {
   nachname: 'Schrödinger', vorname: 'Erwin', matrikelnummer: '1000005', email: 'erwin@test.de',
 };
@@ -23,14 +48,28 @@ describe('PDF und ZIP (Screen 2 + 4)', () => {
     expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
   });
 
-  it('erzeugt ein Sitzplatz-PDF', async () => {
+  it('erzeugt ein Sitzplatz-PDF mit Anrede, Hinweisen und Sitzplatznummer', async () => {
     const pdf = await sitzplatzPdf({
       anfangNachname: 'S', sitzplatznummer: 1001, raum: '94/E01', raumSchluessel: '94/E01',
-      reservierteZeit: '01.02.2026 09:30', matrikelnummer: '1000005', anwesend: '',
+      reservierteZeit: '01.02.2026 Gruppe 1: ca. 09:15 Uhr = Einlassstart',
+      matrikelnummer: '1000005', anwesend: '',
       nachname: 'Schrödinger', vorname: 'Erwin', zeitUndRaum: '01.02.2026 09:30 - 94/E01',
       email: 'erwin@test.de',
     });
     expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
+
+    const text = pdfZeilen(pdf).join('\n');
+    expect(text).toContain('Klausur Information');
+    expect(text).toContain('Liebe/r Erwin,');
+    expect(text).toContain('Stud.IP-Login');
+    expect(text).toContain('EXA-Anmeldenachweis');
+    expect(text).toContain('Datum / Gruppe / Zeiten:');
+    expect(text).toContain('01.02.2026 Gruppe 1: ca. 09:15 Uhr = Einlassstart');
+    expect(text).toContain('Raum:');
+    expect(text).toContain('94/E01');
+    // Die Nummer steht als eigene Zeile am Ende – groß und fett auf dem Blatt.
+    const zeilen = pdfZeilen(pdf);
+    expect(zeilen[zeilen.length - 1]).toBe('SITZPLATZNUMMER: 1001');
   });
 
   it('bündelt PDFs in ein ZIP mit <Matrikelnummer>.pdf', async () => {

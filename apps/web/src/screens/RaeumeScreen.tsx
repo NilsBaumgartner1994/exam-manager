@@ -7,8 +7,10 @@ import {
   parseRaumschemaDateien,
   Raum,
   raeumeToCsv,
+  raumDateiname,
   Raumschema,
   raumschemaDateien,
+  sitzplaenePdf,
   standardRaumschema,
   tischzellen,
 } from '@exam-manager/core';
@@ -30,7 +32,7 @@ import {
   zeileZuRaum,
   type RaumZeile,
 } from '../components';
-import { downloadCsv, downloadZip, readFileAsText } from '../files';
+import { downloadCsv, downloadFile, downloadZip, readFileAsText } from '../files';
 import { useProjekt } from '../projekt';
 import { useResponsiveLayout } from '../responsive';
 import { BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMATA } from '../sampleData';
@@ -64,6 +66,8 @@ export function RaeumeScreen() {
   const [hinweis, setHinweis] = useState<string | null>(null);
   /** Welcher Raum gerade bearbeitet wird (Name); `null` = der erste. */
   const [gewaehlt, setGewaehlt] = useState<string | null>(null);
+  /** Läuft gerade ein PDF? Das Zeichnen dauert einen Moment. */
+  const [pdfLaeuft, setPdfLaeuft] = useState(false);
 
   /**
    * Der Stand liegt zusätzlich in einem Ref: Beim Ziehen kommen viele
@@ -226,6 +230,36 @@ export function RaeumeScreen() {
     setHinweis(`${schema.raum}: ${tische} Plätze aus dem Raster übernommen.`);
   };
 
+  /**
+   * Den Raumplan als PDF – gezeichnet von derselben Funktion wie in Schritt 4
+   * (`sitzplaenePdf`), nur ohne Belegung: Hier ist der Raum das Ergebnis, nicht
+   * wer darin sitzt. Je Raum eine Datei, denn hier arbeitet man an einem Raum
+   * und will genau dessen Plan ausdrucken oder weitergeben.
+   */
+  const planAlsPdf = async (schema: Raumschema) => {
+    setFehler(null);
+    setHinweis(null);
+    setPdfLaeuft(true);
+    try {
+      const pdf = await sitzplaenePdf([
+        {
+          schema,
+          titel: schema.raum,
+          untertitel: `${tischzellen(schema).length} Sitzplätze`,
+          // Gedruckt wird, was am Bildschirm steht – samt Drehung und „Pult“.
+          drehungen: editor.drehungen[schema.raum] ?? 0,
+          anzeige: ANZEIGE_RAUMPLANUNG,
+        },
+      ]);
+      downloadFile(`${raumDateiname(schema.raum)}.pdf`, pdf, 'application/pdf');
+      setHinweis(`Raumplan ${schema.raum} als PDF gespeichert.`);
+    } catch (e) {
+      setFehler(`Der Raumplan konnte nicht als PDF erzeugt werden: ${String(e)}`);
+    } finally {
+      setPdfLaeuft(false);
+    }
+  };
+
   const raeumeSpeichern = () => {
     const csv = raeumeToCsv(raeume);
     downloadCsv('raeume.csv', csv);
@@ -346,6 +380,14 @@ export function RaeumeScreen() {
                 kopfZusatz={kopfZusatz(aktivesSchema)}
                 knoepfe={
                   <>
+                    <AppButton
+                      title={pdfLaeuft ? 'PDF läuft …' : 'Raumplan als PDF'}
+                      variant="secondary"
+                      kompakt={isCompact}
+                      onPress={() => planAlsPdf(aktivesSchema)}
+                      disabled={pdfLaeuft}
+                      testID={`raeume-plan-pdf-${aktivesSchema.raum}`}
+                    />
                     <AppButton
                       title="Plätze übernehmen"
                       variant="secondary"

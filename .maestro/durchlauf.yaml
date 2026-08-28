@@ -113,6 +113,14 @@ url: http://localhost:8081
 - tapOn:
     id: 'raeume-waehlen-66/E33'
 - assertVisible: 'Raster 19 Spalten'
+# Der Grundriss als PDF – dieselbe Zeichnung wie der Sitzplan in Schritt 4,
+# nur ohne Belegung, und je Raum eine Datei.
+- scrollUntilVisible:
+    element: 'Raumplan als PDF'
+- tapOn: 'Raumplan als PDF'
+- extendedWaitUntil:
+    visible: 'Raumplan 66/E33 als PDF gespeichert.'
+    timeout: 20000
 - scrollUntilVisible:
     element: 'Räume als CSV speichern'
 - tapOn: 'Räume als CSV speichern'

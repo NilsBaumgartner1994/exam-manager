@@ -199,6 +199,12 @@ const HOEHE_MINDESTENS = 280;
 const TIPP_TOLERANZ = 8;
 /** Ein Rasten am Mausrad (mit Strg) vergrößert bzw. verkleinert um so viel. */
 const RAD_SCHRITT = 1.12;
+/**
+ * Polster rings um den Plan und Abstand zwischen Kopfzeile und Raster – beides
+ * steht so in `styles.aussen` und zählt beim Einpassen mit.
+ */
+const PLAN_POLSTER = spacing.xs;
+const KOPF_ABSTAND = 4;
 
 /**
  * Höhe des Fensters, in dem ein beweglicher Plan liegt. Dieselbe Höhe rechnet
@@ -246,12 +252,77 @@ function fugenbreite(zellGroesse: number): number {
 }
 
 /**
+ * Was eine Zellgröße nach sich zieht: Fuge, Zeilenhöhe und die Größe der
+ * Köpfe. Alles hängt an der Zellgröße – sonst wäre bei 47 Spalten mehr Fuge
+ * als Zelle zu sehen.
+ */
+function zellMasse(groesse: number) {
+  return {
+    abstand: fugenbreite(groesse),
+    zellHoehe: Math.max(7, Math.round(groesse * ZELL_HOEHE_ANTEIL)),
+    kopfGroesse: begrenze(groesse * 0.34, 11, 22),
+  };
+}
+
+/**
+ * Wie viel Platz der Plan bei dieser Zellgröße wirklich einnimmt – gerechnet
+ * wie er gezeichnet wird: Polster außen (`styles.aussen`), die Köpfe, der
+ * Abstand zwischen Kopfzeile und Raster und die Fuge zwischen je zwei Zellen.
+ *
+ * Die Zugaben sind der Grund, warum „Ganzer Raum“ vorher nicht aufging: Bei
+ * 31 Zeilen sind allein die Fugen und die Kopfzeile rund 80 px, und genau die
+ * lagen dann unter dem unteren Rand.
+ */
+function planMasse(groesse: number, zeilen: number, spalten: number) {
+  const { abstand, zellHoehe, kopfGroesse } = zellMasse(groesse);
+  return {
+    breite: 2 * PLAN_POLSTER + kopfGroesse + spalten * (groesse + abstand),
+    hoehe:
+      2 * PLAN_POLSTER +
+      kopfGroesse +
+      KOPF_ABSTAND +
+      zeilen * zellHoehe +
+      (zeilen - 1) * abstand,
+  };
+}
+
+/**
+ * Die größte Zellgröße, mit der der Plan noch in den Platz passt. Gesucht wird
+ * sie, statt sie auszurechnen: Fuge und Kopfgröße springen in Stufen, eine
+ * geschlossene Formel träfe daneben. Die Maße wachsen mit der Zellgröße, also
+ * genügt eine Halbierungssuche (rund sieben Schritte).
+ *
+ * `mitHoehe` = „Ganzer Raum“: Dann muss auch die Höhe reichen. „Auf Breite“
+ * scrollt in die Höhe, dort zählt nur die Breite.
+ */
+function passendeZellGroesse(
+  zeilen: number,
+  spalten: number,
+  breite: number,
+  hoehe: number,
+  mitHoehe: boolean,
+): number {
+  const passt = (groesse: number) => {
+    const masse = planMasse(groesse, zeilen, spalten);
+    return masse.breite <= breite && (!mitHoehe || masse.hoehe <= hoehe);
+  };
+  // Passt selbst die kleinste Zelle nicht, bleibt es bei ihr – dann wird
+  // gescrollt, statt den Plan bis zur Unlesbarkeit zu schrumpfen.
+  if (!passt(ZELLE_MIN)) return ZELLE_MIN;
+  let klein = ZELLE_MIN;
+  let gross = ZELLE_MAX;
+  while (klein < gross) {
+    const mitte = Math.ceil((klein + gross) / 2);
+    if (passt(mitte)) klein = mitte;
+    else gross = mitte - 1;
+  }
+  return klein;
+}
+
+/**
  * Maße des Rasters zu einer Raumgröße. Wie groß eine Zelle wird, sagt die
  * Ansicht: eingepasst (ganzer Raum sichtbar), auf Breite (volle Breite, in
  * die Höhe wird gescrollt) oder frei in Pixeln.
- *
- * Abstand, Kopfgröße und Schriftgrößen hängen an der Zellgröße – sonst wäre
- * bei 47 Spalten mehr Fuge als Zelle zu sehen.
  */
 export function rastermasse(
   anzahlZeilen: number,
@@ -260,31 +331,18 @@ export function rastermasse(
   hoehe: number,
   ansicht: PlanAnsicht = PLAN_ANSICHT,
 ) {
-  // Die Zeilenköpfe stehen links neben dem Raster: gut eine Drittelzelle, die
-  // von der Breite abgeht, sonst ragt der Plan bei „Breite“ knapp heraus.
-  const proSpalte = breite / (Math.max(1, anzahlSpalten) + 0.4);
-  // Eine Zeile ist nur halb so hoch wie eine Spalte breit – die Höhe erlaubt
-  // deshalb doppelt so große Zellen wie die reine Zeilenzahl vermuten lässt.
-  const proZeile = hoehe / Math.max(1, anzahlZeilen) / ZELL_HOEHE_ANTEIL;
-  const platz = ansicht.modus === 'breite' ? proSpalte : Math.min(proSpalte, proZeile);
-  // Zellgröße und Fuge hängen voneinander ab (kleine Zellen bekommen eine
-  // schmalere Fuge). Erst mit der größten Fuge schätzen, dann mit der Fuge
-  // rechnen, die dazu gehört – sonst bliebe bei vielen Spalten ein Streifen
-  // ungenutzt (47 Spalten × 3 px sind über 140 px).
-  const geschaetzt = begrenze(platz - 4, ZELLE_MIN, ZELLE_MAX);
-  const gewuenscht = begrenze(platz - fugenbreite(geschaetzt), ZELLE_MIN, ZELLE_MAX);
+  const zeilen = Math.max(1, anzahlZeilen);
+  const spalten = Math.max(1, anzahlSpalten);
   const groesse =
     ansicht.modus === 'frei'
       ? begrenze(ansicht.zellGroesse, ZELLE_FREI_MIN, ZELLE_FREI_MAX)
-      : // Die endgültige Fuge kann eine Stufe breiter sein als die geschätzte;
-        // dann eine Spur kleiner, damit der Plan sicher hineinpasst.
-        Math.max(ZELLE_MIN, Math.min(gewuenscht, Math.floor(platz - fugenbreite(gewuenscht))));
-  const zellHoehe = Math.max(7, Math.round(groesse * ZELL_HOEHE_ANTEIL));
+      : passendeZellGroesse(zeilen, spalten, breite, hoehe, ansicht.modus === 'einpassen');
+  const { abstand, zellHoehe, kopfGroesse } = zellMasse(groesse);
   return {
     groesse,
     zellHoehe,
-    abstand: fugenbreite(groesse),
-    kopfGroesse: begrenze(groesse * 0.34, 11, 22),
+    abstand,
+    kopfGroesse,
     kopfSchrift: begrenze(groesse * 0.22, 8, 11),
     /** Ab hier passen zwei Zeilen Text in den Kasten, darunter nur eine. */
     zeigeDetails: zellHoehe >= 24,
@@ -1253,7 +1311,9 @@ const mitTextauswahl = {
 } as unknown as object;
 
 const styles = StyleSheet.create({
-  aussen: { padding: spacing.xs, gap: 4 },
+  // Maße hier und in `planMasse` müssen zusammenpassen – sonst rechnet
+  // „Ganzer Raum“ an dem vorbei, was gezeichnet wird.
+  aussen: { padding: PLAN_POLSTER, gap: KOPF_ABSTAND },
   /**
    * Im Planfenster wächst der Plan über den Ausschnitt hinaus: `flex-start`
    * lässt ihn so breit werden, wie er ist (gestreckt wäre er so breit wie das

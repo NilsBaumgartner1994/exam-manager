@@ -224,6 +224,10 @@ Konventionen des Datensatzes:
   dem Zoom, dazwischen nichts als der Plan. Wie hoch der sein darf, misst der
   Rahmen (`onLayout`) und gibt es als `hoehe` weiter – ohne die Zahl kann
   „Ganzer Raum“ nicht rechnen.
+- **Der Raumplan als PDF entsteht mit `sitzplaenePdf()`** – in Schritt 4 mit
+  Belegung (alle Räume in einer Datei, je Einsatz eine Seite), in Schritt 5
+  ohne (der gezeigte Raum als eigene Datei, benannt nach `raumDateiname`).
+  Eine zweite Zeichenroutine für den leeren Grundriss gibt es nicht.
 - **Screen 5 zeigt genau einen Raum.** Über den Plänen steht die Raumliste als
   Knopfreihe; gezeichnet wird nur der gewählte. Fünf Pläne nebeneinander –
   darunter ein Hörsaal mit 44 × 32 Feldern – sind weder zu überblicken noch
@@ -357,8 +361,15 @@ Konventionen des Datensatzes:
   47 × 34 Feldern am Stück auf einem 1920 × 1080-Schirm) und `frei`
   (Zellgröße in Pixeln, wie das Zoomen in ein Bild; der erste Zoomschritt
   setzt auf der gerade gezeichneten Größe auf, die `onZellGroesse` meldet).
-  Zellgröße und Fuge hängen voneinander ab – erst schätzen, dann mit der
-  passenden Fuge rechnen, sonst bleibt bei 47 Spalten ein Streifen ungenutzt.
+  Gerechnet wird nicht mit einer Formel, sondern gesucht: `planMasse()` sagt,
+  wie breit und hoch der Plan bei einer Zellgröße *wirklich* wird (Polster,
+  Köpfe, Fuge zwischen je zwei Zellen), und `passendeZellGroesse()` findet per
+  Halbierungssuche die größte, die noch hineinpasst. Fuge und Kopfgröße
+  springen in Stufen – eine geschlossene Formel trifft daneben, und genau
+  daran scheiterte „Ganzer Raum“ früher: Die Zugaben (bei 31 Zeilen rund
+  80 px) fehlten in der Rechnung, die letzten Reihen lagen unter dem Rand.
+  Wer `styles.aussen` ändert, ändert `PLAN_POLSTER`/`KOPF_ABSTAND` mit – beide
+  Seiten müssen dasselbe meinen.
   Bei so vielen Zellen zählt jede Neuberechnung: Die
   Zellen sind `React.memo` und bekommen deshalb stabile Rückrufe (Position als
   Argument statt frisch erzeugter Closure) und gemerkte Werte (`useMemo` für

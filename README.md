@@ -434,6 +434,10 @@ Und die vier Schritte selbst:
    - **Plätze übernehmen** – die Platzzahl der Raumliste aus dem Raster setzen
      (die Tische zählen). Weicht beides ab, steht das in der Überschrift des
      Raums – sonst meldet Schritt 4 später Teilnehmende „ohne Tisch“.
+   - **Raumplan als PDF** – den Grundriss des gezeigten Raums als PDF-Seite
+     (`66_E33.pdf`), gezeichnet von derselben Funktion wie der Sitzplan in
+     Schritt 4 – nur ohne Belegung. Je Raum eine Datei: Hier arbeitet man an
+     einem Raum und will genau dessen Plan ausdrucken oder weitergeben.
    - **Raster entfernen** – das Raster eines Raums verwerfen, ohne den Raum
      aus der Liste zu nehmen.
 

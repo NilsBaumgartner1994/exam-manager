@@ -289,15 +289,21 @@ Und die vier Schritte selbst:
    hier lässt sich der **Text der PDFs** anpassen (siehe unten).
 
    **Aufbau wie eine Tabellenkalkulation** (genauso in Schritt 5): oben im
-   Kopf der App „Zurück“ und der Titel, darunter das Menüband – die Leiste
-   **Datei** (speichern und laden), die Leiste **PDF** und die **Reiter**;
-   dazwischen nichts als die Arbeitsfläche in voller Breite; unten die
-   **Fußleiste** mit Ansicht/Zoom und dem Stand (belegte Plätze, Rastergröße,
-   Meldungen). Die Reiter sind **Einstellungen** (Teilnehmende, Räume der
-   Klausur, Zuteilung), **Listen** (Aushang, Dozent, Tutor, Aushänge je Raum)
-   und **je ein Reiter pro Raumeinsatz** mit dessen Sitzplan. Auf schmalen
-   Bildschirmen scrollen die Leisten waagerecht, statt umzubrechen – der Plan
-   soll den Platz behalten.
+   Kopf der App „Zurück“ und der Titel, darunter die **Menüleiste** – wie in
+   Word oder Excel klappt jedes Menü mit einem Klick auf seinen Namen auf:
+   **Datei** (speichern, laden, Projekt), **PDF**, **Werkzeuge** (was ein
+   Tippen in den Plan tut, die Palette, Raster und Rückgängig), **Anzeigen**
+   (was in den Kästen steht) und **Räume**. Dazwischen nichts als die
+   Arbeitsfläche in voller Breite; unten die **Fußleiste** mit Ansicht/Zoom und
+   dem Stand (belegte Plätze, Rastergröße, Meldungen). Im Menü **Räume** wird
+   umgeschaltet: **Einstellungen** (Teilnehmende, Räume der Klausur,
+   Zuteilung), **Listen** (Aushang, Dozent, Tutor, Aushänge je Raum) und
+   **je ein Eintrag pro Raumeinsatz** mit dessen Sitzplan; was gerade offen ist
+   (und welches Werkzeug malt), steht klein hinter dem Menünamen. **Werkzeuge**
+   und **Anzeigen** gibt es nur bei offenem Raumplan. Auf schmalen
+   Bildschirmen wird daraus ein **Burger-Menü ☰**: Es öffnet eine Schublade
+   mit den Menüs, ein Tippen geht eine Ebene tiefer, „Zurück“ wieder herauf –
+   so behält der Plan den Platz.
 
    **Ohne Umweg über Schritt 3:** Liegt im Projektordner keine Teilnehmerliste
    in `3_Klausur_Teilnehmende_Export/`, prüft dieser Schritt die Anmeldungen
@@ -367,7 +373,7 @@ Und die vier Schritte selbst:
      („Text anlegen“, wenn noch keiner da ist). Gezeichnet wird erst, wenn man
      ein Element aus der Palette wählt; ein Ziehen mit dem Zeiger schiebt den
      Ausschnitt.
-   - **Raum bearbeiten** – im Menüband über dem Plan liegt die Palette
+   - **Raum bearbeiten** – im Menü **Werkzeuge** liegt die Palette
      (Zeiger, Auswählen, Verschieben, Sitzplatz, Reserve, Pult, Wand, Tür,
      Text, Radierer). Ein Element auf eine Zelle **ziehen**
      setzt es dort; **antippen** wählt es aus und man malt damit im Plan (über
@@ -377,7 +383,7 @@ Und die vier Schritte selbst:
      Belegung wandert mit. Am blauen **Griff an der unteren Ecke** zieht man
      die Auswahl wie in einer Tabellenkalkulation über mehrere Felder auf oder
      wieder zusammen und füllt sie dabei. Zeilen und Spalten lassen sich
-     zusätzlich über die Knöpfe hinzufügen und entfernen.
+     zusätzlich über die Einträge desselben Menüs hinzufügen und entfernen.
    - **Sitzplatz, Reserve oder Pult?** Alle drei sind Tische. Ein
      **Sitzplatz** (`T`) ist ein Tisch, an dem jemand geprüft wird: Nur diese
      werden nummeriert und belegt, und nur sie zählt die Platzzahl des Raums.
@@ -390,14 +396,14 @@ Und die vier Schritte selbst:
      keine Quadrate. So passen doppelt so viele Reihen ins Bild, ohne dass die
      Kästen schmaler werden.
    - **Rückgängig / Wiederholen** – jeder Schritt im Plan lässt sich zurück-
-     nehmen: die Knöpfe im Menüband oder <kbd>Strg</kbd>/<kbd>⌘</kbd> +
+     nehmen: die Einträge im Menü **Werkzeuge** oder <kbd>Strg</kbd>/<kbd>⌘</kbd> +
      <kbd>Z</kbd> (vorwärts mit <kbd>Umschalt</kbd> + <kbd>Z</kbd> bzw.
      <kbd>Y</kbd>). Das gilt auch fürs Platzieren, für Reserven und Vorgaben –
      Raster und Belegung gehen immer zusammen einen Schritt zurück.
    - **Text und verbundene Zellen** – mit dem Werkzeug **Text** zieht man über
      mehrere Felder ein Feld auf, in das sich frei schreiben lässt (z. B.
      „Tafel“, „Haupteingang“ oder ein Hinweis für die Aufsicht). Dasselbe
-     leisten die Knöpfe **Zellen verbinden** und **Zellen trennen** für die
+     leisten die Einträge **Zellen verbinden** und **Zellen trennen** für die
      aktuelle Auswahl. Das Feld legt sich **über** den Plan, statt ihn zu
      ersetzen: So lässt sich auch eine Tür, ein Pult oder eine ganze
      Tischreihe beschriften – die Zellen darunter bleiben, was sie sind. Weg
@@ -446,11 +452,14 @@ Und die vier Schritte selbst:
    davon eine Klausur benutzt (und ob mehrfach), entscheidet Schritt 4 und legt
    nur noch die Belegung darüber.
 
-   **Derselbe Aufbau wie Schritt 4:** Menüband oben (Leiste **Datei** mit
-   Speichern, Laden und „Raumplan als PDF“, darunter die **Reiter**), der Plan
-   in voller Breite dazwischen, unten die Fußleiste mit Ansicht/Zoom und dem
-   Stand des Rasters. Ein Reiter ist die **Raumliste**, die übrigen sind die
-   Räume (in Klammern ihre Sitzplätze).
+   **Derselbe Aufbau wie Schritt 4:** oben die Menüleiste – **Datei**
+   (Speichern, Laden, „Raumplan als PDF“, Projekt), **Werkzeuge** (Palette,
+   Raster, Rückgängig) und **Räume** –, der Plan in voller Breite dazwischen,
+   unten die Fußleiste mit Ansicht/Zoom und dem Stand des Rasters. Im Menü
+   **Räume** stehen die **Raumliste** und darunter die Räume (mit ihren
+   Sitzplätzen); dort liegen auch „Plätze übernehmen“ und „Raster entfernen“
+   für den gezeigten Raum. Auf schmalen Bildschirmen dasselbe als Schublade
+   hinter dem **☰**.
 
    **Bearbeitet wird ein Raum nach dem anderen:** Nebeneinander wären ein
    Hörsaal mit 44 × 32 Feldern und vier weitere Räume nicht zu überblicken.

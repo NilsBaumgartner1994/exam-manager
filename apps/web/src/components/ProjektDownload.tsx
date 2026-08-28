@@ -4,17 +4,12 @@ import { downloadZip } from '../files';
 import { useProjekt } from '../projekt';
 import { colors, spacing } from '../theme';
 import { AppButton } from './AppButton';
+import type { MenuEintrag } from './Menueband';
 import { StatusText } from './StatusText';
 
 interface Props {
   /** Zusätzlicher Satz, was dieser Screen dem Projekt hinzugefügt hat. */
   hinweis?: string;
-  /**
-   * Nur der Knopf, klein – für die Aktionsleiste der Arbeitsflächen
-   * (Schritt 4 und 5), wo neben zehn anderen Knöpfen kein Platz für einen
-   * Absatz Erklärung ist. Die steht dort ohnehin auf der Startseite.
-   */
-  kompakt?: boolean;
   testID?: string;
 }
 
@@ -26,7 +21,7 @@ interface Props {
  * Projektstand: die eingelesenen Dateien und alles, was die Schritte seitdem
  * hineingeschrieben haben.
  */
-export function ProjektDownload({ hinweis, kompakt, testID }: Props) {
+export function ProjektDownload({ hinweis, testID }: Props) {
   const projekt = useProjekt();
   const [fehler, setFehler] = useState<string | null>(null);
 
@@ -40,19 +35,6 @@ export function ProjektDownload({ hinweis, kompakt, testID }: Props) {
   };
 
   const leer = projekt.dateien.length === 0;
-
-  if (kompakt) {
-    return (
-      <AppButton
-        title="Projekt herunterladen"
-        variant="secondary"
-        kompakt
-        onPress={herunterladen}
-        disabled={leer}
-        testID={testID ?? 'projekt-download'}
-      />
-    );
-  }
 
   return (
     <View style={styles.box}>
@@ -72,6 +54,35 @@ export function ProjektDownload({ hinweis, kompakt, testID }: Props) {
       {fehler ? <StatusText kind="error">{fehler}</StatusText> : null}
     </View>
   );
+}
+
+/**
+ * Derselbe Download als Menüeintrag: In den Arbeitsflächen (Schritt 4 und 5)
+ * steht er im Menü „Datei“ und nicht als Knopf – der Erklärabsatz daneben
+ * hätte dort keinen Platz, und er steht ohnehin auf der Startseite.
+ *
+ * Was schiefgeht, meldet der Screen in seiner Fußleiste (`melde`): Ein Menü
+ * ist beim Lesen der Meldung längst wieder zu.
+ */
+export function useProjektDownloadEintrag(
+  melde: (fehler: string) => void,
+  testID?: string,
+): MenuEintrag {
+  const projekt = useProjekt();
+  return {
+    art: 'aktion',
+    titel: 'Projekt herunterladen',
+    hinweis: 'der ganze Projektordner als ZIP',
+    deaktiviert: projekt.dateien.length === 0,
+    testID: testID ?? 'projekt-download',
+    onWaehlen: async () => {
+      try {
+        downloadZip(`${projekt.ordner ?? 'klausur-projekt'}.zip`, await projekt.alsZip());
+      } catch (e) {
+        melde(`ZIP konnte nicht erzeugt werden: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    },
+  };
 }
 
 const styles = StyleSheet.create({

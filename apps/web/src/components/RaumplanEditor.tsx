@@ -27,8 +27,8 @@ import { colors, spacing } from '../theme';
 import { AppButton } from './AppButton';
 import { BlattModal } from './BlattModal';
 import { LabeledTextInput } from './LabeledInput';
+import type { MenuEintrag } from './Menueband';
 import { useModalEbene } from './ModalHost';
-import { PaletteElement } from './PaletteElement';
 import {
   PLAN_ANSICHT_EDITOR,
   Raumplan,
@@ -471,30 +471,29 @@ const PALETTEN_HINWEISE: { was: string; wie: string }[] = [
 ];
 
 /**
- * Die Palette als Zeile im Menüband: antippen wählt ein Element als Werkzeug,
- * ziehen legt es direkt auf einer Zelle ab.
+ * Die Palette als Einträge des Menüs „Werkzeuge“: antippen wählt ein Element
+ * als Werkzeug, ziehen legt es direkt auf einer Zelle ab.
  *
- * Sie steht oben und nicht seitlich neben dem Plan – der Plan bekommt so die
- * volle Breite des Bildschirms, und das Werkzeug liegt dort, wo es eine
- * Tabellenkalkulation auch hat.
+ * Sie steht nicht mehr als Knopfreihe über dem Plan, sondern im Menüband –
+ * der Plan bekommt so den ganzen Bildschirm, und das gewählte Werkzeug steht
+ * hinter dem Menünamen (`werkzeugTitel`), damit man es trotzdem sieht.
  */
-export function PalettenLeiste({ editor }: { editor: RaumplanEditor }) {
-  return (
-    <>
-      {PALETTE.map((eintrag) => (
-        <PaletteElement
-          key={eintrag.werkzeug}
-          titel={eintrag.titel}
-          kompakt
-          aktiv={editor.werkzeug === eintrag.werkzeug}
-          onTippen={() => editor.setzeWerkzeug(eintrag.werkzeug)}
-          onZiehen={editor.paletteZiehen}
-          onAblegen={editor.paletteAblegen(eintrag.werkzeug)}
-          testID={`raum-zelle-${eintrag.werkzeug}`}
-        />
-      ))}
-    </>
-  );
+export function paletteEintraege(editor: RaumplanEditor): MenuEintrag[] {
+  return PALETTE.map((eintrag) => ({
+    art: 'ziehbar',
+    titel: eintrag.titel,
+    hinweis: eintrag.untertitel,
+    gewaehlt: editor.werkzeug === eintrag.werkzeug,
+    onWaehlen: () => editor.setzeWerkzeug(eintrag.werkzeug),
+    onZiehen: editor.paletteZiehen,
+    onAblegen: editor.paletteAblegen(eintrag.werkzeug),
+    testID: `raum-zelle-${eintrag.werkzeug}`,
+  }));
+}
+
+/** Das gewählte Werkzeug – steht hinter „Werkzeuge“ im Menüband. */
+export function werkzeugTitel(editor: RaumplanEditor): string {
+  return PALETTE.find((eintrag) => eintrag.werkzeug === editor.werkzeug)?.titel ?? '';
 }
 
 /** Die Kurzanleitung in einer Zeile – für die Fußleiste. */
@@ -585,82 +584,92 @@ const OHNE_PERSONEN = new Map<string, Sitzplatz>();
  * Die Werkzeuge, die am Raster arbeiten: Drehen, Zeilen und Spalten, Zellen
  * verbinden und trennen, Rückgängig und Wiederholen.
  *
- * Sie stehen im Menüband neben der Palette – als eigenes Stück, damit beide
- * Screens dieselbe Leiste bekommen und ihre eigenen Knöpfe daneben hängen
- * können (Schritt 5 den Raumplan als PDF, Schritt 4 die Anzeige im Plan).
+ * Als Menüeinträge und nicht als Knopfreihe – beide Screens hängen sie
+ * unter dieselbe Palette und ergänzen ihre eigenen Einträge (Schritt 5 den
+ * Raumplan als PDF, Schritt 4 das Verteilen).
  */
-export function PlanWerkzeugKnoepfe({
-  editor,
-  raum,
-  bearbeiten,
-}: {
-  editor: RaumplanEditor;
+export function rasterEintraege(
+  editor: RaumplanEditor,
   /** Raumname – das Raster gehört zum Raum, nicht zum Durchgang. */
-  raum: string;
-  /** Zeigt die Knöpfe, die das Raster verändern. */
-  bearbeiten: boolean;
-}) {
+  raum: string,
+  /** Zeigt die Einträge, die das Raster verändern. */
+  bearbeiten: boolean,
+): MenuEintrag[] {
   const auswahl = editor.auswahlIn(raum);
-  return (
-    <>
-      <AppButton
-        title="↺ 90°"
-        variant="secondary"
-        kompakt
-        onPress={() => editor.drehen(raum, -1)}
-        testID={`raum-drehen-links-${raum}`}
-      />
-      <AppButton
-        title="↻ 90°"
-        variant="secondary"
-        kompakt
-        onPress={() => editor.drehen(raum, 1)}
-        testID={`raum-drehen-rechts-${raum}`}
-      />
-      {bearbeiten ? (
-        <>
-          <AppButton title="+ Zeile" variant="secondary" kompakt onPress={() => editor.groesseAendern(raum, 1, 0)} />
-          <AppButton title="− Zeile" variant="secondary" kompakt onPress={() => editor.groesseAendern(raum, -1, 0)} />
-          <AppButton title="+ Spalte" variant="secondary" kompakt onPress={() => editor.groesseAendern(raum, 0, 1)} />
-          <AppButton title="− Spalte" variant="secondary" kompakt onPress={() => editor.groesseAendern(raum, 0, -1)} />
-          <AppButton
-            title="Verbinden"
-            variant="secondary"
-            kompakt
-            onPress={editor.zellenVerbinden}
-            disabled={!auswahl}
-          />
-          <AppButton
-            title="Trennen"
-            variant="secondary"
-            kompakt
-            onPress={editor.zellenTrennen}
-            disabled={!auswahl}
-          />
-        </>
-      ) : null}
-      {editor.mitVerlauf ? (
-        <>
-          <AppButton
-            title="↶ Rückgängig"
-            variant="secondary"
-            kompakt
-            onPress={editor.rueckgaengig}
-            disabled={!editor.kannRueckgaengig}
-            testID="raum-rueckgaengig"
-          />
-          <AppButton
-            title="↷ Wiederholen"
-            variant="secondary"
-            kompakt
-            onPress={editor.wiederholen}
-            disabled={!editor.kannWiederholen}
-            testID="raum-wiederholen"
-          />
-        </>
-      ) : null}
-    </>
-  );
+  return [
+    { art: 'trenner', titel: 'Ansicht' },
+    {
+      art: 'aktion',
+      titel: '↺ 90° nach links drehen',
+      onWaehlen: () => editor.drehen(raum, -1),
+      testID: `raum-drehen-links-${raum}`,
+    },
+    {
+      art: 'aktion',
+      titel: '↻ 90° nach rechts drehen',
+      onWaehlen: () => editor.drehen(raum, 1),
+      testID: `raum-drehen-rechts-${raum}`,
+    },
+    ...(bearbeiten
+      ? ([
+          { art: 'trenner', titel: 'Raster' },
+          {
+            art: 'aktion',
+            titel: '+ Zeile',
+            hinweis: 'eine Reihe hinten anfügen',
+            onWaehlen: () => editor.groesseAendern(raum, 1, 0),
+          },
+          {
+            art: 'aktion',
+            titel: '− Zeile',
+            onWaehlen: () => editor.groesseAendern(raum, -1, 0),
+          },
+          {
+            art: 'aktion',
+            titel: '+ Spalte',
+            onWaehlen: () => editor.groesseAendern(raum, 0, 1),
+          },
+          {
+            art: 'aktion',
+            titel: '− Spalte',
+            onWaehlen: () => editor.groesseAendern(raum, 0, -1),
+          },
+          {
+            art: 'aktion',
+            titel: 'Zellen verbinden',
+            hinweis: auswahl ? 'aus der Auswahl ein Feld machen' : 'erst einen Bereich auswählen',
+            deaktiviert: !auswahl,
+            onWaehlen: editor.zellenVerbinden,
+          },
+          {
+            art: 'aktion',
+            titel: 'Zellen trennen',
+            deaktiviert: !auswahl,
+            onWaehlen: editor.zellenTrennen,
+          },
+        ] as MenuEintrag[])
+      : []),
+    ...(editor.mitVerlauf
+      ? ([
+          { art: 'trenner' },
+          {
+            art: 'aktion',
+            titel: '↶ Rückgängig',
+            hinweis: 'Strg/⌘ + Z',
+            deaktiviert: !editor.kannRueckgaengig,
+            onWaehlen: editor.rueckgaengig,
+            testID: 'raum-rueckgaengig',
+          },
+          {
+            art: 'aktion',
+            titel: '↷ Wiederholen',
+            deaktiviert: !editor.kannWiederholen,
+            onWaehlen: editor.wiederholen,
+            testID: 'raum-wiederholen',
+          },
+        ] as MenuEintrag[])
+      : []),
+  ];
 }
 
 /** Wie der Rastertext in der Fußleiste lautet – Größe, Sitzplätze, Auswahl. */

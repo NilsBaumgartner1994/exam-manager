@@ -59,33 +59,34 @@ import {
   Zulassung,
 } from '@exam-manager/core';
 import {
-  Aktionsleiste,
   AppButton,
   Arbeitsflaeche,
   BlattModal,
-  Checkbox,
   DataTable,
-  FilePickerButton,
   LabeledNumberInput,
   LabeledTextInput,
+  Menueleiste,
   PALETTEN_HINWEIS_ZEILE,
-  PalettenLeiste,
+  paletteEintraege,
   PlanFuss,
-  PlanWerkzeugKnoepfe,
   ProjektDownload,
   ProjektQuelle,
+  rasterEintraege,
   rasterText,
   RaumListe,
   Raumplan,
   RaumplanBuehne,
   raumZuZeile,
   Reiterinhalt,
-  Reiterleiste,
   Section,
   StatusText,
+  useProjektDownloadEintrag,
   useRaumplanEditor,
   VorlagenModal,
+  werkzeugTitel,
   zeilenZuRaeumen,
+  type MenuEintrag,
+  type MenuGruppe,
   type RaumZeile,
   type Verschiebung,
 } from '../components';
@@ -104,19 +105,22 @@ const ANSICHTEN = [
 
 type Ansicht = (typeof ANSICHTEN)[number]['key'];
 
-/** Was ein Tippen auf eine Zelle des Sitzplans bewirkt. */
+/**
+ * Was ein Tippen auf eine Zelle des Sitzplans bewirkt. Der Hinweis steht im
+ * Menü „Werkzeuge“ unter dem Namen – **eine Zeile**: Die ausführliche
+ * Anleitung gehört in die README, das Wichtigste zur Geste in die Fußleiste
+ * (`PALETTEN_HINWEIS_ZEILE`).
+ */
 const PLAN_MODI = [
   {
     key: 'plaetze',
     titel: 'Plätze belegen',
-    hinweis:
-      'Auf einen Platz tippen: Dort steht, wer sitzt – und dort lässt sich jemand festsetzen, der Platz für die Aufsicht freihalten oder wieder räumen.',
+    hinweis: 'wer sitzt hier – festsetzen, freihalten, räumen',
   },
   {
     key: 'bearbeiten',
     titel: 'Raum bearbeiten',
-    hinweis:
-      'Element aus der Palette auf eine Zelle ziehen oder antippen und dann im Plan malen. Mit „Auswählen“ ziehst du einen Bereich auf, ohne etwas zu ändern; gedrückt halten in der Auswahl verschiebt ihn, der blaue Griff an der unteren Ecke zieht ihn auf. Mit „Text“ (oder „Zellen verbinden“) entsteht ein Feld zum Reinschreiben. Rückgängig geht mit Strg/⌘ + Z.',
+    hinweis: 'mit der Palette am Raster zeichnen',
   },
 ] as const;
 
@@ -963,7 +967,6 @@ export function RaumzuteilungScreen() {
   const anzahlRaeume = angezeigteSitzplaetze
     ? new Set(angezeigteSitzplaetze.map((platz) => platz.raumSchluessel)).size
     : 0;
-  const modusHinweis = PLAN_MODI.find((m) => m.key === planModus)?.hinweis ?? '';
 
   /**
    * Ein Reiter je Raumeinsatz – aber nur, wo ein Raster vorliegt: Ohne Raster
@@ -998,28 +1001,50 @@ export function RaumzuteilungScreen() {
     editor.setzeAuswahl(null);
   };
 
-  const kopf = (
-    <>
-      <Aktionsleiste titel="Datei" testID="raum-datei">
-        <AppButton
-          title="Sitzplan-CSV speichern"
-          variant="secondary"
-          kompakt
-          disabled={!angezeigteSitzplaetze}
-          onPress={() => {
+  /** Belegung eines Einsatzes in Zahlen – für das Menü „Räume“ und die Fußleiste. */
+  const belegungText = (schluessel: string, schema: Raumschema): string => {
+    const tische = tischzellen(schema).length;
+    const belegt = belegung.filter((p) => p.raum === schluessel && p.matrikelnummer !== '').length;
+    const reserven = belegung.filter((p) => p.raum === schluessel && p.reserviert).length;
+    return `${belegt}/${tische} belegt${reserven > 0 ? `, ${reserven} Reserve` : ''}`;
+  };
+
+  const projektEintrag = useProjektDownloadEintrag(setFehler, 'raum-projekt-download');
+
+  /**
+   * Das Menüband: „Datei“, „PDF“, „Werkzeuge“, „Anzeigen“ und „Räume“ – die
+   * Menüleiste einer Tabellenkalkulation. Der Screen beschreibt nur, was es zu
+   * tun gibt; ob daraus am Rechner ein herunterklappendes Menü wird oder auf
+   * dem Handy eine Schublade, entscheidet `Menueleiste`.
+   *
+   * „Werkzeuge“ und „Anzeigen“ gibt es nur mit offenem Raum: In den Reitern
+   * „Einstellungen“ und „Listen“ wäre jeder Eintrag darin grau.
+   */
+  const menus: MenuGruppe[] = [
+    {
+      titel: 'Datei',
+      testID: 'raum-menue-datei',
+      eintraege: [
+        { art: 'trenner', titel: 'Speichern' },
+        {
+          art: 'aktion',
+          titel: 'Sitzplan-CSV speichern',
+          hinweis: `im Projekt als ${dateiname}`,
+          deaktiviert: !angezeigteSitzplaetze,
+          onWaehlen: () => {
             if (!angezeigteSitzplaetze) return;
             const csv = sitzplaetzeToCsv(angezeigteSitzplaetze);
             downloadCsv(dateiname, csv);
             projekt.schreibe(dateiname, csv, 'sitzplan');
             setHinweis(`Sitzplan gespeichert – im Projekt als ${dateiname}.`);
-          }}
-          testID="raum-download"
-        />
-        <AppButton
-          title="Räume der Klausur speichern"
-          variant="secondary"
-          kompakt
-          onPress={() => {
+          },
+          testID: 'raum-download',
+        },
+        {
+          art: 'aktion',
+          titel: 'Räume der Klausur speichern',
+          hinweis: 'klausurraeume.csv – nicht der Bestand des Hauses',
+          onWaehlen: () => {
             // Nicht in `Raeume/`: Dort steht der Bestand des Hauses, hier die
             // Auswahl für diese eine Klausur (mit ihren Durchgängen).
             const csv = raeumeToCsv(raeume);
@@ -1028,15 +1053,15 @@ export function RaumzuteilungScreen() {
             setHinweis(
               'Räume der Klausur gespeichert – im Projekt unter 4_Raumzuteilung_Export/klausurraeume.csv.',
             );
-          }}
-          testID="raum-speichern"
-        />
-        <AppButton
-          title="Raster als CSV speichern"
-          variant="secondary"
-          kompakt
-          disabled={schemata.length === 0}
-          onPress={async () => {
+          },
+          testID: 'raum-speichern',
+        },
+        {
+          art: 'aktion',
+          titel: 'Raster als CSV speichern',
+          hinweis: 'je Raum eine Datei in Raeume/',
+          deaktiviert: schemata.length === 0,
+          onWaehlen: async () => {
             // Je Raum eine Datei; im Projekt ersetzen sie den bisherigen
             // Bestand, damit kein Raster liegen bleibt, das es nicht mehr gibt.
             const dateien = raumschemaDateien(schemata);
@@ -1051,189 +1076,249 @@ export function RaumzuteilungScreen() {
               downloadZip('raumschema.zip', await erstelleZip(inhalte));
             }
             setHinweis(`Raster gespeichert – je Raum eine Datei in Raeume/: ${namen.join(', ')}.`);
-          }}
-          testID="raum-schema-speichern"
-        />
-        <AppButton
-          title="Belegung als CSV speichern"
-          variant="secondary"
-          kompakt
-          disabled={belegung.length === 0}
-          onPress={() => {
+          },
+          testID: 'raum-schema-speichern',
+        },
+        {
+          art: 'aktion',
+          titel: 'Belegung als CSV speichern',
+          hinweis: 'wer wo sitzt, samt Reserven und Vorgaben',
+          deaktiviert: belegung.length === 0,
+          onWaehlen: () => {
             const csv = belegungToCsv(belegung, angezeigteSitzplaetze ?? [], nummern);
             downloadCsv('raumbelegung.csv', csv);
             projekt.schreibe('raumbelegung.csv', csv, 'raumbelegung');
             setHinweis('Belegung gespeichert – im Projekt unter 4_Raumzuteilung_Export/.');
-          }}
-          testID="raum-belegung-speichern"
-        />
-        <FilePickerButton
-          label="Teilnehmer-CSV laden"
-          accept=".csv"
-          kompakt
-          onFiles={teilnehmerLaden}
-        />
-        <FilePickerButton label="Räume-CSV laden" accept=".csv" kompakt onFiles={raeumeLaden} />
-        <FilePickerButton
-          label="Raumschema-CSVs laden"
-          accept=".csv"
-          multiple
-          kompakt
-          onFiles={schemaLaden}
-        />
-        <FilePickerButton
-          label="Belegung-CSV laden"
-          accept=".csv"
-          kompakt
-          onFiles={belegungLaden}
-        />
-        <AppButton
-          title="Beispieldaten laden"
-          variant="secondary"
-          kompakt
-          onPress={beispielLaden}
-          testID="raum-beispiel"
-        />
-        <ProjektDownload kompakt testID="raum-projekt-download" />
-      </Aktionsleiste>
-
-      <Aktionsleiste titel="PDF" testID="raum-pdf">
-        <AppButton
-          title={pdfLaeuft ? 'PDF läuft …' : 'Sitzpläne als PDF'}
-          variant="secondary"
-          kompakt
-          onPress={sitzplaeneAlsPdf}
-          disabled={pdfLaeuft || raster.length === 0}
-          testID="raum-sitzplan-pdf"
-        />
-        <AppButton
-          title="Aushang als PDF"
-          variant="secondary"
-          kompakt
-          onPress={aushangAlsPdf}
-          disabled={pdfLaeuft || !angezeigteSitzplaetze}
-          testID="raum-aushang-pdf"
-        />
-        <AppButton
-          title="Dozentenliste als PDF"
-          variant="secondary"
-          kompakt
-          onPress={() => listeAlsPdf('dozent')}
-          disabled={pdfLaeuft || !angezeigteSitzplaetze}
-          testID="raum-dozent-pdf"
-        />
-        <AppButton
-          title="Tutorenliste als PDF"
-          variant="secondary"
-          kompakt
-          onPress={() => listeAlsPdf('tutor')}
-          disabled={pdfLaeuft || !angezeigteSitzplaetze}
-          testID="raum-tutor-pdf"
-        />
-        <AppButton
-          title="Sitzplatz-PDFs als ZIP"
-          variant="secondary"
-          kompakt
-          onPress={pdfsHerunterladen}
-          disabled={pdfLaeuft || !angezeigteSitzplaetze}
-          testID="raum-download-pdfs"
-        />
-        <AppButton
-          title="Text der PDFs anpassen"
-          variant="secondary"
-          kompakt
-          onPress={() => setVorlageOffen(true)}
-          testID="raum-vorlage-oeffnen"
-        />
-        <AppButton
-          title="Ansicht drucken"
-          variant="secondary"
-          kompakt
-          onPress={aushaengeDrucken}
-          disabled={!angezeigteSitzplaetze}
-          testID="raum-aushaenge-pdf"
-        />
-      </Aktionsleiste>
-
-      <Reiterleiste
-        reiter={[
-          { key: REITER_EINSTELLUNGEN, titel: 'Einstellungen', testID: 'raum-reiter-einstellungen' },
-          { key: REITER_LISTEN, titel: 'Listen', testID: 'raum-reiter-listen' },
-          ...raumReiter.map(({ key, titel, testID }) => ({ key, titel, testID })),
-        ]}
-        aktiv={offenerReiter}
-        onWaehlen={reiterWechseln}
-        testID="raum-reiter"
-      />
-
-      {offenerRaum ? (
-        <Aktionsleiste titel="Raum" testID="raum-werkzeuge">
-          {PLAN_MODI.map((m) => (
-            <AppButton
-              key={m.key}
-              title={m.titel}
-              variant={planModus === m.key ? 'primary' : 'secondary'}
-              kompakt
-              onPress={() => setPlanModus(m.key)}
-              testID={`raum-modus-${m.key}`}
-            />
-          ))}
-          {planModus === 'bearbeiten' ? <PalettenLeiste editor={editor} /> : null}
-          <PlanWerkzeugKnoepfe
-            editor={editor}
-            raum={offenerRaum.raum.raum}
-            bearbeiten={planModus === 'bearbeiten'}
-          />
-          <AppButton
-            title="Sitzplan neu verteilen"
-            variant="secondary"
-            kompakt
-            onPress={neuVerteilen}
-            disabled={!sitzplaetze}
-            testID="raum-neu-verteilen"
-          />
-        </Aktionsleiste>
-      ) : null}
-
-      {offenerRaum ? (
-        // Was in den Kästen steht – dasselbe am Bildschirm und im PDF.
-        <Aktionsleiste titel="Anzeigen" testID="raum-anzeige">
-          <Checkbox
-            label="Namenskürzel"
-            wert={anzeige.namensPraefix}
-            onChange={(wert) => setAnzeige((alt) => ({ ...alt, namensPraefix: wert }))}
-            testID="raum-anzeige-name"
-          />
-          <Checkbox
-            label="Matrikelnummer"
-            wert={anzeige.matrikelnummer}
-            onChange={(wert) => setAnzeige((alt) => ({ ...alt, matrikelnummer: wert }))}
-            testID="raum-anzeige-matrikel"
-          />
-          <Checkbox
-            label="Sitzplatznummer"
-            wert={anzeige.sitzplatznummer}
-            onChange={(wert) => setAnzeige((alt) => ({ ...alt, sitzplatznummer: wert }))}
-            testID="raum-anzeige-nummer"
-          />
-          <Checkbox
-            label="Pult beschriften"
-            wert={anzeige.pultText}
-            onChange={(wert) => setAnzeige((alt) => ({ ...alt, pultText: wert }))}
-            testID="raum-anzeige-pult"
-          />
-        </Aktionsleiste>
-      ) : null}
-    </>
-  );
-
-  /** Belegung eines Einsatzes in Zahlen – für die Fußleiste. */
-  const belegungText = (schluessel: string, schema: Raumschema): string => {
-    const tische = tischzellen(schema).length;
-    const belegt = belegung.filter((p) => p.raum === schluessel && p.matrikelnummer !== '').length;
-    const reserven = belegung.filter((p) => p.raum === schluessel && p.reserviert).length;
-    return `${belegt}/${tische} belegt${reserven > 0 ? `, ${reserven} Reserve` : ''}`;
-  };
+          },
+          testID: 'raum-belegung-speichern',
+        },
+        { art: 'trenner', titel: 'Laden' },
+        {
+          art: 'datei',
+          titel: 'Teilnehmer-CSV laden',
+          accept: '.csv',
+          onDateien: teilnehmerLaden,
+          testID: 'raum-teilnehmer-laden',
+        },
+        {
+          art: 'datei',
+          titel: 'Räume-CSV laden',
+          accept: '.csv',
+          onDateien: raeumeLaden,
+          testID: 'raum-raeume-laden',
+        },
+        {
+          art: 'datei',
+          titel: 'Raumschema-CSVs laden',
+          hinweis: 'mehrere auf einmal – je Raum eine Datei',
+          accept: '.csv',
+          mehrere: true,
+          onDateien: schemaLaden,
+          testID: 'raum-schema-laden',
+        },
+        {
+          art: 'datei',
+          titel: 'Belegung-CSV laden',
+          accept: '.csv',
+          onDateien: belegungLaden,
+          testID: 'raum-belegung-laden',
+        },
+        {
+          art: 'aktion',
+          titel: 'Beispieldaten laden',
+          onWaehlen: beispielLaden,
+          testID: 'raum-beispiel',
+        },
+        { art: 'trenner', titel: 'Projekt' },
+        projektEintrag,
+      ],
+    },
+    {
+      titel: 'PDF',
+      testID: 'raum-menue-pdf',
+      eintraege: [
+        { art: 'trenner', titel: pdfLaeuft ? 'PDF läuft …' : 'Für den Raum' },
+        {
+          art: 'aktion',
+          titel: 'Sitzpläne als PDF',
+          hinweis: 'alle Räume in einer Datei, je Einsatz eine Seite',
+          deaktiviert: pdfLaeuft || raster.length === 0,
+          onWaehlen: sitzplaeneAlsPdf,
+          testID: 'raum-sitzplan-pdf',
+        },
+        {
+          art: 'aktion',
+          titel: 'Aushang als PDF',
+          hinweis: 'Sitzplatz → Anfang Nachname, je Raum eine Seite',
+          deaktiviert: pdfLaeuft || !angezeigteSitzplaetze,
+          onWaehlen: aushangAlsPdf,
+          testID: 'raum-aushang-pdf',
+        },
+        { art: 'trenner', titel: 'Für die Aufsicht' },
+        {
+          art: 'aktion',
+          titel: 'Dozentenliste als PDF',
+          deaktiviert: pdfLaeuft || !angezeigteSitzplaetze,
+          onWaehlen: () => listeAlsPdf('dozent'),
+          testID: 'raum-dozent-pdf',
+        },
+        {
+          art: 'aktion',
+          titel: 'Tutorenliste als PDF',
+          deaktiviert: pdfLaeuft || !angezeigteSitzplaetze,
+          onWaehlen: () => listeAlsPdf('tutor'),
+          testID: 'raum-tutor-pdf',
+        },
+        { art: 'trenner', titel: 'Für die Studierenden' },
+        {
+          art: 'aktion',
+          titel: 'Sitzplatz-PDFs als ZIP',
+          hinweis: 'je Person ein Schreiben',
+          deaktiviert: pdfLaeuft || !angezeigteSitzplaetze,
+          onWaehlen: pdfsHerunterladen,
+          testID: 'raum-download-pdfs',
+        },
+        {
+          art: 'aktion',
+          titel: 'Text der PDFs anpassen',
+          hinweis: 'die Vorlage der Sitzplatz-Schreiben',
+          onWaehlen: () => setVorlageOffen(true),
+          testID: 'raum-vorlage-oeffnen',
+        },
+        { art: 'trenner' },
+        {
+          art: 'aktion',
+          titel: 'Ansicht drucken',
+          hinweis: 'was gerade im Reiter „Listen“ steht',
+          deaktiviert: !angezeigteSitzplaetze,
+          onWaehlen: aushaengeDrucken,
+          testID: 'raum-aushaenge-pdf',
+        },
+      ],
+    },
+    ...(offenerRaum
+      ? [
+          {
+            titel: 'Werkzeuge',
+            // Was ein Tippen in den Plan bewirkt, steht hinter dem Namen –
+            // vorher war es die hervorgehobene Kachel der Palette.
+            wert: planModus === 'bearbeiten' ? werkzeugTitel(editor) : 'Plätze belegen',
+            testID: 'raum-menue-werkzeuge',
+            eintraege: [
+              { art: 'trenner', titel: 'Was ein Tippen tut' } as MenuEintrag,
+              ...PLAN_MODI.map(
+                (modus): MenuEintrag => ({
+                  art: 'aktion',
+                  titel: modus.titel,
+                  hinweis: modus.hinweis,
+                  gewaehlt: planModus === modus.key,
+                  onWaehlen: () => setPlanModus(modus.key),
+                  testID: `raum-modus-${modus.key}`,
+                }),
+              ),
+              ...(planModus === 'bearbeiten'
+                ? [{ art: 'trenner', titel: 'Palette' } as MenuEintrag, ...paletteEintraege(editor)]
+                : []),
+              ...rasterEintraege(editor, offenerRaum.raum.raum, planModus === 'bearbeiten'),
+              { art: 'trenner', titel: 'Zuteilung' } as MenuEintrag,
+              {
+                art: 'aktion',
+                titel: 'Sitzplan neu verteilen',
+                hinweis: 'verteilt noch einmal – Vorgaben und Reserven bleiben',
+                deaktiviert: !sitzplaetze,
+                onWaehlen: neuVerteilen,
+                testID: 'raum-neu-verteilen',
+              } as MenuEintrag,
+            ],
+          },
+          {
+            // Was in den Kästen steht – dasselbe am Bildschirm und im PDF.
+            titel: 'Anzeigen',
+            testID: 'raum-menue-anzeige',
+            eintraege: [
+              {
+                art: 'schalter',
+                titel: 'Namenskürzel',
+                wert: anzeige.namensPraefix,
+                onChange: (wert: boolean) => setAnzeige((alt) => ({ ...alt, namensPraefix: wert })),
+                testID: 'raum-anzeige-name',
+              } as MenuEintrag,
+              {
+                art: 'schalter',
+                titel: 'Matrikelnummer',
+                wert: anzeige.matrikelnummer,
+                onChange: (wert: boolean) => setAnzeige((alt) => ({ ...alt, matrikelnummer: wert })),
+                testID: 'raum-anzeige-matrikel',
+              } as MenuEintrag,
+              {
+                art: 'schalter',
+                titel: 'Sitzplatznummer',
+                wert: anzeige.sitzplatznummer,
+                onChange: (wert: boolean) =>
+                  setAnzeige((alt) => ({ ...alt, sitzplatznummer: wert })),
+                testID: 'raum-anzeige-nummer',
+              } as MenuEintrag,
+              {
+                art: 'schalter',
+                titel: 'Pult beschriften',
+                wert: anzeige.pultText,
+                onChange: (wert: boolean) => setAnzeige((alt) => ({ ...alt, pultText: wert })),
+                testID: 'raum-anzeige-pult',
+              } as MenuEintrag,
+            ],
+          },
+        ]
+      : []),
+    {
+      titel: 'Räume',
+      wert: offenerRaum
+        ? offenerRaum.titel
+        : offenerReiter === REITER_LISTEN
+          ? 'Listen'
+          : 'Einstellungen',
+      testID: 'raum-menue-raeume',
+      eintraege: [
+        { art: 'trenner', titel: 'Übersicht' },
+        {
+          art: 'aktion',
+          titel: 'Einstellungen',
+          hinweis: 'Räume der Klausur, Verteilung, Teilnehmende',
+          gewaehlt: offenerReiter === REITER_EINSTELLUNGEN,
+          onWaehlen: () => reiterWechseln(REITER_EINSTELLUNGEN),
+          testID: 'raum-reiter-einstellungen',
+        },
+        {
+          art: 'aktion',
+          titel: 'Listen',
+          hinweis: 'Aushang, Dozentenliste, Tutorenliste, Räume',
+          gewaehlt: offenerReiter === REITER_LISTEN,
+          onWaehlen: () => reiterWechseln(REITER_LISTEN),
+          testID: 'raum-reiter-listen',
+        },
+        { art: 'trenner', titel: 'Raumeinsätze' },
+        ...(raumReiter.length === 0
+          ? [
+              {
+                art: 'aktion',
+                titel: 'Noch kein Raumplan',
+                hinweis: 'ohne Raster gibt es keinen Plan – Raster laden oder in Schritt 5 anlegen',
+                deaktiviert: true,
+                onWaehlen: () => {},
+              } as MenuEintrag,
+            ]
+          : raumReiter.map(
+              (eintrag): MenuEintrag => ({
+                art: 'aktion',
+                titel: eintrag.titel,
+                hinweis: belegungText(eintrag.key, eintrag.schema),
+                gewaehlt: eintrag.key === offenerReiter,
+                onWaehlen: () => reiterWechseln(eintrag.key),
+                testID: eintrag.testID,
+              }),
+            )),
+      ],
+    },
+  ];
 
   /**
    * Links in der Fußleiste – die Statuszeile: erst die Meldung, dann der Stand
@@ -1256,7 +1341,7 @@ export function RaumzuteilungScreen() {
   return (
     <>
       <Arbeitsflaeche
-        kopf={kopf}
+        kopf={<Menueleiste menus={menus} testID="raum-menue" />}
         fuss={
           <PlanFuss
             editor={editor}

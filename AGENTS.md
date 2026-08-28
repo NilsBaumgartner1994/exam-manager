@@ -177,7 +177,8 @@ Konventionen des Datensatzes:
   bleibt er `null` – lieber kein Kurs als ein geratener.
 - Der Download-Knopf steht als `ProjektDownload` in `src/components/` und
   gehört auf **jeden** Screen; ein neuer Screen bekommt ihn mit (in den
-  Menübändern der Schritte 4 und 5 als `kompakt`).
+  Arbeitsflächen der Schritte 4 und 5 als Menüeintrag,
+  `useProjektDownloadEintrag`).
 - `ProjektQuelle` gehört unter **jede** Dateiauswahl, deren Eingabe auch aus
   dem Projekt kommen kann: Sie nennt die Datei, die der Schritt von dort
   standardmäßig nimmt (bei mehreren Kandidaten die erste alphabetisch, und
@@ -232,29 +233,51 @@ Konventionen des Datensatzes:
   bekommt beides: `schema` den Raum, `schluessel` den Einsatz).
 - **Beide Screens sind Arbeitsflächen, kein scrollendes Formular.**
   `components/Arbeitsflaeche.tsx` gibt den Aufbau einer Tabellenkalkulation
-  vor: `Arbeitsflaeche` (Menüband oben, Körper, Fußleiste unten),
-  `Aktionsleiste` (eine Zeile des Menübands – auf dem Handy waagerecht
-  scrollend statt umbrechend), `Reiterleiste` (die Blattregister) und
+  vor: `Arbeitsflaeche` (Menüband oben, Körper, Fußleiste unten) und
   `Reiterinhalt` (ein Reiter, dessen Inhalt ein Formular ist und für sich
   scrollt). Die `Arbeitsflaeche` misst ihren Körper (`onLayout`) und gibt die
   Höhe als `children(hoehe)` weiter – ohne die Zahl kann „Ganzer Raum“ nicht
   rechnen. Ein Vollbild-Modus wäre danach überflüssig: Der Screen **ist** das
   Vollbild.
-- **Reiter statt Untereinander.** Schritt 5 hat einen Reiter je Raum plus den
-  Reiter „Räume“ (die Liste), Schritt 4 die Reiter „Einstellungen“, „Listen“
+- **Das Menüband ist eine Menüleiste, keine Knopfreihe** (`Menueband.tsx`,
+  `Menueleiste`): eine Zeile mit „Datei“, „PDF“, „Werkzeuge“, „Anzeigen“,
+  „Räume“ – jedes klappt auf, wie in Word oder Excel. Über dreißig Knöpfe in
+  vier Zeilen nahmen dem Plan den halben Bildschirm. Ein Screen beschreibt
+  seine Menüs als **Daten** (`MenuGruppe`/`MenuEintrag`: `aktion`, `schalter`,
+  `datei`, `ziehbar`, `trenner`), nicht als Bausteine – daraus wird am Rechner
+  ein herunterklappendes Menü und auf dem Handy (`isCompact`) eine Schublade
+  hinter dem Burger-Zeichen, mit zwei Ebenen und „Zurück“. Zwei Darstellungen
+  aus zwei Sätzen Knöpfe zu bauen hieße, jede Aktion zweimal hinzuschreiben.
+  Wer eine Aktion hinzufügt, hängt sie in ein Menü; nur was **immer** sichtbar
+  sein muss (Zoom, Stand), gehört in die Fußleiste.
+  - Gezeichnet wird in die Modal-Ebene (`ModalHost`), sonst läge das Menü
+    hinter dem Arbeitsbereich – beide sind Geschwister, der spätere gewinnt.
+  - **Kein Deckel über dem Bildschirm zum Zuklappen:** Geschlossen wird über
+    einen `pointerdown` am Dokument. Eine Fläche über allem verdeckte den Plan
+    und finge das Ablegen eines Elements aus der Palette ab.
+  - Ein Element der Palette (`ziehbar`) lässt sich aus dem offenen Menü auf
+    eine Zelle ziehen. Währenddessen nimmt das Menü keine Zeiger mehr an
+    (`pointerEvents`), damit `document.elementFromPoint` die Zelle darunter
+    findet – wer daran etwas ändert, probiert genau das aus.
+  - Was gerade gilt, steht als `wert` hinter dem Namen („Räume 94/E01“,
+    „Werkzeuge Sitzplatz“) und auf dem Handy neben dem Burger: In einer
+    Knopfreihe war es die hervorgehobene Kachel, im zugeklappten Menü sähe man
+    es sonst nicht.
+- **Ein Plan zur Zeit, umgeschaltet im Menü „Räume“.** Schritt 5 hat dort die
+  Raumliste plus einen Eintrag je Raum, Schritt 4 „Einstellungen“, „Listen“
   und je einen pro Raum**einsatz** (Schlüssel = `raumSchluessel`). Die beiden
-  festen Reiter tragen ein `#` im Schlüssel, damit sie nie mit einem Raumnamen
-  kollidieren. Gezeigt wird immer **ein** Plan (`RaumplanBuehne`); fünf Pläne
-  nebeneinander, darunter ein Hörsaal mit 44 × 32 Feldern, sind weder zu
-  überblicken noch flüssig zu zeichnen.
+  festen Einträge tragen ein `#` im Schlüssel, damit sie nie mit einem
+  Raumnamen kollidieren. Gezeigt wird immer **ein** Plan (`RaumplanBuehne`);
+  fünf Pläne nebeneinander, darunter ein Hörsaal mit 44 × 32 Feldern, sind
+  weder zu überblicken noch flüssig zu zeichnen.
 - **Der Raumplan als PDF entsteht mit `sitzplaenePdf()`** – in Schritt 4 mit
   Belegung (alle Räume in einer Datei, je Einsatz eine Seite), in Schritt 5
   ohne (der gezeigte Raum als eigene Datei, benannt nach `raumDateiname`).
   Eine zweite Zeichenroutine für den leeren Grundriss gibt es nicht.
-- **Screen 5 zeigt genau einen Raum** – den des offenen Reiters. Gespeichert
-  werden weiterhin alle Räume. Speichern, Laden und PDF liegen oben in der
-  Leiste „Datei“, wie das Dateimenü einer Tabellenkalkulation, nicht mehr in
-  einer Section am Seitenende.
+- **Screen 5 zeigt genau einen Raum** – den aus dem Menü „Räume“. Gespeichert
+  werden weiterhin alle Räume. Speichern, Laden und PDF liegen im Menü
+  „Datei“, wie das Dateimenü einer Tabellenkalkulation, nicht in einer Section
+  am Seitenende.
 - **Das neutrale Werkzeug ist die Voreinstellung.** Der `zeiger` ändert
   nichts: Ein Klick öffnet das `ZellInfoBlatt` (Art der Zelle,
   Sitzplatznummer, wer dort sitzt, der Text darüber), ein Ziehen schiebt den
@@ -270,8 +293,8 @@ Konventionen des Datensatzes:
 - Damit beide dasselbe tun, liegt das Bearbeiten in Bausteinen und nicht in
   einem der Screens: `components/RaumListe.tsx` (die Raumliste als Formular)
   und `components/RaumplanEditor.tsx` (`useRaumplanEditor` mit Werkzeug,
-  Auswahl, Ansicht, Verlauf und Drehung, dazu `PalettenLeiste` und
-  `PlanWerkzeugKnoepfe` fürs Menüband, `RaumplanBuehne` für den Plan selbst
+  Auswahl, Ansicht, Verlauf und Drehung, dazu `paletteEintraege` und
+  `rasterEintraege` fürs Menü „Werkzeuge“, `RaumplanBuehne` für den Plan selbst
   und `PlanFuss` für die Fußleiste). Voreingestellt ist „Ganzer Raum“
   (`PLAN_ANSICHT_EDITOR`): Auf einer Fläche, die den Bildschirm füllt, passt
   der Raum hinein – eine erzwungene Scrollliste braucht dort niemand.
@@ -464,12 +487,11 @@ Konventionen des Datensatzes:
   öffnet ein Platz erst, wenn der Finger sich um weniger als `TIPP_TOLERANZ`
   bewegt hat – sonst öffnete jeder Wisch über den Sitzplan ein Blatt, statt
   den Ausschnitt zu schieben.
-- **Auf dem Handy scrollen die Leisten waagerecht.** `Aktionsleiste` bricht
-  im breiten Fenster um, auf schmalen legt sie ihre Knöpfe in eine
-  waagerecht scrollende Zeile – umgebrochen füllten Datei-, PDF- und
-  Werkzeugleiste dort den halben Bildschirm, und vom Plan bliebe nichts
-  übrig. Wer im Editor etwas am Layout ändert, prüft das mit einem schmalen
-  Fenster nach.
+- **Auf dem Handy wird das Menüband zur Schublade.** `Menueleiste` zeigt dort
+  nur das Burger-Zeichen und was gerade gilt; die Menüs stehen in einer
+  Schublade mit zwei Ebenen. Nebeneinander füllten Datei-, PDF- und
+  Werkzeugmenü den halben Bildschirm, und vom Plan bliebe nichts übrig. Wer im
+  Editor etwas am Layout ändert, prüft das mit einem schmalen Fenster nach.
 
 ## PDF aus der sichtbaren Ansicht
 

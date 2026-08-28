@@ -81,10 +81,13 @@ url: http://localhost:8081
 - assertVisible: 'Nicht zugelassen: Crick, Francis (1000006)'
 
 # ---------- Screen 4: Raumzuteilung & Sitzplan ----------
-# Arbeitsfläche wie eine Tabellenkalkulation: oben Datei- und PDF-Leiste, dann
-# die Reiter (Einstellungen, Listen, je ein Raumeinsatz), unten die Fußleiste.
+# Arbeitsfläche wie eine Tabellenkalkulation: oben die Menüleiste (Datei, PDF,
+# Werkzeuge, Anzeigen, Räume), dazwischen die Fläche, unten die Fußleiste.
+# Jede Aktion steht in einem Menü – erst den Namen antippen, dann den Eintrag.
 - launchApp
 - tapOn: '4. Raumzuteilung & Sitzplan'
+- tapOn:
+    id: 'raum-menue-datei'
 - tapOn: 'Beispieldaten laden'
 # Welche Räume die Klausur benutzt, steht im Reiter „Einstellungen“ – aus dem
 # Bestand in Raeume/ ausgewählt; derselbe Raum darf mehrfach dabei sein.
@@ -99,41 +102,73 @@ url: http://localhost:8081
 - tapOn:
     id: 'raum-ansicht-raeume'
 - tapOn: 'Aushang'
-# Ein Reiter je Raumeinsatz: der Sitzplan füllt die Fläche, die Werkzeuge
-# stehen darüber, Zoom und Stand darunter.
+# Ein Reiter je Raumeinsatz – zu finden im Menü „Räume“. Der Sitzplan füllt
+# danach die Fläche, Zoom und Stand stehen darunter.
+- tapOn:
+    id: 'raum-menue-raeume'
 - tapOn:
     id: 'raum-reiter-94/E01'
 - assertVisible: 'Raster 9 Spalten'
+# Was in den Kästen steht, hängt im Menü „Anzeigen“ – ein Häkchen lässt es
+# offen, deshalb schließt der zweite Tipp auf den Namen es wieder.
+- tapOn:
+    id: 'raum-menue-anzeige'
 - assertVisible: 'Namenskürzel'
+- tapOn:
+    id: 'raum-menue-anzeige'
+# Die Palette liegt im Menü „Werkzeuge“ – erst der Modus, dann die Elemente.
+- tapOn:
+    id: 'raum-menue-werkzeuge'
 - tapOn: 'Raum bearbeiten'
+- tapOn:
+    id: 'raum-menue-werkzeuge'
 - assertVisible: 'Sitzplatz'
+- tapOn:
+    id: 'raum-menue-werkzeuge'
 # Der Text der Sitzplatz-PDFs ist eine Vorlage: Blatt öffnen, Vorschau mit den
 # Daten der ersten Person prüfen, wieder schließen.
+- tapOn:
+    id: 'raum-menue-pdf'
 - tapOn: 'Text der PDFs anpassen'
 - assertVisible: 'Text der Sitzplatz-PDFs'
 - assertVisible: '<Sitzplatznummer>'
 - tapOn: 'Schließen'
 
 # ---------- Screen 5: Räume & Raumpläne ----------
-# Derselbe Aufbau wie Schritt 4: Datei-Leiste, Reiter (Räume + je ein Raum),
-# Werkzeuge, Plan, Fußleiste. Räume ohne Teilnehmende bearbeiten.
+# Derselbe Aufbau wie Schritt 4: Menüleiste (Datei, Werkzeuge, Räume), Plan,
+# Fußleiste. Räume ohne Teilnehmende bearbeiten.
 - launchApp
 - tapOn: '5. Räume & Raumpläne'
+- tapOn:
+    id: 'raeume-menue-datei'
 - tapOn: 'Beispieldaten laden'
 - assertVisible: 'Bestand des Hauses'
-# Bearbeitet wird ein Raum nach dem anderen – jeder hat einen Reiter.
+# Bearbeitet wird ein Raum nach dem anderen – die Räume stehen im Menü „Räume“.
+- tapOn:
+    id: 'raeume-menue-raeume'
 - tapOn:
     id: 'raeume-waehlen-66/E33'
 - assertVisible: 'Raster 19 Spalten'
+# Die Palette liegt im Menü „Werkzeuge“; der zweite Tipp schließt es wieder.
+- tapOn:
+    id: 'raeume-menue-werkzeuge'
 - assertVisible: 'Sitzplatz'
+- tapOn:
+    id: 'raeume-menue-werkzeuge'
 # Der Grundriss als PDF – dieselbe Zeichnung wie der Sitzplan in Schritt 4,
 # nur ohne Belegung, und je Raum eine Datei.
+- tapOn:
+    id: 'raeume-menue-datei'
 - tapOn: 'Raumplan als PDF'
 - extendedWaitUntil:
     visible: 'Raumplan 66/E33 als PDF gespeichert.'
     timeout: 20000
+- tapOn:
+    id: 'raeume-menue-datei'
 - tapOn: 'Räume als CSV speichern'
 - assertVisible: 'Raumliste heruntergeladen'
+- tapOn:
+    id: 'raeume-menue-datei'
 - tapOn: 'Raster als CSV speichern'
 # Je Raum eine Datei, benannt nach dem Raum (01_E01.csv, 66_E33.csv, ...).
 - assertVisible: 'Raster heruntergeladen'

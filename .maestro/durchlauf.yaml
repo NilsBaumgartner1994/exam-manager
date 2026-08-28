@@ -30,7 +30,7 @@ url: http://localhost:8081
 - scrollUntilVisible:
     element: 'Zugelassene Studierende in den Zulassungen-Ordner ablegen'
 - scrollUntilVisible:
-    element: 'Aktualisiertes Projekt herunterladen'
+    element: 'Aktuelles Projekt herunterladen'
 # Der Weiter-Knopf führt auf Screen 2 – ab hier läuft der Flow dort weiter.
 - scrollUntilVisible:
     element: 'Weiter zu 2. Zulassung prüfen & PDF generieren'
@@ -81,34 +81,32 @@ url: http://localhost:8081
 - assertVisible: 'Nicht zugelassen: Crick, Francis (1000006)'
 
 # ---------- Screen 4: Raumzuteilung & Sitzplan ----------
+# Arbeitsfläche wie eine Tabellenkalkulation: oben Datei- und PDF-Leiste, dann
+# die Reiter (Einstellungen, Listen, je ein Raumeinsatz), unten die Fußleiste.
 - launchApp
 - tapOn: '4. Raumzuteilung & Sitzplan'
 - tapOn: 'Beispieldaten laden'
-- assertVisible: 'Beispieldaten geladen.'
-# Welche Räume die Klausur benutzt, steht hier – aus dem Bestand in Raeume/
-# ausgewählt; derselbe Raum darf mehrfach dabei sein (zwei Durchgänge).
-- scrollUntilVisible:
-    element: 'Räume der Klausur'
+# Welche Räume die Klausur benutzt, steht im Reiter „Einstellungen“ – aus dem
+# Bestand in Raeume/ ausgewählt; derselbe Raum darf mehrfach dabei sein.
+- assertVisible: 'Räume der Klausur'
 - scrollUntilVisible:
     element: 'Zuteilung erstellen'
 - tapOn: 'Zuteilung erstellen'
-# Der Sitzplan steht schon vor der Zuteilung; die Häkchen sagen, was in den
-# Kästen steht – am Bildschirm wie im PDF.
-- scrollUntilVisible:
-    element: 'Sitzplan im Raum'
-- assertVisible: 'Im Plan zeigen:'
-- scrollUntilVisible:
-    element: '7 Sitzplätze in 5 Räumen vergeben.'
-- assertVisible: '7 Sitzplätze in 5 Räumen vergeben.'
-- scrollUntilVisible:
-    element: 'Aushang'
+# Danach steht das Ergebnis im Reiter „Listen“.
+- assertVisible: '7 Sitzplätze in 5 Räumen vergeben'
 - tapOn: 'Dozent'
 - tapOn: 'Tutor'
 - tapOn:
     id: 'raum-ansicht-raeume'
 - tapOn: 'Aushang'
-- scrollUntilVisible:
-    element: 'Sitzplan-CSV herunterladen'
+# Ein Reiter je Raumeinsatz: der Sitzplan füllt die Fläche, die Werkzeuge
+# stehen darüber, Zoom und Stand darunter.
+- tapOn:
+    id: 'raum-reiter-94/E01'
+- assertVisible: 'Raster 9 Spalten'
+- assertVisible: 'Namenskürzel'
+- tapOn: 'Raum bearbeiten'
+- assertVisible: 'Sitzplatz'
 # Der Text der Sitzplatz-PDFs ist eine Vorlage: Blatt öffnen, Vorschau mit den
 # Daten der ersten Person prüfen, wieder schließen.
 - tapOn: 'Text der PDFs anpassen'
@@ -117,32 +115,25 @@ url: http://localhost:8081
 - tapOn: 'Schließen'
 
 # ---------- Screen 5: Räume & Raumpläne ----------
-# Räume ohne Teilnehmende bearbeiten: Beispieldaten laden, ein Raster liegt vor,
-# Raumliste und Raster lassen sich herunterladen (im Projekt liegen sie schon:
-# Änderungen wandern von selbst dorthin).
+# Derselbe Aufbau wie Schritt 4: Datei-Leiste, Reiter (Räume + je ein Raum),
+# Werkzeuge, Plan, Fußleiste. Räume ohne Teilnehmende bearbeiten.
 - launchApp
 - tapOn: '5. Räume & Raumpläne'
 - tapOn: 'Beispieldaten laden'
-- assertVisible: 'Beispieldaten geladen.'
-- scrollUntilVisible:
-    element: 'Raumpläne'
-- assertVisible: 'Elemente'
-# Bearbeitet wird ein Raum nach dem anderen – oben steht die Auswahl.
+- assertVisible: 'Bestand des Hauses'
+# Bearbeitet wird ein Raum nach dem anderen – jeder hat einen Reiter.
 - tapOn:
     id: 'raeume-waehlen-66/E33'
 - assertVisible: 'Raster 19 Spalten'
+- assertVisible: 'Sitzplatz'
 # Der Grundriss als PDF – dieselbe Zeichnung wie der Sitzplan in Schritt 4,
 # nur ohne Belegung, und je Raum eine Datei.
-- scrollUntilVisible:
-    element: 'Raumplan als PDF'
 - tapOn: 'Raumplan als PDF'
 - extendedWaitUntil:
     visible: 'Raumplan 66/E33 als PDF gespeichert.'
     timeout: 20000
-- scrollUntilVisible:
-    element: 'Räume als CSV speichern'
 - tapOn: 'Räume als CSV speichern'
-- assertVisible: 'Raumliste heruntergeladen – im Projekt liegt sie ohnehin schon.'
+- assertVisible: 'Raumliste heruntergeladen'
 - tapOn: 'Raster als CSV speichern'
 # Je Raum eine Datei, benannt nach dem Raum (01_E01.csv, 66_E33.csv, ...).
 - assertVisible: 'Raster heruntergeladen'

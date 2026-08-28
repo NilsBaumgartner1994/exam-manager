@@ -1,6 +1,7 @@
 import { lies, pfad } from './fixtures';
 import {
   defaultZulassungsDateiname,
+  kursAusDateiname,
   neueZulassungen,
   parseNotenliste,
   parseStudipExport,
@@ -48,5 +49,26 @@ describe('VIPS-Auswertung (Screen 1)', () => {
   it('schlägt einen Default-Dateinamen vor', () => {
     expect(defaultZulassungsDateiname('Beispiel Veranstaltung', 2026))
       .toBe('Beispiel_Veranstaltung_2026_zulassungen.csv');
+  });
+});
+
+describe('Kursname aus dem Stud.IP-Dateinamen', () => {
+  it('macht aus dem Exportnamen den Namen der Veranstaltung', () => {
+    expect(kursAusDateiname('Teilnehmendenexport_Software_Engineering.csv')).toBe(
+      'Software Engineering',
+    );
+    expect(
+      kursAusDateiname(
+        '0_Input_Kurs_Teilnehmer_Studip_Liste/Teilnehmendenexport_Beispielveranstaltung.csv',
+      ),
+    ).toBe('Beispielveranstaltung');
+  });
+
+  it('kommt ohne Präfix und ohne Kursnamen zurecht', () => {
+    // Ohne das bekannte Präfix bleibt der Dateiname selbst der Kursname –
+    // wer seinen Export umbenennt, meint damit die Veranstaltung.
+    expect(kursAusDateiname('Programmierung_2.csv')).toBe('Programmierung 2');
+    // Nur das Präfix: Da steht kein Name, also wird keiner behauptet.
+    expect(kursAusDateiname('Teilnehmendenexport.csv')).toBe('');
   });
 });

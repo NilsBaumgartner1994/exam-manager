@@ -34,6 +34,7 @@ import {
   DateiRolle,
   erkenneRolle,
   erstelleZip,
+  kursAusDateiname,
   projektPfad,
   projektVorlage,
 } from '@exam-manager/core';
@@ -62,6 +63,12 @@ export interface ProjektStand {
 }
 
 interface ProjektWert extends ProjektStand {
+  /**
+   * Name der Veranstaltung, aus dem Dateinamen des Stud.IP-Exports
+   * (`Teilnehmendenexport_Software_Engineering.csv` → `Software Engineering`).
+   * `null`, solange kein Export im Projekt liegt – geraten wird nichts.
+   */
+  kurs: string | null;
   ladeOrdner: (files: File[]) => Promise<void>;
   leeren: () => void;
   /**
@@ -201,9 +208,20 @@ export function ProjektProvider({ children }: { children: ReactNode }) {
     return erstelleZip(inhalte);
   }, [stand.dateien]);
 
+  /**
+   * Der Kurs steht in keiner Datei – nur im Namen des Stud.IP-Exports. Liegen
+   * mehrere im Ordner, gilt der erste (alphabetisch, wie überall im Projekt).
+   */
+  const kurs = useMemo(() => {
+    const export_ = stand.dateien.find((datei) => datei.rolle === 'studipExport');
+    if (!export_) return null;
+    return kursAusDateiname(export_.pfad) || null;
+  }, [stand.dateien]);
+
   const wert = useMemo<ProjektWert>(
     () => ({
       ...stand,
+      kurs,
       ladeOrdner,
       leeren,
       speicher,
@@ -213,7 +231,7 @@ export function ProjektProvider({ children }: { children: ReactNode }) {
       datei: (rolle) => stand.dateien.find((datei) => datei.rolle === rolle),
       dateienMit: (rolle) => stand.dateien.filter((datei) => datei.rolle === rolle),
     }),
-    [stand, speicher, ladeOrdner, leeren, schreibe, ersetze, alsZip],
+    [stand, kurs, speicher, ladeOrdner, leeren, schreibe, ersetze, alsZip],
   );
 
   return <ProjektContext.Provider value={wert}>{children}</ProjektContext.Provider>;

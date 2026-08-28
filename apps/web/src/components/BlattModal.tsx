@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    // Über dem Vollbild des Raumplans: Beide zeichnen in dieselbe Ebene, und
+    // Über dem Raumplan: Beide zeichnen in dieselbe Ebene, und
     // ein Blatt gehört immer nach vorn.
     zIndex: 10,
     justifyContent: 'flex-end',

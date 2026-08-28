@@ -59,23 +59,28 @@ import {
   Zulassung,
 } from '@exam-manager/core';
 import {
+  Aktionsleiste,
   AppButton,
+  Arbeitsflaeche,
   BlattModal,
   Checkbox,
   DataTable,
   FilePickerButton,
   LabeledNumberInput,
   LabeledTextInput,
-  PlanLeiste,
+  PALETTEN_HINWEIS_ZEILE,
+  PalettenLeiste,
+  PlanFuss,
+  PlanWerkzeugKnoepfe,
   ProjektDownload,
   ProjektQuelle,
+  rasterText,
   RaumListe,
-  RaumPalette,
   Raumplan,
-  RaumplanFlaeche,
-  RaumplanKarte,
+  RaumplanBuehne,
   raumZuZeile,
-  ScreenContainer,
+  Reiterinhalt,
+  Reiterleiste,
   Section,
   StatusText,
   useRaumplanEditor,
@@ -116,6 +121,13 @@ const PLAN_MODI = [
 ] as const;
 
 type PlanModus = (typeof PLAN_MODI)[number]['key'];
+
+/**
+ * Die beiden Reiter, die kein Raum sind. Das Doppelkreuz hält sie von den
+ * Raumschlüsseln auseinander (`01/E01`, `01/E01 (2. Durchgang)`).
+ */
+const REITER_EINSTELLUNGEN = '#einstellungen';
+const REITER_LISTEN = '#listen';
 
 /**
  * Ansicht "Räume" – zugleich die Druckvorlage der Aushänge: pro Raumeinsatz
@@ -238,6 +250,8 @@ export function RaumzuteilungScreen() {
   const [sitzplaetze, setSitzplaetze] = useState<Sitzplatz[] | null>(null);
   const [ohnePlatz, setOhnePlatz] = useState<Zulassung[]>([]);
   const [ansicht, setAnsicht] = useState<Ansicht>('aushang');
+  /** Offener Reiter: Einstellungen, Listen oder ein Raumeinsatz (Schlüssel). */
+  const [reiter, setReiter] = useState<string>(REITER_EINSTELLUNGEN);
   const [dateiname, setDateiname] = useState('studierendeZuRaumUndZeitZuordnung.csv');
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
   const [pdfHinweis, setPdfHinweis] = useState<string | null>(null);
@@ -601,6 +615,8 @@ export function RaumzuteilungScreen() {
     setSitzplaetze(ergebnis.sitzplaetze);
     setOhnePlatz(ergebnis.ohnePlatz);
     setAnsicht('aushang');
+    // Das Ergebnis steht in den Listen – also dorthin.
+    setReiter(REITER_LISTEN);
 
     const neueSchemata = schemataErgaenzen(raeume);
     uebernehmeSchemata(neueSchemata);
@@ -752,6 +768,8 @@ export function RaumzuteilungScreen() {
   const aushaengeDrucken = () => {
     setFehler(null);
     setHinweis(null);
+    // Gedruckt wird der sichtbare Knoten – der liegt im Reiter „Listen“.
+    setReiter(REITER_LISTEN);
     setAnsicht('raeume');
     // Erst rendern lassen, dann den sichtbaren Knoten drucken.
     setTimeout(() => {
@@ -942,109 +960,65 @@ export function RaumzuteilungScreen() {
       downloadFile(`${fuer === 'dozent' ? 'dozentenliste' : 'tutorenliste'}.pdf`, pdf, 'application/pdf');
       setHinweis(`${fuer === 'dozent' ? 'Dozentenliste' : 'Tutorenliste'} als PDF gespeichert.`);
     });
-
   const anzahlRaeume = angezeigteSitzplaetze
     ? new Set(angezeigteSitzplaetze.map((platz) => platz.raumSchluessel)).size
     : 0;
   const modusHinweis = PLAN_MODI.find((m) => m.key === planModus)?.hinweis ?? '';
 
-  return (
-    <ScreenContainer
-      title="4. Raumzuteilung & Sitzplan"
-      intro="Die Teilnehmenden der Klausur auf Räume verteilen: Sitzplätze vergeben, Sitzplan im Raum anordnen, Aushang- und Aufsichtslisten anzeigen und alles herunterladen – alles lokal im Browser. Die Liste kommt aus Schritt 3 oder, wenn dort nichts liegt, direkt aus den geprüften Anmeldungen."
-      testID="Raumzuteilung-screen"
-    >
-      {rueckfrage ? (
-        <Section title="Nicht alle Angemeldeten sind zugelassen" testID="raum-rueckfrage">
-          <StatusText kind="error" testID="raum-rueckfrage-text">
-            {`${rueckfrage.nichtZugelassen.length} von ${rueckfrage.alle.length} Anmeldungen aus 0_Input_Klausuranmeldungen/ haben keine Zulassung: ${nichtZugelassenListe}`}
-          </StatusText>
-          <Text style={styles.hinweis}>
-            Womit soll weitergearbeitet werden? Der Export aus Schritt 3
-            (3_Klausur_Teilnehmende_Export/) ist dafür nicht nötig – wer eine eigene Liste hat,
-            wählt sie unten als Teilnehmer-CSV aus.
-          </Text>
-          <View style={styles.buttonZeile}>
-            <AppButton
-              title={`Nur die ${rueckfrage.zugelassen.length} Zugelassenen verwenden`}
-              variant={quelle === 'anmeldungenZugelassen' ? 'primary' : 'secondary'}
-              onPress={() => uebernimmAnmeldungen(rueckfrage, 'anmeldungenZugelassen')}
-              testID="raum-nur-zugelassene"
-            />
-            <AppButton
-              title={`Trotzdem alle ${rueckfrage.alle.length} Anmeldungen verwenden`}
-              variant={quelle === 'anmeldungenAlle' ? 'primary' : 'secondary'}
-              onPress={() => uebernimmAnmeldungen(rueckfrage, 'anmeldungenAlle')}
-              testID="raum-alle-anmeldungen"
-            />
-          </View>
-        </Section>
-      ) : null}
+  /**
+   * Ein Reiter je Raumeinsatz – aber nur, wo ein Raster vorliegt: Ohne Raster
+   * gibt es keinen Plan zu zeigen. Zwei Durchgänge desselben Raums sind zwei
+   * Reiter mit demselben Raster und je eigener Belegung.
+   */
+  const raumReiter = raeume
+    .map((raum) => ({ raum, schema: schemata.find((s) => s.raum === raum.raum) }))
+    .filter((eintrag): eintrag is { raum: Raum; schema: Raumschema } => eintrag.schema !== undefined)
+    .map(({ raum, schema }) => ({
+      key: raumSchluessel(raum),
+      titel: einsatzTitel(raum),
+      raum,
+      schema,
+      testID: `raum-reiter-${raumSchluessel(raum)}`,
+    }));
 
-      <Section title="Teilnehmende">
-        <FilePickerButton
-          label="Teilnehmer-CSV auswählen (aus Schritt 3)"
-          accept=".csv"
-          onFiles={teilnehmerLaden}
-        />
+  /**
+   * Der offene Reiter. Er kann veralten (Raum entfernt, andere Räume geladen);
+   * dann stehen wieder die Einstellungen da, statt dass nichts zu sehen ist.
+   */
+  const offenerRaum = raumReiter.find((eintrag) => eintrag.key === reiter) ?? null;
+  const offenerReiter = offenerRaum
+    ? offenerRaum.key
+    : reiter === REITER_LISTEN
+      ? REITER_LISTEN
+      : REITER_EINSTELLUNGEN;
+
+  const reiterWechseln = (ziel: string) => {
+    setReiter(ziel);
+    // Die Auswahl gehört zum vorherigen Plan – im neuen wäre sie geraten.
+    editor.setzeAuswahl(null);
+  };
+
+  const kopf = (
+    <>
+      <Aktionsleiste titel="Datei" testID="raum-datei">
         <AppButton
-          title="Beispieldaten laden"
+          title="Sitzplan-CSV speichern"
           variant="secondary"
-          onPress={beispielLaden}
-          testID="raum-beispiel"
+          kompakt
+          disabled={!angezeigteSitzplaetze}
+          onPress={() => {
+            if (!angezeigteSitzplaetze) return;
+            const csv = sitzplaetzeToCsv(angezeigteSitzplaetze);
+            downloadCsv(dateiname, csv);
+            projekt.schreibe(dateiname, csv, 'sitzplan');
+            setHinweis(`Sitzplan gespeichert – im Projekt als ${dateiname}.`);
+          }}
+          testID="raum-download"
         />
-        {teilnehmerStatus ? <StatusText kind="info">{teilnehmerStatus}</StatusText> : null}
-        <ProjektQuelle rolle="teilnehmer" testID="raum-quelle-teilnehmer" />
-        {anmeldungen !== null ? (
-          <>
-            <Text style={styles.hinweis}>
-              Ohne Teilnehmerliste aus Schritt 3 prüft dieser Schritt die Anmeldungen des
-              Prüfungsamts selbst gegen den Zulassungsbestand.
-            </Text>
-            <ProjektQuelle rolle="hisExport" testID="raum-quelle-his" />
-            <ProjektQuelle rolle="zulassungsbestand" alle testID="raum-quelle-zulassungen" />
-          </>
-        ) : null}
-      </Section>
-
-      <Section title="Räume der Klausur" testID="raum-raeume">
-        <Text style={styles.hinweis}>
-          Die Räume selbst und ihre Raster gehören zu keiner einzelnen Klausur: Sie liegen als
-          Bestand in <Text style={styles.pfad}>Raeume/</Text> und werden in Schritt 5 gepflegt.
-          Hier steht, welche davon <Text style={styles.pfad}>diese</Text> Klausur benutzt.
-        </Text>
-        <Text style={styles.hinweis}>
-          Denselben Raum mehrfach hinzufügen heißt: Er wird mehrfach belegt – etwa Gruppe 1
-          vormittags und Gruppe 2 nachmittags. Beide Durchgänge haben dasselbe Raster, aber je
-          eigene Belegung und eigene Sitzplatznummern; auseinander hält sie die reservierte Zeit.
-        </Text>
-        {verfuegbareRaeume.length > 0 ? (
-          <View style={styles.buttonZeile} testID="raum-verfuegbar">
-            <Text style={styles.hinweis}>Hinzufügen:</Text>
-            {verfuegbareRaeume.map((raum) => (
-              <AppButton
-                key={raum.raum}
-                title={`+ ${raum.raum} (${raum.plaetze})`}
-                variant="secondary"
-                onPress={() => raumHinzufuegen(raum)}
-                testID={`raum-hinzufuegen-${raum.raum}`}
-              />
-            ))}
-          </View>
-        ) : null}
-        <RaumListe
-          zeilen={zeilen}
-          onChange={setZeilen}
-          mitDurchgang
-          hinzufuegenTitel="Leere Zeile hinzufügen"
-        />
-        <FilePickerButton label="Räume-CSV laden" accept=".csv" onFiles={raeumeLaden} />
-        <ProjektQuelle rolle="klausurraeume" testID="raum-quelle-klausurraeume" />
-        <ProjektQuelle rolle="raeume" testID="raum-quelle-raeume" />
-        <ProjektQuelle rolle="raumschema" alle testID="raum-quelle-schema" />
         <AppButton
           title="Räume der Klausur speichern"
           variant="secondary"
+          kompakt
           onPress={() => {
             // Nicht in `Raeume/`: Dort steht der Bestand des Hauses, hier die
             // Auswahl für diese eine Klausur (mit ihren Durchgängen).
@@ -1057,375 +1031,552 @@ export function RaumzuteilungScreen() {
           }}
           testID="raum-speichern"
         />
-      </Section>
-
-      <Section title="Zuteilung">
-        <LabeledNumberInput
-          label="Erste Sitzplatznummer"
-          value={startnummer}
-          onChange={setStartnummer}
-          testID="raum-startnummer"
-        />
-        <View style={styles.buttonZeile}>
-          <AppButton
-            title="Gleichmäßig verteilen"
-            variant={modus === 'balanced' ? 'primary' : 'secondary'}
-            onPress={() => setModus('balanced')}
-          />
-          <AppButton
-            title="Räume nacheinander füllen"
-            variant={modus === 'sequential' ? 'primary' : 'secondary'}
-            onPress={() => setModus('sequential')}
-          />
-        </View>
-        <Text style={styles.hinweis}>
-          Und wie die Plätze <Text style={styles.pfad}>innerhalb</Text> eines Raums vergeben werden:
-          der Reihe nach oder so weit auseinander wie möglich. Beim Abstand zählt ein Platz zur Seite doppelt (dort schaut man
-          direkt aufs Nachbarblatt), und zwei sitzen lieber hintereinander als schräg versetzt.
-        </Text>
-        <View style={styles.buttonZeile}>
-          <AppButton
-            title="Der Reihe nach"
-            variant={sitzverteilung === 'lesereihenfolge' ? 'primary' : 'secondary'}
-            onPress={() => setSitzverteilung('lesereihenfolge')}
-            testID="raum-sitz-reihe"
-          />
-          <AppButton
-            title="Größtmöglicher Abstand"
-            variant={sitzverteilung === 'abstand' ? 'primary' : 'secondary'}
-            onPress={() => setSitzverteilung('abstand')}
-            testID="raum-sitz-abstand"
-          />
-        </View>
         <AppButton
-          title="Zuteilung erstellen"
-          onPress={zuteilungErstellen}
-          disabled={teilnehmer.length === 0 || raeume.length === 0}
-          testID="raum-erstellen"
-        />
-        {angezeigteSitzplaetze ? (
-          <StatusText kind="success" testID="raum-ergebnis">
-            {`${angezeigteSitzplaetze.length} Sitzplätze in ${anzahlRaeume} Räumen vergeben.`}
-          </StatusText>
-        ) : null}
-        {ohnePlatz.length > 0 ? (
-          <StatusText kind="error">
-            {`Kein Platz für: ${ohnePlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')}`}
-          </StatusText>
-        ) : null}
-        {fehler ? <StatusText kind="error">{fehler}</StatusText> : null}
-        {hinweis ? <StatusText kind="info">{hinweis}</StatusText> : null}
-      </Section>
-
-      {raster.length > 0 ? (
-        <Section title="Sitzplan im Raum" testID="raum-sitzplan">
-          <Text style={styles.hinweis}>
-            Der Sitzplan zeigt, wo im Raum die Tische stehen – schon bevor verteilt wird. Die
-            Sitzplatznummer gehört zum Tisch: Wer den Platz wechselt, bekommt die Nummer des neuen
-            Tisches. Ein Tippen auf einen Platz öffnet, was sich dort tun lässt.
-          </Text>
-
-          <View style={styles.buttonZeile}>
-            {PLAN_MODI.map((m) => (
-              <AppButton
-                key={m.key}
-                title={m.titel}
-                variant={planModus === m.key ? 'primary' : 'secondary'}
-                onPress={() => setPlanModus(m.key)}
-                testID={`raum-modus-${m.key}`}
-              />
-            ))}
-          </View>
-          <Text style={styles.hinweis}>{modusHinweis}</Text>
-
-          {/* Was in den Kästen steht – dasselbe am Bildschirm und im PDF. */}
-          <View style={styles.buttonZeile} testID="raum-anzeige">
-            <Text style={styles.hinweis}>Im Plan zeigen:</Text>
-            <Checkbox
-              label="Namenskürzel"
-              wert={anzeige.namensPraefix}
-              onChange={(wert) => setAnzeige((alt) => ({ ...alt, namensPraefix: wert }))}
-              testID="raum-anzeige-name"
-            />
-            <Checkbox
-              label="Matrikelnummer"
-              wert={anzeige.matrikelnummer}
-              onChange={(wert) => setAnzeige((alt) => ({ ...alt, matrikelnummer: wert }))}
-              testID="raum-anzeige-matrikel"
-            />
-            <Checkbox
-              label="Sitzplatznummer"
-              wert={anzeige.sitzplatznummer}
-              onChange={(wert) => setAnzeige((alt) => ({ ...alt, sitzplatznummer: wert }))}
-              testID="raum-anzeige-nummer"
-            />
-            <Checkbox
-              label="Pult beschriften"
-              wert={anzeige.pultText}
-              onChange={(wert) => setAnzeige((alt) => ({ ...alt, pultText: wert }))}
-              testID="raum-anzeige-pult"
-            />
-          </View>
-
-          <PlanLeiste editor={editor} />
-
-          {ohnePlanPlatz.length > 0 ? (
-            <StatusText kind="error">
-              {`Ohne Tisch im Sitzplan: ${ohnePlanPlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')} – im Raum bearbeiten mehr Tische setzen.`}
-            </StatusText>
-          ) : null}
-
-          <RaumplanFlaeche
-            palette={
-              planModus === 'bearbeiten' ? (
-                <RaumPalette editor={editor} testID="raum-palette" />
-              ) : null
-            }
-          >
-            {/* Ein Plan je Raumeinsatz: Zwei Durchgänge desselben Raums zeigen
-                dasselbe Raster, aber jeder seine eigene Belegung. */}
-            {raeume.map((raum) => {
-              const schema = schemata.find((s) => s.raum === raum.raum);
-              if (!schema) return null;
-              const schluessel = raumSchluessel(raum);
-              const tische = tischzellen(schema).length;
-              const belegt = belegung.filter(
-                (p) => p.raum === schluessel && p.matrikelnummer !== '',
-              ).length;
-              const reserven = belegung.filter((p) => p.raum === schluessel && p.reserviert).length;
-              const titel =
-                (raum.durchgang ?? 1) > 1
-                  ? `${raum.raum} · ${raum.durchgang}. Durchgang`
-                  : raum.raum;
-              return (
-                <RaumplanKarte
-                  key={schluessel}
-                  editor={editor}
-                  schema={schema}
-                  schluessel={schluessel}
-                  titel={titel}
-                  bearbeiten={planModus === 'bearbeiten'}
-                  kopfZusatz={`${belegt}/${tische} belegt${reserven > 0 ? `, ${reserven} Reserve` : ''}`}
-                  belegung={belegungJeRaum.get(schluessel) ?? []}
-                  nummern={nummern}
-                  personen={personenJeMatrikel}
-                  anzeige={anzeige}
-                  onZellePress={(zeile, spalte) => zellePress(schluessel, raum.raum, titel, zeile, spalte)}
-                />
+          title="Raster als CSV speichern"
+          variant="secondary"
+          kompakt
+          disabled={schemata.length === 0}
+          onPress={async () => {
+            // Je Raum eine Datei; im Projekt ersetzen sie den bisherigen
+            // Bestand, damit kein Raster liegen bleibt, das es nicht mehr gibt.
+            const dateien = raumschemaDateien(schemata);
+            projekt.ersetze('raumschema', dateien);
+            const namen = [...dateien.keys()];
+            if (namen.length === 1) {
+              downloadCsv(namen[0], dateien.get(namen[0]) ?? '');
+            } else {
+              const inhalte = new Map<string, Uint8Array | string>(
+                [...dateien].map(([name, csv]) => [`Raeume/${name}`, csv]),
               );
-            })}
-          </RaumplanFlaeche>
-
-          <View style={styles.buttonZeile}>
-            <AppButton title="Sitzplan neu verteilen" variant="secondary" onPress={neuVerteilen} testID="raum-neu-verteilen" />
-            <AppButton
-              title={pdfLaeuft ? 'PDF läuft …' : 'Sitzpläne als PDF'}
-              onPress={sitzplaeneAlsPdf}
-              disabled={pdfLaeuft}
-              testID="raum-sitzplan-pdf"
-            />
-            <AppButton
-              title="Raumschema als CSV speichern"
-              variant="secondary"
-              onPress={async () => {
-                // Je Raum eine Datei; im Projekt ersetzen sie den bisherigen
-                // Bestand, damit kein Raster liegen bleibt, das es nicht mehr gibt.
-                const dateien = raumschemaDateien(schemata);
-                projekt.ersetze('raumschema', dateien);
-                const namen = [...dateien.keys()];
-                if (namen.length === 1) {
-                  downloadCsv(namen[0], dateien.get(namen[0]) ?? '');
-                } else {
-                  const inhalte = new Map<string, Uint8Array | string>(
-                    [...dateien].map(([name, csv]) => [`Raeume/${name}`, csv]),
-                  );
-                  downloadZip('raumschema.zip', await erstelleZip(inhalte));
-                }
-                setHinweis(`Raster gespeichert – je Raum eine Datei in Raeume/: ${namen.join(', ')}.`);
-              }}
-              testID="raum-schema-speichern"
-            />
-            <AppButton
-              title="Belegung als CSV speichern"
-              variant="secondary"
-              onPress={() => {
-                const csv = belegungToCsv(belegung, angezeigteSitzplaetze ?? [], nummern);
-                downloadCsv('raumbelegung.csv', csv);
-                projekt.schreibe('raumbelegung.csv', csv, 'raumbelegung');
-              }}
-              testID="raum-belegung-speichern"
-            />
-          </View>
-          <FilePickerButton label="Raumschema-CSVs laden" accept=".csv" multiple onFiles={schemaLaden} />
-          <FilePickerButton label="Belegung-CSV laden" accept=".csv" onFiles={belegungLaden} />
-        </Section>
-      ) : null}
-
-      {angezeigteSitzplaetze ? (
-        <Section title="Ansichten" testID="raum-ansichten">
-          <View style={styles.buttonZeile}>
-            {ANSICHTEN.map((a) => (
-              <AppButton
-                key={a.key}
-                title={a.titel}
-                variant={ansicht === a.key ? 'primary' : 'secondary'}
-                onPress={() => setAnsicht(a.key)}
-                testID={a.testID}
-              />
-            ))}
-          </View>
-          <View style={styles.buttonZeile}>
-            <AppButton
-              title="Aushang als PDF"
-              onPress={aushangAlsPdf}
-              disabled={pdfLaeuft}
-              testID="raum-aushang-pdf"
-            />
-            <AppButton
-              title="Dozentenliste als PDF"
-              onPress={() => listeAlsPdf('dozent')}
-              disabled={pdfLaeuft}
-              testID="raum-dozent-pdf"
-            />
-            <AppButton
-              title="Tutorenliste als PDF"
-              onPress={() => listeAlsPdf('tutor')}
-              disabled={pdfLaeuft}
-              testID="raum-tutor-pdf"
-            />
-            <AppButton
-              title="Ansicht drucken"
-              variant="secondary"
-              onPress={aushaengeDrucken}
-              testID="raum-aushaenge-pdf"
-            />
-          </View>
-          {ansicht === 'aushang' ? (
-            <DataTable
-              columns={[
-                { key: 'anfangNachname', title: 'Anfang Nachname' },
-                { key: 'sitzplatznummer', title: 'Sitzplatznummer' },
-                { key: 'raum', title: 'Raum' },
-              ]}
-              rows={[...angezeigteSitzplaetze]
-                .sort((a, b) => a.anfangNachname.localeCompare(b.anfangNachname, 'de'))
-                .map((platz) => ({
-                  anfangNachname: platz.anfangNachname,
-                  sitzplatznummer: platz.sitzplatznummer,
-                  raum: platz.raum,
-                }))}
-            />
-          ) : null}
-          {ansicht === 'dozent' ? (
-            <DataTable
-              columns={[
-                { key: 'sitzplatz', title: 'Sitzplatz' },
-                { key: 'vorname', title: 'Vorname' },
-                { key: 'nachname', title: 'Nachname' },
-                { key: 'raum', title: 'Raum' },
-                { key: 'anwesend', title: 'Anwesend' },
-              ]}
-              rows={[...angezeigteSitzplaetze]
-                .sort((a, b) => a.sitzplatznummer - b.sitzplatznummer)
-                .map((platz) => ({
-                  sitzplatz: platz.sitzplatznummer,
-                  vorname: platz.vorname,
-                  nachname: platz.nachname,
-                  raum: platz.raum,
-                  anwesend: platz.anwesend,
-                }))}
-            />
-          ) : null}
-          {ansicht === 'tutor' ? (
-            <DataTable
-              columns={[
-                { key: 'sitzplatz', title: 'Sitzplatz' },
-                { key: 'vorname', title: 'Vorname' },
-                { key: 'nachname', title: 'Nachname' },
-                { key: 'raum', title: 'Raum' },
-                { key: 'anwesend', title: 'Anwesend' },
-              ]}
-              rows={sortByNachname(angezeigteSitzplaetze).map((platz) => ({
-                sitzplatz: platz.sitzplatznummer,
-                vorname: platz.vorname,
-                nachname: platz.nachname,
-                raum: platz.raum,
-                anwesend: platz.anwesend,
-              }))}
-            />
-          ) : null}
-          {/* Die Aushänge bleiben gerendert, solange die Ansicht sie zeigt – der
-              Druck nimmt genau diesen sichtbaren Knoten. */}
-          {ansicht === 'raeume' ? (
-            <View ref={aushangRef}>
-              <RaumAushaenge
-                sitzplaetze={angezeigteSitzplaetze}
-                raeume={raeume}
-                schemata={raster}
-                belegung={belegung}
-                nummern={nummern}
-                // Gedreht wird im Editor je Raum; der Aushang zeigt ihn aus
-                // derselben Richtung – sonst stünde auf dem Papier ein anderer
-                // Raum als auf dem Bildschirm.
-                drehungen={editor.drehungen}
-                anzeige={anzeige}
-              />
-            </View>
-          ) : null}
-        </Section>
-      ) : null}
-
-      {angezeigteSitzplaetze ? (
-        <Section title="Download">
-          <LabeledTextInput
-            label="Dateiname"
-            value={dateiname}
-            onChangeText={setDateiname}
-            testID="raum-dateiname"
-          />
-          <AppButton
-            title="Sitzplan-CSV herunterladen"
-            onPress={() => {
-              const csv = sitzplaetzeToCsv(angezeigteSitzplaetze);
-              downloadCsv(dateiname, csv);
-              projekt.schreibe(dateiname, csv, 'sitzplan');
-            }}
-            testID="raum-download"
-          />
-          <AppButton
-            title="Sitzplatz-PDFs als ZIP"
-            variant="secondary"
-            onPress={pdfsHerunterladen}
-            disabled={pdfLaeuft}
-            testID="raum-download-pdfs"
-          />
-          <AppButton
-            title="Text der PDFs anpassen"
-            variant="secondary"
-            onPress={() => setVorlageOffen(true)}
-            testID="raum-vorlage-oeffnen"
-          />
-          <Text style={styles.hinweis}>
-            Was in den Sitzplatz-PDFs steht, lässt sich als Markdown mit Platzhaltern anpassen.
-            Der Text wird im Projekt gespeichert und liegt in Vorlagen/.
-          </Text>
-          {vorlage !== VORLAGE_SITZPLATZ ? (
-            <StatusText kind="info" testID="raum-vorlage-geaendert">
-              Der Text weicht vom Standardtext ab.
-            </StatusText>
-          ) : null}
-          {pdfHinweis ? (
-            <StatusText kind="info" testID="raum-pdf-sonderzeichen">{pdfHinweis}</StatusText>
-          ) : null}
-        </Section>
-      ) : null}
-
-      <Section title="Projekt">
-        <ProjektDownload
-          hinweis="Enthält Räume und Raumschema in Raeume/ sowie Sitzplan und Belegung in 4_Raumzuteilung_Export/."
-          testID="raum-projekt-download"
+              downloadZip('raumschema.zip', await erstelleZip(inhalte));
+            }
+            setHinweis(`Raster gespeichert – je Raum eine Datei in Raeume/: ${namen.join(', ')}.`);
+          }}
+          testID="raum-schema-speichern"
         />
-      </Section>
+        <AppButton
+          title="Belegung als CSV speichern"
+          variant="secondary"
+          kompakt
+          disabled={belegung.length === 0}
+          onPress={() => {
+            const csv = belegungToCsv(belegung, angezeigteSitzplaetze ?? [], nummern);
+            downloadCsv('raumbelegung.csv', csv);
+            projekt.schreibe('raumbelegung.csv', csv, 'raumbelegung');
+            setHinweis('Belegung gespeichert – im Projekt unter 4_Raumzuteilung_Export/.');
+          }}
+          testID="raum-belegung-speichern"
+        />
+        <FilePickerButton
+          label="Teilnehmer-CSV laden"
+          accept=".csv"
+          kompakt
+          onFiles={teilnehmerLaden}
+        />
+        <FilePickerButton label="Räume-CSV laden" accept=".csv" kompakt onFiles={raeumeLaden} />
+        <FilePickerButton
+          label="Raumschema-CSVs laden"
+          accept=".csv"
+          multiple
+          kompakt
+          onFiles={schemaLaden}
+        />
+        <FilePickerButton
+          label="Belegung-CSV laden"
+          accept=".csv"
+          kompakt
+          onFiles={belegungLaden}
+        />
+        <AppButton
+          title="Beispieldaten laden"
+          variant="secondary"
+          kompakt
+          onPress={beispielLaden}
+          testID="raum-beispiel"
+        />
+        <ProjektDownload kompakt testID="raum-projekt-download" />
+      </Aktionsleiste>
+
+      <Aktionsleiste titel="PDF" testID="raum-pdf">
+        <AppButton
+          title={pdfLaeuft ? 'PDF läuft …' : 'Sitzpläne als PDF'}
+          variant="secondary"
+          kompakt
+          onPress={sitzplaeneAlsPdf}
+          disabled={pdfLaeuft || raster.length === 0}
+          testID="raum-sitzplan-pdf"
+        />
+        <AppButton
+          title="Aushang als PDF"
+          variant="secondary"
+          kompakt
+          onPress={aushangAlsPdf}
+          disabled={pdfLaeuft || !angezeigteSitzplaetze}
+          testID="raum-aushang-pdf"
+        />
+        <AppButton
+          title="Dozentenliste als PDF"
+          variant="secondary"
+          kompakt
+          onPress={() => listeAlsPdf('dozent')}
+          disabled={pdfLaeuft || !angezeigteSitzplaetze}
+          testID="raum-dozent-pdf"
+        />
+        <AppButton
+          title="Tutorenliste als PDF"
+          variant="secondary"
+          kompakt
+          onPress={() => listeAlsPdf('tutor')}
+          disabled={pdfLaeuft || !angezeigteSitzplaetze}
+          testID="raum-tutor-pdf"
+        />
+        <AppButton
+          title="Sitzplatz-PDFs als ZIP"
+          variant="secondary"
+          kompakt
+          onPress={pdfsHerunterladen}
+          disabled={pdfLaeuft || !angezeigteSitzplaetze}
+          testID="raum-download-pdfs"
+        />
+        <AppButton
+          title="Text der PDFs anpassen"
+          variant="secondary"
+          kompakt
+          onPress={() => setVorlageOffen(true)}
+          testID="raum-vorlage-oeffnen"
+        />
+        <AppButton
+          title="Ansicht drucken"
+          variant="secondary"
+          kompakt
+          onPress={aushaengeDrucken}
+          disabled={!angezeigteSitzplaetze}
+          testID="raum-aushaenge-pdf"
+        />
+      </Aktionsleiste>
+
+      <Reiterleiste
+        reiter={[
+          { key: REITER_EINSTELLUNGEN, titel: 'Einstellungen', testID: 'raum-reiter-einstellungen' },
+          { key: REITER_LISTEN, titel: 'Listen', testID: 'raum-reiter-listen' },
+          ...raumReiter.map(({ key, titel, testID }) => ({ key, titel, testID })),
+        ]}
+        aktiv={offenerReiter}
+        onWaehlen={reiterWechseln}
+        testID="raum-reiter"
+      />
+
+      {offenerRaum ? (
+        <Aktionsleiste titel="Raum" testID="raum-werkzeuge">
+          {PLAN_MODI.map((m) => (
+            <AppButton
+              key={m.key}
+              title={m.titel}
+              variant={planModus === m.key ? 'primary' : 'secondary'}
+              kompakt
+              onPress={() => setPlanModus(m.key)}
+              testID={`raum-modus-${m.key}`}
+            />
+          ))}
+          {planModus === 'bearbeiten' ? <PalettenLeiste editor={editor} /> : null}
+          <PlanWerkzeugKnoepfe
+            editor={editor}
+            raum={offenerRaum.raum.raum}
+            bearbeiten={planModus === 'bearbeiten'}
+          />
+          <AppButton
+            title="Sitzplan neu verteilen"
+            variant="secondary"
+            kompakt
+            onPress={neuVerteilen}
+            disabled={!sitzplaetze}
+            testID="raum-neu-verteilen"
+          />
+        </Aktionsleiste>
+      ) : null}
+
+      {offenerRaum ? (
+        // Was in den Kästen steht – dasselbe am Bildschirm und im PDF.
+        <Aktionsleiste titel="Anzeigen" testID="raum-anzeige">
+          <Checkbox
+            label="Namenskürzel"
+            wert={anzeige.namensPraefix}
+            onChange={(wert) => setAnzeige((alt) => ({ ...alt, namensPraefix: wert }))}
+            testID="raum-anzeige-name"
+          />
+          <Checkbox
+            label="Matrikelnummer"
+            wert={anzeige.matrikelnummer}
+            onChange={(wert) => setAnzeige((alt) => ({ ...alt, matrikelnummer: wert }))}
+            testID="raum-anzeige-matrikel"
+          />
+          <Checkbox
+            label="Sitzplatznummer"
+            wert={anzeige.sitzplatznummer}
+            onChange={(wert) => setAnzeige((alt) => ({ ...alt, sitzplatznummer: wert }))}
+            testID="raum-anzeige-nummer"
+          />
+          <Checkbox
+            label="Pult beschriften"
+            wert={anzeige.pultText}
+            onChange={(wert) => setAnzeige((alt) => ({ ...alt, pultText: wert }))}
+            testID="raum-anzeige-pult"
+          />
+        </Aktionsleiste>
+      ) : null}
+    </>
+  );
+
+  /** Belegung eines Einsatzes in Zahlen – für die Fußleiste. */
+  const belegungText = (schluessel: string, schema: Raumschema): string => {
+    const tische = tischzellen(schema).length;
+    const belegt = belegung.filter((p) => p.raum === schluessel && p.matrikelnummer !== '').length;
+    const reserven = belegung.filter((p) => p.raum === schluessel && p.reserviert).length;
+    return `${belegt}/${tische} belegt${reserven > 0 ? `, ${reserven} Reserve` : ''}`;
+  };
+
+  /**
+   * Links in der Fußleiste – die Statuszeile: erst die Meldung, dann der Stand
+   * des offenen Reiters. Beides nebeneinander, damit eine Meldung nicht
+   * dauerhaft verdeckt, wie viele Plätze gerade belegt sind.
+   */
+  const fussText = [
+    fehler,
+    fehler ? null : (hinweis ?? pdfHinweis),
+    offenerRaum
+      ? `${belegungText(offenerRaum.key, offenerRaum.schema)} · ${rasterText(editor, offenerRaum.schema)}` +
+        (planModus === 'bearbeiten' ? ` · ${PALETTEN_HINWEIS_ZEILE}` : '')
+      : angezeigteSitzplaetze
+        ? `${angezeigteSitzplaetze.length} Sitzplätze in ${anzahlRaeume} Räumen vergeben`
+        : `${teilnehmer.length} Teilnehmende · ${raeume.length} Raumeinsätze – noch keine Zuteilung`,
+  ]
+    .filter((teil): teil is string => !!teil)
+    .join(' · ');
+
+  return (
+    <>
+      <Arbeitsflaeche
+        kopf={kopf}
+        fuss={
+          <PlanFuss
+            editor={editor}
+            text={fussText}
+            ansichtZeigen={offenerRaum !== null}
+            testID="raum-fuss"
+          />
+        }
+        testID="Raumzuteilung-screen"
+      >
+        {(hoehe) =>
+          offenerRaum ? (
+            <RaumplanBuehne
+              key={offenerRaum.key}
+              editor={editor}
+              schema={offenerRaum.schema}
+              schluessel={offenerRaum.key}
+              titel={offenerRaum.titel}
+              hoehe={hoehe}
+              bearbeiten={planModus === 'bearbeiten'}
+              belegung={belegungJeRaum.get(offenerRaum.key) ?? []}
+              nummern={nummern}
+              personen={personenJeMatrikel}
+              anzeige={anzeige}
+              onZellePress={(zeile, spalte) =>
+                zellePress(offenerRaum.key, offenerRaum.raum.raum, offenerRaum.titel, zeile, spalte)
+              }
+            />
+          ) : offenerReiter === REITER_LISTEN ? (
+            <Reiterinhalt testID="raum-listen">
+              <Section title="Ansichten" testID="raum-ansichten">
+                {angezeigteSitzplaetze ? (
+                  <>
+                    <View style={styles.buttonZeile}>
+                      {ANSICHTEN.map((a) => (
+                        <AppButton
+                          key={a.key}
+                          title={a.titel}
+                          variant={ansicht === a.key ? 'primary' : 'secondary'}
+                          onPress={() => setAnsicht(a.key)}
+                          testID={a.testID}
+                        />
+                      ))}
+                    </View>
+                    {ansicht === 'aushang' ? (
+                      <DataTable
+                        columns={[
+                          { key: 'anfangNachname', title: 'Anfang Nachname' },
+                          { key: 'sitzplatznummer', title: 'Sitzplatznummer' },
+                          { key: 'raum', title: 'Raum' },
+                        ]}
+                        rows={[...angezeigteSitzplaetze]
+                          .sort((a, b) => a.anfangNachname.localeCompare(b.anfangNachname, 'de'))
+                          .map((platz) => ({
+                            anfangNachname: platz.anfangNachname,
+                            sitzplatznummer: platz.sitzplatznummer,
+                            raum: platz.raum,
+                          }))}
+                      />
+                    ) : null}
+                    {ansicht === 'dozent' ? (
+                      <DataTable
+                        columns={[
+                          { key: 'sitzplatz', title: 'Sitzplatz' },
+                          { key: 'vorname', title: 'Vorname' },
+                          { key: 'nachname', title: 'Nachname' },
+                          { key: 'raum', title: 'Raum' },
+                          { key: 'anwesend', title: 'Anwesend' },
+                        ]}
+                        rows={[...angezeigteSitzplaetze]
+                          .sort((a, b) => a.sitzplatznummer - b.sitzplatznummer)
+                          .map((platz) => ({
+                            sitzplatz: platz.sitzplatznummer,
+                            vorname: platz.vorname,
+                            nachname: platz.nachname,
+                            raum: platz.raum,
+                            anwesend: platz.anwesend,
+                          }))}
+                      />
+                    ) : null}
+                    {ansicht === 'tutor' ? (
+                      <DataTable
+                        columns={[
+                          { key: 'sitzplatz', title: 'Sitzplatz' },
+                          { key: 'vorname', title: 'Vorname' },
+                          { key: 'nachname', title: 'Nachname' },
+                          { key: 'raum', title: 'Raum' },
+                          { key: 'anwesend', title: 'Anwesend' },
+                        ]}
+                        rows={sortByNachname(angezeigteSitzplaetze).map((platz) => ({
+                          sitzplatz: platz.sitzplatznummer,
+                          vorname: platz.vorname,
+                          nachname: platz.nachname,
+                          raum: platz.raum,
+                          anwesend: platz.anwesend,
+                        }))}
+                      />
+                    ) : null}
+                    {/* Die Aushänge bleiben gerendert, solange die Ansicht sie zeigt –
+                        der Druck nimmt genau diesen sichtbaren Knoten. */}
+                    {ansicht === 'raeume' ? (
+                      <View ref={aushangRef}>
+                        <RaumAushaenge
+                          sitzplaetze={angezeigteSitzplaetze}
+                          raeume={raeume}
+                          schemata={raster}
+                          belegung={belegung}
+                          nummern={nummern}
+                          // Gedreht wird im Editor je Raum; der Aushang zeigt ihn aus
+                          // derselben Richtung – sonst stünde auf dem Papier ein
+                          // anderer Raum als auf dem Bildschirm.
+                          drehungen={editor.drehungen}
+                          anzeige={anzeige}
+                        />
+                      </View>
+                    ) : null}
+                  </>
+                ) : (
+                  <StatusText kind="info">
+                    Noch keine Zuteilung – unter „Einstellungen“ die Teilnehmenden und die Räume
+                    prüfen und „Zuteilung erstellen“ wählen.
+                  </StatusText>
+                )}
+              </Section>
+            </Reiterinhalt>
+          ) : (
+            <Reiterinhalt testID="raum-einstellungen">
+              {rueckfrage ? (
+                <Section title="Nicht alle Angemeldeten sind zugelassen" testID="raum-rueckfrage">
+                  <StatusText kind="error" testID="raum-rueckfrage-text">
+                    {`${rueckfrage.nichtZugelassen.length} von ${rueckfrage.alle.length} Anmeldungen aus 0_Input_Klausuranmeldungen/ haben keine Zulassung: ${nichtZugelassenListe}`}
+                  </StatusText>
+                  <Text style={styles.hinweis}>
+                    Womit soll weitergearbeitet werden? Der Export aus Schritt 3
+                    (3_Klausur_Teilnehmende_Export/) ist dafür nicht nötig – wer eine eigene Liste
+                    hat, lädt sie oben als Teilnehmer-CSV.
+                  </Text>
+                  <View style={styles.buttonZeile}>
+                    <AppButton
+                      title={`Nur die ${rueckfrage.zugelassen.length} Zugelassenen verwenden`}
+                      variant={quelle === 'anmeldungenZugelassen' ? 'primary' : 'secondary'}
+                      onPress={() => uebernimmAnmeldungen(rueckfrage, 'anmeldungenZugelassen')}
+                      testID="raum-nur-zugelassene"
+                    />
+                    <AppButton
+                      title={`Trotzdem alle ${rueckfrage.alle.length} Anmeldungen verwenden`}
+                      variant={quelle === 'anmeldungenAlle' ? 'primary' : 'secondary'}
+                      onPress={() => uebernimmAnmeldungen(rueckfrage, 'anmeldungenAlle')}
+                      testID="raum-alle-anmeldungen"
+                    />
+                  </View>
+                </Section>
+              ) : null}
+
+              <Section title="Teilnehmende">
+                <Text style={styles.hinweis}>
+                  Die Liste kommt aus Schritt 3 oder – wenn dort nichts liegt – direkt aus den
+                  geprüften Anmeldungen. Eine eigene CSV lädt man oben unter „Datei“.
+                </Text>
+                {teilnehmerStatus ? <StatusText kind="info">{teilnehmerStatus}</StatusText> : null}
+                <ProjektQuelle rolle="teilnehmer" testID="raum-quelle-teilnehmer" />
+                {anmeldungen !== null ? (
+                  <>
+                    <ProjektQuelle rolle="hisExport" testID="raum-quelle-his" />
+                    <ProjektQuelle rolle="zulassungsbestand" alle testID="raum-quelle-zulassungen" />
+                  </>
+                ) : null}
+              </Section>
+
+              <Section title="Räume der Klausur" testID="raum-raeume">
+                <Text style={styles.hinweis}>
+                  Die Räume selbst und ihre Raster gehören zu keiner einzelnen Klausur: Sie liegen
+                  als Bestand in <Text style={styles.pfad}>Raeume/</Text> und werden in Schritt 5
+                  gepflegt. Hier steht, welche davon <Text style={styles.pfad}>diese</Text> Klausur
+                  benutzt – jeder davon bekommt oben einen eigenen Reiter.
+                </Text>
+                <Text style={styles.hinweis}>
+                  Denselben Raum mehrfach hinzufügen heißt: Er wird mehrfach belegt – etwa Gruppe 1
+                  vormittags und Gruppe 2 nachmittags. Beide Durchgänge haben dasselbe Raster, aber
+                  je eigene Belegung und eigene Sitzplatznummern; auseinander hält sie die
+                  reservierte Zeit.
+                </Text>
+                {verfuegbareRaeume.length > 0 ? (
+                  <View style={styles.buttonZeile} testID="raum-verfuegbar">
+                    <Text style={styles.hinweis}>Hinzufügen:</Text>
+                    {verfuegbareRaeume.map((raum) => (
+                      <AppButton
+                        key={raum.raum}
+                        title={`+ ${raum.raum} (${raum.plaetze})`}
+                        variant="secondary"
+                        onPress={() => raumHinzufuegen(raum)}
+                        testID={`raum-hinzufuegen-${raum.raum}`}
+                      />
+                    ))}
+                  </View>
+                ) : null}
+                <RaumListe
+                  zeilen={zeilen}
+                  onChange={setZeilen}
+                  mitDurchgang
+                  hinzufuegenTitel="Leere Zeile hinzufügen"
+                />
+                <ProjektQuelle rolle="klausurraeume" testID="raum-quelle-klausurraeume" />
+                <ProjektQuelle rolle="raeume" testID="raum-quelle-raeume" />
+                <ProjektQuelle rolle="raumschema" alle testID="raum-quelle-schema" />
+              </Section>
+
+              <Section title="Zuteilung">
+                <LabeledNumberInput
+                  label="Erste Sitzplatznummer"
+                  value={startnummer}
+                  onChange={setStartnummer}
+                  testID="raum-startnummer"
+                />
+                <View style={styles.buttonZeile}>
+                  <AppButton
+                    title="Gleichmäßig verteilen"
+                    variant={modus === 'balanced' ? 'primary' : 'secondary'}
+                    onPress={() => setModus('balanced')}
+                  />
+                  <AppButton
+                    title="Räume nacheinander füllen"
+                    variant={modus === 'sequential' ? 'primary' : 'secondary'}
+                    onPress={() => setModus('sequential')}
+                  />
+                </View>
+                <Text style={styles.hinweis}>
+                  Und wie die Plätze <Text style={styles.pfad}>innerhalb</Text> eines Raums vergeben
+                  werden: der Reihe nach oder so weit auseinander wie möglich. Beim Abstand zählt
+                  ein Platz zur Seite doppelt (dort schaut man direkt aufs Nachbarblatt), und zwei
+                  sitzen lieber hintereinander als schräg versetzt.
+                </Text>
+                <View style={styles.buttonZeile}>
+                  <AppButton
+                    title="Der Reihe nach"
+                    variant={sitzverteilung === 'lesereihenfolge' ? 'primary' : 'secondary'}
+                    onPress={() => setSitzverteilung('lesereihenfolge')}
+                    testID="raum-sitz-reihe"
+                  />
+                  <AppButton
+                    title="Größtmöglicher Abstand"
+                    variant={sitzverteilung === 'abstand' ? 'primary' : 'secondary'}
+                    onPress={() => setSitzverteilung('abstand')}
+                    testID="raum-sitz-abstand"
+                  />
+                </View>
+                <AppButton
+                  title="Zuteilung erstellen"
+                  onPress={zuteilungErstellen}
+                  disabled={teilnehmer.length === 0 || raeume.length === 0}
+                  testID="raum-erstellen"
+                />
+                {angezeigteSitzplaetze ? (
+                  <StatusText kind="success" testID="raum-ergebnis">
+                    {`${angezeigteSitzplaetze.length} Sitzplätze in ${anzahlRaeume} Räumen vergeben.`}
+                  </StatusText>
+                ) : null}
+                {ohnePlatz.length > 0 ? (
+                  <StatusText kind="error">
+                    {`Kein Platz für: ${ohnePlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')}`}
+                  </StatusText>
+                ) : null}
+                {ohnePlanPlatz.length > 0 ? (
+                  <StatusText kind="error">
+                    {`Ohne Tisch im Sitzplan: ${ohnePlanPlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')} – im Reiter des Raums unter „Raum bearbeiten“ mehr Tische setzen.`}
+                  </StatusText>
+                ) : null}
+                {fehler ? <StatusText kind="error">{fehler}</StatusText> : null}
+                {hinweis ? <StatusText kind="info">{hinweis}</StatusText> : null}
+              </Section>
+
+              <Section title="Sitzplan im Raum" testID="raum-sitzplan">
+                <Text style={styles.hinweis}>
+                  Jeder Raumeinsatz hat oben einen eigenen Reiter. Der Sitzplan zeigt, wo im Raum
+                  die Tische stehen – schon bevor verteilt wird. Die Sitzplatznummer gehört zum
+                  Tisch: Wer den Platz wechselt, bekommt die Nummer des neuen Tisches.
+                </Text>
+                {PLAN_MODI.map((m) => (
+                  <Text key={m.key} style={styles.hinweis}>
+                    <Text style={styles.pfad}>{m.titel}</Text> · {m.hinweis}
+                  </Text>
+                ))}
+                {raster.length === 0 ? (
+                  <StatusText kind="info">
+                    Noch kein Raster – Räume hinzufügen oder in Schritt 5 anlegen.
+                  </StatusText>
+                ) : null}
+              </Section>
+
+              <Section title="Dateiname des Sitzplans">
+                <LabeledTextInput
+                  label="Dateiname"
+                  value={dateiname}
+                  onChangeText={setDateiname}
+                  testID="raum-dateiname"
+                />
+                <Text style={styles.hinweis}>
+                  Unter diesem Namen legt „Sitzplan-CSV speichern“ die Datei ab. Was in den
+                  Sitzplatz-PDFs steht, lässt sich als Markdown mit Platzhaltern anpassen – der
+                  Text wird im Projekt gespeichert und liegt in Vorlagen/.
+                </Text>
+                {vorlage !== VORLAGE_SITZPLATZ ? (
+                  <StatusText kind="info" testID="raum-vorlage-geaendert">
+                    Der Text weicht vom Standardtext ab.
+                  </StatusText>
+                ) : null}
+                {pdfHinweis ? (
+                  <StatusText kind="info" testID="raum-pdf-sonderzeichen">
+                    {pdfHinweis}
+                  </StatusText>
+                ) : null}
+                <ProjektDownload
+                  hinweis="Enthält Räume und Raumschema in Raeume/ sowie Sitzplan und Belegung in 4_Raumzuteilung_Export/."
+                  testID="raum-projekt-download-gross"
+                />
+              </Section>
+            </Reiterinhalt>
+          )
+        }
+      </Arbeitsflaeche>
 
       <VorlagenModal
         offen={vorlageOffen}
@@ -1536,7 +1687,7 @@ export function RaumzuteilungScreen() {
           <Text style={styles.hinweis}>{dialogBeschreibung}</Text>
         )}
       </BlattModal>
-    </ScreenContainer>
+    </>
   );
 }
 
@@ -1545,6 +1696,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+    alignItems: 'center',
   },
   blattBlock: { gap: spacing.sm },
   blattTitel: { fontSize: 16, fontWeight: '700', color: colors.text },

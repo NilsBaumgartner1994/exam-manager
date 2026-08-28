@@ -9,18 +9,24 @@ import { StatusText } from './StatusText';
 interface Props {
   /** Zusätzlicher Satz, was dieser Screen dem Projekt hinzugefügt hat. */
   hinweis?: string;
+  /**
+   * Nur der Knopf, klein – für die Aktionsleiste der Arbeitsflächen
+   * (Schritt 4 und 5), wo neben zehn anderen Knöpfen kein Platz für einen
+   * Absatz Erklärung ist. Die steht dort ohnehin auf der Startseite.
+   */
+  kompakt?: boolean;
   testID?: string;
 }
 
 /**
- * „Aktualisiertes Projekt herunterladen“ – steht auf jedem Screen.
+ * „Aktuelles Projekt herunterladen“ – steht auf jedem Screen.
  *
  * Der Browser darf nicht in den gewählten Ordner zurückschreiben; die ZIP ist
  * der einzige Weg zurück auf die Platte. Sie enthält den kompletten
  * Projektstand: die eingelesenen Dateien und alles, was die Schritte seitdem
  * hineingeschrieben haben.
  */
-export function ProjektDownload({ hinweis, testID }: Props) {
+export function ProjektDownload({ hinweis, kompakt, testID }: Props) {
   const projekt = useProjekt();
   const [fehler, setFehler] = useState<string | null>(null);
 
@@ -35,10 +41,23 @@ export function ProjektDownload({ hinweis, testID }: Props) {
 
   const leer = projekt.dateien.length === 0;
 
+  if (kompakt) {
+    return (
+      <AppButton
+        title="Projekt herunterladen"
+        variant="secondary"
+        kompakt
+        onPress={herunterladen}
+        disabled={leer}
+        testID={testID ?? 'projekt-download'}
+      />
+    );
+  }
+
   return (
     <View style={styles.box}>
       <AppButton
-        title="Aktualisiertes Projekt herunterladen"
+        title="Aktuelles Projekt herunterladen"
         variant="secondary"
         onPress={herunterladen}
         disabled={leer}
@@ -46,7 +65,7 @@ export function ProjektDownload({ hinweis, testID }: Props) {
       />
       <Text style={styles.hinweis}>
         {leer
-          ? 'Noch kein Projektordner geladen – auf der Startseite auswählen, dann sammelt jeder Schritt seine Ergebnisse darin.'
+          ? 'Noch kein Projektordner geladen – oben auswählen, dann sammelt jeder Schritt seine Ergebnisse darin.'
           : (hinweis ? `${hinweis} ` : '') +
             'Die ZIP enthält den kompletten Projektordner. Entpacken und den eigenen Ordner damit ersetzen – der Browser darf nicht direkt hineinschreiben.'}
       </Text>

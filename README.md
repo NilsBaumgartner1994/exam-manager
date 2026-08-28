@@ -192,15 +192,26 @@ yarn typecheck   # TypeScript-Prüfung beider Pakete
 
 ### Screens
 
-Die Startseite zeigt fünf Kacheln entlang des Workflows – und darunter den
-optionalen **Projektordner**:
+Ganz oben auf der Startseite steht das **Projekt**, darunter die fünf Kacheln
+entlang des Workflows:
 
-0. **Projektordner (optional)** – ein Ordner, der alle Dateien einer Klausur
-   an einem Ort hält. **Der Ordner entscheidet, was gelesen wird:** Eine Datei
+0. **Projekt** – welcher **Kurs**, welcher **Ordner**, und der Weg zurück auf
+   die Platte: „Projektordner öffnen“ bzw. „Anderes Projekt öffnen“ und
+   „Aktuelles Projekt herunterladen“. Alles Weitere hängt daran, deshalb steht
+   es vor den Schritten.
+
+   **Der Kursname** steht in keiner Datei – Stud.IP legt ihn nur in den Namen
+   des Teilnehmendenexports. Die App liest ihn von dort:
+   `Teilnehmendenexport_Software_Engineering.csv` → „Software Engineering“.
+   Liegt kein Export im Projekt, steht dort „—“ statt eines geratenen Namens.
+
+   Der Projektordner hält alle Dateien einer Klausur an einem Ort.
+   **Der Ordner entscheidet, was gelesen wird:** Eine Datei
    zählt nur, wenn sie am vorgesehenen Platz mit der passenden Endung liegt –
    eine Notenliste im Hauptordner oder ein Stud.IP-Export in `Zulassungen/`
    bleibt bewusst „nicht zugeordnet“. Lieber eine Datei sichtbar ignorieren
-   als die falsche auswerten.
+   als die falsche auswerten. Welche Dateien erkannt wurden, zeigt
+   „Dateien anzeigen“.
 
    ```
    0_Input_Klausuranmeldungen/            *.xlsx              Anmeldungen des Prüfungsamts
@@ -222,7 +233,7 @@ optionalen **Projektordner**:
 
    Einmal ausgewählt, holen sich die Schritte ihre Eingaben von selbst und
    schreiben ihre Ergebnisse zurück. **Auf jedem Screen** gibt es den Button
-   „Aktualisiertes Projekt herunterladen“: Er packt den kompletten Stand als
+   „Aktuelles Projekt herunterladen“: Er packt den kompletten Stand als
    ZIP – auch Dateien, die zu keiner Regel passen, bleiben unverändert
    enthalten. Damit ersetzt man den eigenen Ordner. Wer neu anfängt, lädt die
    **Projektvorlage als ZIP** herunter: die leere Struktur mit `LIESMICH.md`
@@ -276,6 +287,17 @@ Und die vier Schritte selbst:
    Sitzplatz), Tutor (nach Nachname), Räume/Aushänge je Raum; Export als CSV,
    Sitzplatz-PDFs (ZIP) und alle Aushänge als PDF über den Druckdialog. Auch
    hier lässt sich der **Text der PDFs** anpassen (siehe unten).
+
+   **Aufbau wie eine Tabellenkalkulation** (genauso in Schritt 5): oben im
+   Kopf der App „Zurück“ und der Titel, darunter das Menüband – die Leiste
+   **Datei** (speichern und laden), die Leiste **PDF** und die **Reiter**;
+   dazwischen nichts als die Arbeitsfläche in voller Breite; unten die
+   **Fußleiste** mit Ansicht/Zoom und dem Stand (belegte Plätze, Rastergröße,
+   Meldungen). Die Reiter sind **Einstellungen** (Teilnehmende, Räume der
+   Klausur, Zuteilung), **Listen** (Aushang, Dozent, Tutor, Aushänge je Raum)
+   und **je ein Reiter pro Raumeinsatz** mit dessen Sitzplan. Auf schmalen
+   Bildschirmen scrollen die Leisten waagerecht, statt umzubrechen – der Plan
+   soll den Platz behalten.
 
    **Ohne Umweg über Schritt 3:** Liegt im Projektordner keine Teilnehmerliste
    in `3_Klausur_Teilnehmende_Export/`, prüft dieser Schritt die Anmeldungen
@@ -345,10 +367,9 @@ Und die vier Schritte selbst:
      („Text anlegen“, wenn noch keiner da ist). Gezeichnet wird erst, wenn man
      ein Element aus der Palette wählt; ein Ziehen mit dem Zeiger schiebt den
      Ausschnitt.
-   - **Raum bearbeiten** – links liegt die Palette (Zeiger, Auswählen,
-     Verschieben, Sitzplatz, Reserve, Pult, Wand, Tür, Text, Radierer); auf
-     einem schmalen Bildschirm steht sie unter dem Plan. Ein Element auf eine
-     Zelle **ziehen**
+   - **Raum bearbeiten** – im Menüband über dem Plan liegt die Palette
+     (Zeiger, Auswählen, Verschieben, Sitzplatz, Reserve, Pult, Wand, Tür,
+     Text, Radierer). Ein Element auf eine Zelle **ziehen**
      setzt es dort; **antippen** wählt es aus und man malt damit im Plan (über
      Zellen ziehen zeichnet z. B. eine ganze Wand). Mit **Auswählen** zieht
      man über mehrere Zellen, ohne etwas zu verändern – markiert wird nur –,
@@ -369,7 +390,7 @@ Und die vier Schritte selbst:
      keine Quadrate. So passen doppelt so viele Reihen ins Bild, ohne dass die
      Kästen schmaler werden.
    - **Rückgängig / Wiederholen** – jeder Schritt im Plan lässt sich zurück-
-     nehmen: die Knöpfe über den Plänen oder <kbd>Strg</kbd>/<kbd>⌘</kbd> +
+     nehmen: die Knöpfe im Menüband oder <kbd>Strg</kbd>/<kbd>⌘</kbd> +
      <kbd>Z</kbd> (vorwärts mit <kbd>Umschalt</kbd> + <kbd>Z</kbd> bzw.
      <kbd>Y</kbd>). Das gilt auch fürs Platzieren, für Reserven und Vorgaben –
      Raster und Belegung gehen immer zusammen einen Schritt zurück.
@@ -387,22 +408,18 @@ Und die vier Schritte selbst:
      Versehen im Text landet.
    - **Raster sehen** – jedes Feld hat eine dünne Linie, oben stehen die
      Spalten als `A`, `B`, `C` … und links die Zeilen als `1`, `2`, `3` – wie
-     in einer Tabellenkalkulation. Die Überschrift nennt die Rastergröße und
+     in einer Tabellenkalkulation. Die Fußleiste nennt die Rastergröße und
      die Adresse der Auswahl (etwa `B3:E7`). So ist zu erkennen, wie groß der
      Raum ist und wo sich klicken lässt – auch dort, wo noch nichts steht.
      Der Aushang verzichtet darauf.
-   - **Größe der Ansicht** – drei Möglichkeiten, weil je nach Raum eine andere
-     passt: **Auf Breite** (Voreinstellung) nutzt die volle Breite und scrollt
-     in die Höhe – ein schmaler Seminarraum wäre sonst winzig, obwohl daneben
-     alles frei ist. **Ganzer Raum** passt auch einen Hörsaal mit 47 × 34
-     Feldern am Stück auf einen 1920 × 1080-Schirm. Mit **−** und **+** stellt
-     man die Zellgröße selbst ein wie beim Zoomen in ein Bild; die Leiste
-     nennt sie dann in Pixeln. Der Zoom setzt auf der gerade sichtbaren Größe
-     auf, springt also nicht.
-   - **Vollbild** – „⤢ Vollbild“ über dem Plan gibt ihm den ganzen Bildschirm,
-     wie in einer Tabellenkalkulation: oben die Werkzeugleiste (Elemente,
-     Drehen, Zeilen/Spalten, Rückgängig), unten rechts der Zoom, dazwischen
-     nichts als der Raum. Hinaus geht es oben rechts oder mit <kbd>Esc</kbd>.
+   - **Größe der Ansicht** – in der Fußleiste, drei Möglichkeiten, weil je
+     nach Raum eine andere passt: **Ganzer Raum** (Voreinstellung) zeigt auch
+     einen Hörsaal mit 47 × 34 Feldern am Stück – der Plan füllt die
+     Arbeitsfläche, gescrollt werden muss nichts. **Auf Breite** nutzt die
+     volle Breite und scrollt in die Höhe, wenn die Kästen größer sein sollen.
+     Mit **−** und **+** stellt man die Zellgröße selbst ein wie beim Zoomen
+     in ein Bild; die Leiste nennt sie dann in Pixeln. Der Zoom setzt auf der
+     gerade sichtbaren Größe auf, springt also nicht.
    - **Schieben und Zoomen (auch auf dem Handy)** – der Plan liegt am
      Bildschirm in einem eigenen Fenster: **zwei Finger** schieben ihn und
      zoomen zugleich (am Rechner <kbd>Strg</kbd> + Mausrad, ohne Taste
@@ -429,11 +446,15 @@ Und die vier Schritte selbst:
    davon eine Klausur benutzt (und ob mehrfach), entscheidet Schritt 4 und legt
    nur noch die Belegung darüber.
 
-   **Bearbeitet wird ein Raum nach dem anderen:** Über den Plänen steht die
-   Liste der Räume (in Klammern ihre Sitzplätze) – der angeklickte ist zu sehen
-   und zu bearbeiten. Nebeneinander wären ein Hörsaal mit 44 × 32 Feldern und
-   vier weitere Räume nicht zu überblicken. Gespeichert werden trotzdem immer
-   alle Räume, je Raum eine Datei.
+   **Derselbe Aufbau wie Schritt 4:** Menüband oben (Leiste **Datei** mit
+   Speichern, Laden und „Raumplan als PDF“, darunter die **Reiter**), der Plan
+   in voller Breite dazwischen, unten die Fußleiste mit Ansicht/Zoom und dem
+   Stand des Rasters. Ein Reiter ist die **Raumliste**, die übrigen sind die
+   Räume (in Klammern ihre Sitzplätze).
+
+   **Bearbeitet wird ein Raum nach dem anderen:** Nebeneinander wären ein
+   Hörsaal mit 44 × 32 Feldern und vier weitere Räume nicht zu überblicken.
+   Gespeichert werden trotzdem immer alle Räume, je Raum eine Datei.
 
    Der Editor ist derselbe wie in Schritt 4 (Palette, verbundene Zellen,
    Ansicht/Zoom, Rückgängig, Drehen); dazu kommen:
@@ -442,8 +463,8 @@ Und die vier Schritte selbst:
      Vorschlag erzeugen (Tische in Zweierblöcken mit Gang, Pult vorne, Tür
      hinten). Von Hand zu zeichnen ist nur noch, was davon abweicht.
    - **Plätze übernehmen** – die Platzzahl der Raumliste aus dem Raster setzen
-     (die Tische zählen). Weicht beides ab, steht das in der Überschrift des
-     Raums – sonst meldet Schritt 4 später Teilnehmende „ohne Tisch“.
+     (die Tische zählen). Weicht beides ab, steht das in der Fußleiste –
+     sonst meldet Schritt 4 später Teilnehmende „ohne Tisch“.
    - **Raumplan als PDF** – den Grundriss des gezeigten Raums als PDF-Seite
      (`66_E33.pdf`), gezeichnet von derselben Funktion wie der Sitzplan in
      Schritt 4 – nur ohne Belegung. Je Raum eine Datei: Hier arbeitet man an

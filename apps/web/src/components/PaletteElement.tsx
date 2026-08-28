@@ -7,7 +7,7 @@ interface Props {
   /** Kurze Erklärung unter dem Titel (z. B. das Zeichen in der CSV). */
   untertitel?: string;
   /**
-   * Nur der Titel, kleiner und schmaler – für die Werkzeugleiste im Vollbild,
+   * Nur der Titel, kleiner und schmaler – für das Menüband der Arbeitsfläche,
    * wo zehn Elemente in eine Zeile passen müssen.
    */
   kompakt?: boolean;

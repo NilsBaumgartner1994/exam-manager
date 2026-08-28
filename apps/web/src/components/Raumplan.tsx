@@ -85,9 +85,9 @@ interface Props {
    */
   beweglich?: boolean;
   /**
-   * Feste Höhe des Planfensters (nur mit `beweglich`). Das Vollbild gibt hier
-   * an, was zwischen Kopf- und Fußleiste übrig ist – ohne Angabe richtet sich
-   * das Fenster nach der Fensterhöhe (`planFensterHoehe`).
+   * Feste Höhe des Planfensters (nur mit `beweglich`). Die Arbeitsfläche gibt
+   * hier an, was zwischen Menüband und Fußleiste übrig ist – ohne Angabe
+   * richtet sich das Fenster nach der Fensterhöhe (`planFensterHoehe`).
    */
   hoehe?: number;
   /**
@@ -237,10 +237,14 @@ export interface PlanAnsicht {
 export const PLAN_ANSICHT: PlanAnsicht = { modus: 'einpassen', zellGroesse: 32 };
 
 /**
- * Voreinstellung im Editor: Die Breite wird genutzt. Ein schmaler Raum in
- * einem breiten Fenster wäre eingepasst winzig, obwohl daneben alles frei ist.
+ * Voreinstellung im Editor: der ganze Raum am Stück.
+ *
+ * Der Plan füllt dort die Arbeitsfläche zwischen Menüband und Fußleiste – bei
+ * dieser Höhe passt auch ein Hörsaal mit 44 × 32 Feldern hinein, und man sieht
+ * den Raum, ohne ihn erst zusammenscrollen zu müssen. Wer es größer braucht,
+ * schaltet in der Fußleiste auf „Auf Breite“ oder zoomt.
  */
-export const PLAN_ANSICHT_EDITOR: PlanAnsicht = { modus: 'breite', zellGroesse: 32 };
+export const PLAN_ANSICHT_EDITOR: PlanAnsicht = { modus: 'einpassen', zellGroesse: 32 };
 
 function begrenze(wert: number, min: number, max: number): number {
   return Math.round(Math.min(Math.max(wert, min), max));
@@ -435,7 +439,7 @@ export function Raumplan({
   const spaltenAnzahl = raster[0]?.length ?? 0;
   const mitGitter = gitter;
 
-  // Im Vollbild zählt der Platz zwischen den Leisten, sonst die Fensterhöhe.
+  // Auf der Arbeitsfläche zählt der Platz zwischen den Leisten, sonst die Fensterhöhe.
   const fensterHoehe = hoehe && hoehe > 0 ? hoehe : planFensterHoehe(fenster.height);
   const masse = rastermasse(
     raster.length,

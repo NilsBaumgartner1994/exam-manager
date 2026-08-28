@@ -26,3 +26,33 @@ export function emailMap(teilnehmer: StudipTeilnehmer[]): Map<string, string> {
   }
   return map;
 }
+
+/**
+ * Präfixe, die Stud.IP dem Kursnamen im Export voranstellt. Der Name der
+ * Veranstaltung steckt im Dateinamen – im Export selbst steht er nirgends.
+ */
+const EXPORT_PRAEFIXE = ['teilnehmendenexport', 'teilnehmerexport'];
+
+/**
+ * Kursname aus dem Dateinamen des Stud.IP-Exports:
+ * `Teilnehmendenexport_Software_Engineering.csv` → `Software Engineering`.
+ *
+ * Stud.IP setzt den Namen der Veranstaltung in den Dateinamen und ersetzt
+ * Leerzeichen durch Unterstriche; in der Datei selbst steht er nicht. Damit
+ * ist der Dateiname die einzige Quelle, aus der die App weiß, um welchen Kurs
+ * es geht – deshalb wird er hier zurückübersetzt statt abgetippt.
+ *
+ * Passt nichts (kein Präfix, leerer Rest), ist das Ergebnis leer: Lieber
+ * keinen Kurs anzeigen als einen geratenen.
+ */
+export function kursAusDateiname(pfad: string): string {
+  const name = (pfad.split('/').pop() ?? pfad).replace(/\.[^.]+$/, '');
+  const klein = name.toLowerCase();
+  const praefix = EXPORT_PRAEFIXE.find((kandidat) => klein.startsWith(kandidat));
+  const rest = praefix === undefined ? name : name.slice(praefix.length);
+  return rest
+    .replace(/^[_\-\s]+/, '')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}

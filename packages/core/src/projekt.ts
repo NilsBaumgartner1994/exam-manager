@@ -267,7 +267,7 @@ ${PROJEKT_SCHEMA.map(
 
 Die Export-Ordner füllt die App: Was ein Schritt erzeugt, landet dort im
 Projektstand und ist in der ZIP enthalten, die sich auf jedem Screen über
-„Aktualisiertes Projekt herunterladen“ speichern lässt.
+„Aktuelles Projekt herunterladen“ speichern lässt.
 
 ## Bearbeiteten Stand sichern
 

@@ -163,8 +163,21 @@ Konventionen des Datensatzes:
   eigene CSV). Wer eine solche Abkürzung baut, macht die Herkunft der Zahlen
   über `ProjektQuelle` sichtbar und fragt bei jeder Abweichung nach, statt sie
   wegzurechnen.
+- **Die Startseite beginnt mit dem Projekt**, nicht mit den Schritten: Kurs,
+  geladener Ordner, „Projektordner öffnen“ und „Aktuelles Projekt
+  herunterladen“ stehen über den fünf Kacheln. Alles Weitere hängt daran – wer
+  den falschen Ordner geladen hat, soll es sehen, ohne zu scrollen. Die
+  Ordner-Tabelle („was gehört wohin“) steht in der README und in der
+  `LIESMICH.md` der Vorlage, nicht mehr auf der Startseite; die erkannten
+  Dateien liegen dort hinter „Dateien anzeigen“.
+- **Der Kursname steht in keiner Datei.** Stud.IP legt ihn nur in den Namen
+  des Teilnehmendenexports; `kursAusDateiname` (Core, `studip.ts`) übersetzt
+  ihn zurück (`Teilnehmendenexport_Software_Engineering.csv` → „Software
+  Engineering“), `projekt.kurs` hält ihn für die App bereit. Passt nichts,
+  bleibt er `null` – lieber kein Kurs als ein geratener.
 - Der Download-Knopf steht als `ProjektDownload` in `src/components/` und
-  gehört auf **jeden** Screen; ein neuer Screen bekommt ihn mit.
+  gehört auf **jeden** Screen; ein neuer Screen bekommt ihn mit (in den
+  Menübändern der Schritte 4 und 5 als `kompakt`).
 - `ProjektQuelle` gehört unter **jede** Dateiauswahl, deren Eingabe auch aus
   dem Projekt kommen kann: Sie nennt die Datei, die der Schritt von dort
   standardmäßig nimmt (bei mehreren Kandidaten die erste alphabetisch, und
@@ -215,24 +228,33 @@ Konventionen des Datensatzes:
   `Platzbelegung.raum`, in `Sitzplatz.raumSchluessel` und als Name der Raster
   aus `einsatzRaster(raeume, schemata)`; `Sitzplatz.raum` bleibt der Raumname,
   denn der steht auf Aushang und PDF. Wer im Screen etwas an der Belegung tut,
-  nimmt den Schlüssel; wer am Raster arbeitet, den Raumnamen (`RaumplanKarte`
+  nimmt den Schlüssel; wer am Raster arbeitet, den Raumnamen (`RaumplanBuehne`
   bekommt beides: `schema` den Raum, `schluessel` den Einsatz).
-- **Vollbild wie in einer Tabellenkalkulation:** `editor.vollbild` hält den
-  Schlüssel des Plans, der gerade den Bildschirm füllt (in Schritt 4 stehen
-  mehrere untereinander, deshalb ein Schlüssel und kein „an/aus“).
-  `VollbildRahmen` zeichnet ihn in die Modal-Ebene: oben die Werkzeugleiste
-  (Palette, Drehen, Raster, Verlauf, rechts hinaus), unten die Fußleiste mit
-  dem Zoom, dazwischen nichts als der Plan. Wie hoch der sein darf, misst der
-  Rahmen (`onLayout`) und gibt es als `hoehe` weiter – ohne die Zahl kann
-  „Ganzer Raum“ nicht rechnen.
+- **Beide Screens sind Arbeitsflächen, kein scrollendes Formular.**
+  `components/Arbeitsflaeche.tsx` gibt den Aufbau einer Tabellenkalkulation
+  vor: `Arbeitsflaeche` (Menüband oben, Körper, Fußleiste unten),
+  `Aktionsleiste` (eine Zeile des Menübands – auf dem Handy waagerecht
+  scrollend statt umbrechend), `Reiterleiste` (die Blattregister) und
+  `Reiterinhalt` (ein Reiter, dessen Inhalt ein Formular ist und für sich
+  scrollt). Die `Arbeitsflaeche` misst ihren Körper (`onLayout`) und gibt die
+  Höhe als `children(hoehe)` weiter – ohne die Zahl kann „Ganzer Raum“ nicht
+  rechnen. Ein Vollbild-Modus wäre danach überflüssig: Der Screen **ist** das
+  Vollbild.
+- **Reiter statt Untereinander.** Schritt 5 hat einen Reiter je Raum plus den
+  Reiter „Räume“ (die Liste), Schritt 4 die Reiter „Einstellungen“, „Listen“
+  und je einen pro Raum**einsatz** (Schlüssel = `raumSchluessel`). Die beiden
+  festen Reiter tragen ein `#` im Schlüssel, damit sie nie mit einem Raumnamen
+  kollidieren. Gezeigt wird immer **ein** Plan (`RaumplanBuehne`); fünf Pläne
+  nebeneinander, darunter ein Hörsaal mit 44 × 32 Feldern, sind weder zu
+  überblicken noch flüssig zu zeichnen.
 - **Der Raumplan als PDF entsteht mit `sitzplaenePdf()`** – in Schritt 4 mit
   Belegung (alle Räume in einer Datei, je Einsatz eine Seite), in Schritt 5
   ohne (der gezeigte Raum als eigene Datei, benannt nach `raumDateiname`).
   Eine zweite Zeichenroutine für den leeren Grundriss gibt es nicht.
-- **Screen 5 zeigt genau einen Raum.** Über den Plänen steht die Raumliste als
-  Knopfreihe; gezeichnet wird nur der gewählte. Fünf Pläne nebeneinander –
-  darunter ein Hörsaal mit 44 × 32 Feldern – sind weder zu überblicken noch
-  flüssig zu rendern. Gespeichert werden weiterhin alle Räume.
+- **Screen 5 zeigt genau einen Raum** – den des offenen Reiters. Gespeichert
+  werden weiterhin alle Räume. Speichern, Laden und PDF liegen oben in der
+  Leiste „Datei“, wie das Dateimenü einer Tabellenkalkulation, nicht mehr in
+  einer Section am Seitenende.
 - **Das neutrale Werkzeug ist die Voreinstellung.** Der `zeiger` ändert
   nichts: Ein Klick öffnet das `ZellInfoBlatt` (Art der Zelle,
   Sitzplatznummer, wer dort sitzt, der Text darüber), ein Ziehen schiebt den
@@ -248,8 +270,11 @@ Konventionen des Datensatzes:
 - Damit beide dasselbe tun, liegt das Bearbeiten in Bausteinen und nicht in
   einem der Screens: `components/RaumListe.tsx` (die Raumliste als Formular)
   und `components/RaumplanEditor.tsx` (`useRaumplanEditor` mit Werkzeug,
-  Auswahl, Ansicht, Verlauf und Drehung, dazu `RaumPalette`, `PlanLeiste`,
-  `RaumplanKarte`, `RaumplanFlaeche`).
+  Auswahl, Ansicht, Verlauf und Drehung, dazu `PalettenLeiste` und
+  `PlanWerkzeugKnoepfe` fürs Menüband, `RaumplanBuehne` für den Plan selbst
+  und `PlanFuss` für die Fußleiste). Voreingestellt ist „Ganzer Raum“
+  (`PLAN_ANSICHT_EDITOR`): Auf einer Fläche, die den Bildschirm füllt, passt
+  der Raum hinein – eine erzwungene Scrollliste braucht dort niemand.
 - Was die beiden Screens unterscheidet, steckt allein in der Anbindung
   `aendere`: Screen 4 zieht dort die Belegung nach (und beim Verschieben eines
   Blocks die Personen darin mit), Screen 5 schreibt nur das Schema. Wer eine
@@ -376,10 +401,10 @@ Konventionen des Datensatzes:
   Argument statt frisch erzeugter Closure) und gemerkte Werte (`useMemo` für
   Raster und Belegungskarte).
 - **Am Bildschirm liegt der Plan in einem Fenster, auf Papier nicht:** Mit
-  `beweglich` (setzt `RaumplanKarte`) bekommt er einen eigenen Ausschnitt –
-  er scrollt in beide Richtungen, ist höchstens `planFensterHoehe(…)` hoch
-  (dieselbe Höhe, mit der „Ganzer Raum“ rechnet) und lässt sich schieben und
-  zoomen. Ohne `beweglich` wächst er wie zuvor in die Höhe und scrollt nur
+  `beweglich` (setzt `RaumplanBuehne`) bekommt er einen eigenen Ausschnitt –
+  er scrollt in beide Richtungen, ist so hoch wie die Arbeitsfläche es misst
+  (ohne Angabe `planFensterHoehe(…)`, dieselbe Höhe, mit der „Ganzer Raum“
+  rechnet) und lässt sich schieben und zoomen. Ohne `beweglich` wächst er wie zuvor in die Höhe und scrollt nur
   waagerecht; so gehört er auf den Aushang, der gedruckt wird – ein
   Ausschnitt schnitte dort den halben Raum ab.
 
@@ -439,13 +464,12 @@ Konventionen des Datensatzes:
   öffnet ein Platz erst, wenn der Finger sich um weniger als `TIPP_TOLERANZ`
   bewegt hat – sonst öffnete jeder Wisch über den Sitzplan ein Blatt, statt
   den Ausschnitt zu schieben.
-- **Gestapelt braucht `alignItems: 'stretch'`.** `RaumplanFlaeche` stellt
-  Palette und Pläne auf schmalen Fenstern untereinander (den Plan **oben**,
-  die Werkzeuge darunter – sonst scrollt man auf dem Handy an der ganzen
-  Palette vorbei). Bleibt dabei das `flex-start` der Zeile stehen, misst die
-  Spalte ihre Kinder am Inhalt: Der Plan eines Hörsaals ist breiter als der
-  Bildschirm, und die Schaltflächen darüber standen daneben. Wer im Editor
-  etwas am Layout ändert, prüft das mit einem schmalen Fenster nach.
+- **Auf dem Handy scrollen die Leisten waagerecht.** `Aktionsleiste` bricht
+  im breiten Fenster um, auf schmalen legt sie ihre Knöpfe in eine
+  waagerecht scrollende Zeile – umgebrochen füllten Datei-, PDF- und
+  Werkzeugleiste dort den halben Bildschirm, und vom Plan bliebe nichts
+  übrig. Wer im Editor etwas am Layout ändert, prüft das mit einem schmalen
+  Fenster nach.
 
 ## PDF aus der sichtbaren Ansicht
 

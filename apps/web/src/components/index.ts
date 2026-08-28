@@ -1,4 +1,5 @@
 export { AppButton } from './AppButton';
+export { Aktionsleiste, Arbeitsflaeche, Reiterinhalt, Reiterleiste } from './Arbeitsflaeche';
 export { BlattModal } from './BlattModal';
 export { Checkbox } from './Checkbox';
 export { DataTable, type Column } from './DataTable';
@@ -25,10 +26,12 @@ export {
   type RaumZeile,
 } from './RaumListe';
 export {
-  PlanLeiste,
-  RaumPalette,
-  RaumplanFlaeche,
-  RaumplanKarte,
+  PALETTEN_HINWEIS_ZEILE,
+  PalettenLeiste,
+  PlanFuss,
+  PlanWerkzeugKnoepfe,
+  RaumplanBuehne,
+  rasterText,
   useRaumplanEditor,
   type PlanZustand,
   type RaumplanEditor,

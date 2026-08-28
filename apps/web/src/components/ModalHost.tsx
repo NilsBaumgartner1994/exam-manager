@@ -49,7 +49,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
    * und der wird geschluckt. Wurde in der Ebene gar nicht erst gedrückt, gilt
    * dasselbe: Dann kommt der Klick von einer Geste außerhalb.
    *
-   * Kein Zeitfenster, keine Ausnahme fürs Vollbild: Dort liegt der ganze Editor
+   * Kein Zeitfenster, keine Ausnahme für den Raumplan: Dort liegt der ganze Editor
    * in der Ebene, ein „hier wurde gedrückt“ allein würde also nichts mehr
    * unterscheiden.
    */

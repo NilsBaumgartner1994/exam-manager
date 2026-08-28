@@ -21,7 +21,7 @@ als „nicht zugeordnet“ an und rührt es nicht an.
 | 4_Raumzuteilung_Export/ | *.csv | Räume dieser Klausur, Sitzplan, Belegung (Schritt 4) |
 
 Die Export-Ordner füllt die App. Der Browser darf nicht auf die Festplatte
-zurückschreiben – deshalb gibt es auf jedem Screen „Aktualisiertes Projekt
+zurückschreiben – deshalb gibt es auf jedem Screen „Aktuelles Projekt
 herunterladen“: die ZIP entpacken und den eigenen Ordner damit ersetzen.
 
 ## Nur erfundene Daten

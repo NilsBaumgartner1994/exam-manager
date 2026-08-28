@@ -5,7 +5,6 @@ import {
   parseRaeume,
   PLAN_ANZEIGE_STANDARD,
   parseRaumschemaDateien,
-  Raum,
   raeumeToCsv,
   raumDateiname,
   Raumschema,
@@ -15,17 +14,22 @@ import {
   tischzellen,
 } from '@exam-manager/core';
 import {
+  Aktionsleiste,
   AppButton,
+  Arbeitsflaeche,
   FilePickerButton,
-  PlanLeiste,
+  PALETTEN_HINWEIS_ZEILE,
+  PalettenLeiste,
+  PlanFuss,
+  PlanWerkzeugKnoepfe,
   ProjektDownload,
   ProjektQuelle,
+  rasterText,
   RaumListe,
-  RaumPalette,
-  RaumplanFlaeche,
-  RaumplanKarte,
+  RaumplanBuehne,
   raumZuZeile,
-  ScreenContainer,
+  Reiterinhalt,
+  Reiterleiste,
   Section,
   StatusText,
   useRaumplanEditor,
@@ -34,7 +38,6 @@ import {
 } from '../components';
 import { downloadCsv, downloadFile, downloadZip, readFileAsText } from '../files';
 import { useProjekt } from '../projekt';
-import { useResponsiveLayout } from '../responsive';
 import { BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMATA } from '../sampleData';
 import { colors, spacing } from '../theme';
 
@@ -43,6 +46,9 @@ import { colors, spacing } from '../theme';
  * hier beschriftet (in Schritt 4 stünde „Pult“ nur im Weg).
  */
 const ANZEIGE_RAUMPLANUNG = { ...PLAN_ANZEIGE_STANDARD, pultText: true };
+
+/** Der Reiter mit der Raumliste – die übrigen Reiter sind die Räume selbst. */
+const REITER_RAEUME = '#raeume';
 
 /**
  * Schritt 5: Räume und ihre leeren Raster pflegen – ohne Studierende.
@@ -54,18 +60,20 @@ const ANZEIGE_RAUMPLANUNG = { ...PLAN_ANZEIGE_STANDARD, pultText: true };
  * laden. Hier steht der **Bestand des Hauses**; welche dieser Räume eine
  * Klausur benutzt (und ob mehrfach), entscheidet Schritt 4.
  *
- * Bearbeitet wird immer **ein** Raum: Oben steht die Liste der Räume, darunter
- * der Plan des gewählten. Nebeneinander sind ein Hörsaal mit 44 × 32 Feldern
- * und vier weitere Räume nicht zu überblicken – und man bearbeitet ohnehin
- * einen nach dem anderen.
+ * Der Screen ist als **Arbeitsfläche** gebaut, wie eine Tabellenkalkulation:
+ * oben das Menüband (Datei, Reiter, Werkzeuge), unten die Fußleiste mit
+ * Ansicht und Meldungen, dazwischen nichts als der Plan in voller Breite. Ein
+ * Reiter je Raum – bearbeitet wird immer **einer**: Nebeneinander sind ein
+ * Hörsaal mit 44 × 32 Feldern und vier weitere Räume nicht zu überblicken, und
+ * man bearbeitet ohnehin einen nach dem anderen. Gespeichert werden alle.
  */
 export function RaeumeScreen() {
   const [zeilen, setZeilen] = useState<RaumZeile[]>([]);
   const [schemata, setSchemata] = useState<Raumschema[]>([]);
   const [fehler, setFehler] = useState<string | null>(null);
   const [hinweis, setHinweis] = useState<string | null>(null);
-  /** Welcher Raum gerade bearbeitet wird (Name); `null` = der erste. */
-  const [gewaehlt, setGewaehlt] = useState<string | null>(null);
+  /** Welcher Reiter offen ist: die Raumliste oder ein Raum (Name). */
+  const [reiter, setReiter] = useState<string>(REITER_RAEUME);
   /** Läuft gerade ein PDF? Das Zeichnen dauert einen Moment. */
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
 
@@ -82,7 +90,6 @@ export function RaeumeScreen() {
 
   const raeume = zeilen.map(zeileZuRaum);
   const projekt = useProjekt();
-  const { isCompact } = useResponsiveLayout();
 
   // Eingaben aus dem Projektordner, solange nichts eigenes geladen wurde.
   useEffect(() => {
@@ -142,15 +149,14 @@ export function RaeumeScreen() {
 
   /**
    * Der Raum, dessen Plan gerade zu sehen ist. Die Auswahl kann veralten (das
-   * Raster wurde entfernt, andere Dateien geladen) – dann rückt der erste
-   * Raum nach, statt dass gar nichts mehr zu sehen ist.
+   * Raster wurde entfernt, andere Dateien geladen) – dann steht wieder die
+   * Raumliste da, statt dass gar nichts mehr zu sehen ist.
    */
-  const aktiverRaum =
-    schemata.find((schema) => schema.raum === gewaehlt)?.raum ?? schemata[0]?.raum ?? null;
-  const aktivesSchema = schemata.find((schema) => schema.raum === aktiverRaum) ?? null;
+  const aktivesSchema = schemata.find((schema) => schema.raum === reiter) ?? null;
+  const offenerReiter = aktivesSchema ? aktivesSchema.raum : REITER_RAEUME;
 
-  const raumWechseln = (raum: string) => {
-    setGewaehlt(raum);
+  const reiterWechseln = (ziel: string) => {
+    setReiter(ziel);
     // Die Auswahl gehört zum vorherigen Plan – im neuen wäre sie geraten.
     editor.setzeAuswahl(null);
   };
@@ -207,7 +213,7 @@ export function RaeumeScreen() {
       ...ohneRaster.map((raum) => standardRaumschema(raum.raum, raum.plaetze)),
     ]);
     // Was gerade entstanden ist, will man auch sehen.
-    if (ohneRaster.length > 0) setGewaehlt(ohneRaster[0].raum);
+    if (ohneRaster.length > 0) reiterWechseln(ohneRaster[0].raum);
     setHinweis(`Raster angelegt für: ${ohneRaster.map((raum) => raum.raum).join(', ')}.`);
   };
 
@@ -215,8 +221,7 @@ export function RaeumeScreen() {
     setHinweis(null);
     editor.merkeStand();
     uebernehmeSchemata(schemataRef.current.filter((schema) => schema.raum !== raum));
-    setGewaehlt(null);
-    editor.setzeAuswahl(null);
+    reiterWechseln(REITER_RAEUME);
   };
 
   /** Die Platzzahl der Liste aus dem Raster übernehmen (Tische zählen). */
@@ -292,148 +297,183 @@ export function RaeumeScreen() {
   /** Plätze laut Liste je Raum – zum Abgleich mit den Tischen im Raster. */
   const plaetzeJeRaum = new Map<string, number>(raeume.map((raum) => [raum.raum, raum.plaetze]));
 
-  const kopfZusatz = (schema: Raumschema): string | undefined => {
+  /** Stimmt die Platzzahl der Liste mit den Tischen im Raster überein? */
+  const plaetzeVergleich = (schema: Raumschema): string => {
     const laut = plaetzeJeRaum.get(schema.raum);
     if (laut === undefined) return 'nicht in der Raumliste';
     const tische = tischzellen(schema).length;
     return laut === tische ? `${laut} Plätze` : `Liste: ${laut} Plätze – weicht ab`;
   };
 
+  const kopf = (
+    <>
+      <Aktionsleiste titel="Datei" testID="raeume-datei">
+        <AppButton
+          title="Räume als CSV speichern"
+          variant="secondary"
+          kompakt
+          onPress={raeumeSpeichern}
+          testID="raeume-speichern"
+        />
+        <AppButton
+          title="Raster als CSV speichern"
+          variant="secondary"
+          kompakt
+          onPress={schemaSpeichern}
+          disabled={schemata.length === 0}
+          testID="raeume-schema-speichern"
+        />
+        <AppButton
+          title={pdfLaeuft ? 'PDF läuft …' : 'Raumplan als PDF'}
+          variant="secondary"
+          kompakt
+          onPress={() => aktivesSchema && planAlsPdf(aktivesSchema)}
+          disabled={pdfLaeuft || !aktivesSchema}
+          testID="raeume-plan-pdf"
+        />
+        <FilePickerButton label="Räume-CSV laden" accept=".csv" kompakt onFiles={raeumeLaden} />
+        <FilePickerButton
+          label="Raumschema-CSVs laden"
+          accept=".csv"
+          multiple
+          kompakt
+          onFiles={schemaLaden}
+        />
+        <AppButton
+          title="Beispieldaten laden"
+          variant="secondary"
+          kompakt
+          onPress={beispielLaden}
+          testID="raeume-beispiel"
+        />
+        <ProjektDownload kompakt testID="raeume-projekt-download" />
+      </Aktionsleiste>
+
+      <Reiterleiste
+        reiter={[
+          { key: REITER_RAEUME, titel: 'Räume', testID: 'raeume-reiter-liste' },
+          ...schemata.map((schema) => ({
+            key: schema.raum,
+            titel: `${schema.raum} (${tischzellen(schema).length})`,
+            testID: `raeume-waehlen-${schema.raum}`,
+          })),
+        ]}
+        aktiv={offenerReiter}
+        onWaehlen={reiterWechseln}
+        testID="raeume-reiter"
+      />
+
+      {aktivesSchema ? (
+        <Aktionsleiste titel="Raum" testID="raeume-werkzeuge">
+          <PalettenLeiste editor={editor} />
+          <PlanWerkzeugKnoepfe editor={editor} raum={aktivesSchema.raum} bearbeiten />
+          <AppButton
+            title="Plätze übernehmen"
+            variant="secondary"
+            kompakt
+            onPress={() => plaetzeUebernehmen(aktivesSchema)}
+            disabled={!plaetzeJeRaum.has(aktivesSchema.raum)}
+            testID={`raeume-plaetze-${aktivesSchema.raum}`}
+          />
+          <AppButton
+            title="Raster entfernen"
+            variant="secondary"
+            kompakt
+            onPress={() => rasterEntfernen(aktivesSchema.raum)}
+            testID={`raeume-raster-entfernen-${aktivesSchema.raum}`}
+          />
+        </Aktionsleiste>
+      ) : null}
+    </>
+  );
+
+  /**
+   * Links in der Fußleiste – die Statuszeile: erst die Meldung, dann der Stand.
+   * Beides nebeneinander, damit ein „Beispieldaten geladen“ nicht dauerhaft
+   * verdeckt, wie groß das Raster gerade ist.
+   */
+  const fussText = [
+    fehler,
+    fehler ? null : hinweis,
+    aktivesSchema
+      ? `${plaetzeVergleich(aktivesSchema)} · ${rasterText(editor, aktivesSchema)} · ${PALETTEN_HINWEIS_ZEILE}`
+      : `${schemata.length} Raster · ${raeume.filter((raum) => raum.raum !== '').length} Räume in der Liste`,
+  ]
+    .filter((teil): teil is string => !!teil)
+    .join(' · ');
+
   return (
-    <ScreenContainer
-      title="5. Räume & Raumpläne"
-      intro="Räume und ihre leeren Raster pflegen – ohne Teilnehmende. Was hier entsteht, gilt für jede Klausur: Schritt 4 legt nur noch die Belegung darüber."
+    <Arbeitsflaeche
+      kopf={kopf}
+      fuss={
+        <PlanFuss
+          editor={editor}
+          text={fussText}
+          ansichtZeigen={aktivesSchema !== null}
+          testID="raeume-fuss"
+        />
+      }
       testID="Raeume-screen"
     >
-      <Section title="Räume">
-        <Text style={styles.hinweis}>
-          Bestand des Hauses – gilt für jede Klausur. Liegt in{' '}
-          <Text style={styles.pfad}>Raeume/</Text>. Wer welchen Raum benutzt: Schritt 4.
-        </Text>
-        <RaumListe zeilen={zeilen} onChange={setZeilen} />
-        <View style={styles.buttonZeile}>
-          <FilePickerButton label="Räume-CSV laden" accept=".csv" onFiles={raeumeLaden} />
-          <AppButton
-            title="Beispieldaten laden"
-            variant="secondary"
-            onPress={beispielLaden}
-            testID="raeume-beispiel"
+      {(hoehe) =>
+        aktivesSchema ? (
+          <RaumplanBuehne
+            key={aktivesSchema.raum}
+            editor={editor}
+            schema={aktivesSchema}
+            hoehe={hoehe}
+            anzeige={ANZEIGE_RAUMPLANUNG}
+            bearbeiten
           />
-        </View>
-        <ProjektQuelle rolle="raeume" testID="raeume-quelle-raeume" />
-        <ProjektQuelle rolle="raumschema" alle testID="raeume-quelle-schema" />
-        {ohneRaster.length > 0 ? (
-          <>
-            <StatusText kind="info" testID="raeume-ohne-raster">
-              {`Noch ohne Raster: ${ohneRaster.map((raum) => raum.raum).join(', ')}`}
-            </StatusText>
-            <AppButton
-              title="Fehlende Raster anlegen"
-              onPress={rasterAnlegen}
-              testID="raeume-raster-anlegen"
-            />
-          </>
-        ) : null}
-        {fehler ? <StatusText kind="error">{fehler}</StatusText> : null}
-        {hinweis ? <StatusText kind="info" testID="raeume-hinweis">{hinweis}</StatusText> : null}
-      </Section>
-
-      <Section title="Raumpläne" testID="raeume-plaene">
-        {/* Kurz halten: Wer hier arbeitet, will den Plan sehen, nicht lesen.
-            Das Ausführliche steht in der README. */}
-        <Text style={styles.hinweis}>Ein Raum nach dem anderen. Gespeichert werden alle.</Text>
-        <Text style={styles.hinweis}>
-          Reserve: Tisch bleibt frei, ohne Nummer. Nur für diese Klausur: Schritt 4.
-        </Text>
-
-        {schemata.length === 0 || !aktivesSchema ? (
-          <StatusText kind="info">
-            Noch kein Raster geladen – oben Räume eintragen und „Fehlende Raster anlegen“ wählen,
-            Raumschema-CSVs laden oder die Beispieldaten nehmen.
-          </StatusText>
         ) : (
-          <>
-            {/* Welcher Raum bearbeitet wird: einer nach dem anderen, sonst
-                ist neben einem Hörsaal mit 44 × 32 Feldern nichts zu sehen. */}
-            <View style={styles.buttonZeile} testID="raeume-auswahl">
-              <Text style={styles.hinweis}>Raum:</Text>
-              {schemata.map((schema) => (
-                <AppButton
-                  key={schema.raum}
-                  title={`${schema.raum} (${tischzellen(schema).length})`}
-                  variant={schema.raum === aktiverRaum ? 'primary' : 'secondary'}
-                  kompakt={isCompact}
-                  onPress={() => raumWechseln(schema.raum)}
-                  testID={`raeume-waehlen-${schema.raum}`}
-                />
-              ))}
-            </View>
-
-            <PlanLeiste editor={editor} />
-            <RaumplanFlaeche palette={<RaumPalette editor={editor} testID="raeume-palette" />}>
-              <RaumplanKarte
-                key={aktivesSchema.raum}
-                editor={editor}
-                schema={aktivesSchema}
-                anzeige={ANZEIGE_RAUMPLANUNG}
-                bearbeiten
-                kopfZusatz={kopfZusatz(aktivesSchema)}
-                knoepfe={
-                  <>
-                    <AppButton
-                      title={pdfLaeuft ? 'PDF läuft …' : 'Raumplan als PDF'}
-                      variant="secondary"
-                      kompakt={isCompact}
-                      onPress={() => planAlsPdf(aktivesSchema)}
-                      disabled={pdfLaeuft}
-                      testID={`raeume-plan-pdf-${aktivesSchema.raum}`}
-                    />
-                    <AppButton
-                      title="Plätze übernehmen"
-                      variant="secondary"
-                      kompakt={isCompact}
-                      onPress={() => plaetzeUebernehmen(aktivesSchema)}
-                      disabled={!plaetzeJeRaum.has(aktivesSchema.raum)}
-                      testID={`raeume-plaetze-${aktivesSchema.raum}`}
-                    />
-                    <AppButton
-                      title="Raster entfernen"
-                      variant="secondary"
-                      kompakt={isCompact}
-                      onPress={() => rasterEntfernen(aktivesSchema.raum)}
-                      testID={`raeume-raster-entfernen-${aktivesSchema.raum}`}
-                    />
-                  </>
-                }
-              />
-            </RaumplanFlaeche>
-          </>
-        )}
-      </Section>
-
-      <Section title="Speichern">
-        <Text style={styles.hinweis}>
-          Ziel: <Text style={styles.pfad}>Raeume/</Text>, je Raum eine Datei (
-          <Text style={styles.pfad}>94_E01.csv</Text>). Mehrere Räume: als ZIP.
-        </Text>
-        <View style={styles.buttonZeile}>
-          <AppButton title="Räume als CSV speichern" onPress={raeumeSpeichern} testID="raeume-speichern" />
-          <AppButton
-            title="Raster als CSV speichern"
-            onPress={schemaSpeichern}
-            disabled={schemata.length === 0}
-            testID="raeume-schema-speichern"
-          />
-        </View>
-        <FilePickerButton label="Raumschema-CSVs laden" accept=".csv" multiple onFiles={schemaLaden} />
-        <ProjektDownload hinweis="Raumliste und Raster liegen in Raeume/." testID="raeume-projekt-download" />
-      </Section>
-    </ScreenContainer>
+          <Reiterinhalt testID="raeume-liste">
+            <Section title="Räume">
+              <Text style={styles.hinweis}>
+                Bestand des Hauses – gilt für jede Klausur. Liegt in{' '}
+                <Text style={styles.pfad}>Raeume/</Text>, je Raum eine Raster-Datei
+                (<Text style={styles.pfad}>94_E01.csv</Text>). Wer welchen Raum benutzt: Schritt 4.
+              </Text>
+              <RaumListe zeilen={zeilen} onChange={setZeilen} />
+              <ProjektQuelle rolle="raeume" testID="raeume-quelle-raeume" />
+              <ProjektQuelle rolle="raumschema" alle testID="raeume-quelle-schema" />
+              {ohneRaster.length > 0 ? (
+                <>
+                  <StatusText kind="info" testID="raeume-ohne-raster">
+                    {`Noch ohne Raster: ${ohneRaster.map((raum) => raum.raum).join(', ')}`}
+                  </StatusText>
+                  <AppButton
+                    title="Fehlende Raster anlegen"
+                    onPress={rasterAnlegen}
+                    testID="raeume-raster-anlegen"
+                  />
+                </>
+              ) : null}
+              {schemata.length === 0 ? (
+                <StatusText kind="info">
+                  Noch kein Raster geladen – oben Räume eintragen und „Fehlende Raster anlegen“
+                  wählen, Raumschema-CSVs laden oder die Beispieldaten nehmen.
+                </StatusText>
+              ) : (
+                <Text style={styles.hinweis}>
+                  Ein Reiter je Raum – bearbeitet wird einer nach dem anderen, gespeichert werden
+                  alle. Reserve: Tisch bleibt frei, ohne Nummer. Nur für diese Klausur: Schritt 4.
+                </Text>
+              )}
+              {fehler ? <StatusText kind="error">{fehler}</StatusText> : null}
+              {hinweis ? (
+                <StatusText kind="info" testID="raeume-hinweis">
+                  {hinweis}
+                </StatusText>
+              ) : null}
+            </Section>
+          </Reiterinhalt>
+        )
+      }
+    </Arbeitsflaeche>
   );
 }
 
 const styles = StyleSheet.create({
-  buttonZeile: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
   hinweis: { fontSize: 13, color: colors.textMuted, lineHeight: 19 },
   pfad: { fontWeight: '600', color: colors.text },
 });

@@ -1,72 +1,72 @@
 {
   "report_version": "^0.1.103",
-  "report_timestamp": "2026-08-28T09:11:56.102Z",
+  "report_timestamp": "2026-08-28T11:42:50.465Z",
   "target_language": "typescript",
   "report_summary": {
     "additional": {
       "invertedIndexSoftwareProjectStatistics": {
         "invertedFieldToClasses": {
-          "median": 1,
+          "median": 1.5,
           "maximum": 17,
-          "average": 1.5513513513513513,
-          "amountSavedValuesForKeys": 287,
+          "average": 1.532258064516129,
+          "amountSavedValuesForKeys": 285,
           "amountKeys": 9
         },
         "invertedParameterToMethods": {
-          "median": 2.5,
+          "median": 1.5,
           "maximum": 11,
-          "average": 2.3,
-          "amountSavedValuesForKeys": 69,
+          "average": 2.1666666666666665,
+          "amountSavedValuesForKeys": 65,
           "amountKeys": 6
         },
         "invertedParameterToClasses": {
-          "median": 1,
+          "median": 1.5,
           "maximum": 17,
-          "average": 1.5513513513513513,
-          "amountSavedValuesForKeys": 287,
+          "average": 1.532258064516129,
+          "amountSavedValuesForKeys": 285,
           "amountKeys": 9
         }
       },
       "timer_information": {
-        "ast_generation_time_ms": 703,
-        "detection_time_ms": 20,
+        "ast_generation_time_ms": 414,
+        "detection_time_ms": 9,
         "machine_information": {
           "os": "Linux",
           "os_release": "6.17.0-1022-azure",
           "os_platform": "linux",
           "os_arch": "x64",
-          "os_uptime": 186.66,
-          "os_memory_free": 14972440576,
-          "os_memory_total": 16766406656,
+          "os_uptime": 51.75,
+          "os_memory_free": 14923251712,
+          "os_memory_total": 16766410752,
           "os_cpu_cores": 4,
-          "os_cpu_model": "AMD EPYC 7763 64-Core Processor",
+          "os_cpu_model": "AMD EPYC 9V45 96-Core Processor",
           "os_cpu_speed": 0
         }
       }
     },
-    "amount_classes_or_interfaces_with_data_clumps": 17,
-    "amount_files_with_data_clumps": 12,
+    "amount_classes_or_interfaces_with_data_clumps": 16,
+    "amount_files_with_data_clumps": 11,
     "amount_methods_with_data_clumps": 4,
-    "fields_to_fields_data_clump": 38,
+    "fields_to_fields_data_clump": 34,
     "parameters_to_fields_data_clump": 3,
     "parameters_to_parameters_data_clump": 8,
-    "amount_data_clumps": 49
+    "amount_data_clumps": 45
   },
   "project_info": {
     "project_url": "https://github.com/NilsBaumgartner1994/exam-manager",
     "project_name": "exam-manager",
-    "project_version": "0adf5d8d0651236fb33820dd3dc2abd655bd43f9",
-    "project_commit_hash": "0adf5d8d0651236fb33820dd3dc2abd655bd43f9",
+    "project_version": "0823fbc9e4d058c56bd61ffdecfc78cd6bed3319",
+    "project_commit_hash": "0823fbc9e4d058c56bd61ffdecfc78cd6bed3319",
     "project_tag": null,
-    "project_commit_date": "1787908268",
+    "project_commit_date": "1787917333",
     "additional": {
       "relative_path_to_source_folder_in_project": ""
     },
     "number_of_files": 35,
-    "number_of_classes_or_interfaces": 87,
-    "number_of_methods": 56,
-    "number_of_data_fields": 287,
-    "number_of_method_parameters": 69
+    "number_of_classes_or_interfaces": 88,
+    "number_of_methods": 53,
+    "number_of_data_fields": 285,
+    "number_of_method_parameters": 65
   },
   "detector": {
     "name": "data-clumps-doctor",
@@ -1277,298 +1277,7 @@
       },
       "data_clump_type_additional": {
         "cluster_id": 2,
-        "cluster_type": 3
-      }
-    },
-    "fields_to_fields_data_clump-apps/web/src/components/BlattModal.tsx-apps/web/src/components/BlattModal.tsx/interface/Props-apps/web/src/components/PaletteElement.tsx/interface/Props-titeluntertiteltestID": {
-      "type": "data_clump",
-      "key": "fields_to_fields_data_clump-apps/web/src/components/BlattModal.tsx-apps/web/src/components/BlattModal.tsx/interface/Props-apps/web/src/components/PaletteElement.tsx/interface/Props-titeluntertiteltestID",
-      "probability": 1,
-      "from_file_path": "apps/web/src/components/BlattModal.tsx",
-      "from_class_or_interface_key": "apps/web/src/components/BlattModal.tsx/interface/Props",
-      "from_class_or_interface_name": "Props",
-      "from_method_name": null,
-      "from_method_key": null,
-      "to_file_path": "apps/web/src/components/PaletteElement.tsx",
-      "to_class_or_interface_key": "apps/web/src/components/PaletteElement.tsx/interface/Props",
-      "to_class_or_interface_name": "Props",
-      "to_method_key": null,
-      "to_method_name": null,
-      "data_clump_type": "fields_to_fields_data_clump",
-      "data_clump_data": {
-        "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/titel": {
-          "key": "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/titel",
-          "name": "titel",
-          "type": "string",
-          "probability": 1,
-          "modifiers": [],
-          "to_variable": {
-            "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/titel",
-            "name": "titel",
-            "type": "string",
-            "modifiers": [],
-            "position": {
-              "startLine": 6,
-              "startColumn": 3,
-              "endLine": 6,
-              "endColumn": 17
-            }
-          },
-          "position": {
-            "startLine": 9,
-            "startColumn": 3,
-            "endLine": 9,
-            "endColumn": 17
-          }
-        },
-        "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/untertitel": {
-          "key": "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/untertitel",
-          "name": "untertitel",
-          "type": "string",
-          "probability": 1,
-          "modifiers": [],
-          "to_variable": {
-            "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/untertitel",
-            "name": "untertitel",
-            "type": "string",
-            "modifiers": [],
-            "position": {
-              "startLine": 8,
-              "startColumn": 3,
-              "endLine": 8,
-              "endColumn": 23
-            }
-          },
-          "position": {
-            "startLine": 11,
-            "startColumn": 3,
-            "endLine": 11,
-            "endColumn": 23
-          }
-        },
-        "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/testID": {
-          "key": "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/testID",
-          "name": "testID",
-          "type": "string",
-          "probability": 1,
-          "modifiers": [],
-          "to_variable": {
-            "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/testID",
-            "name": "testID",
-            "type": "string",
-            "modifiers": [],
-            "position": {
-              "startLine": 21,
-              "startColumn": 3,
-              "endLine": 21,
-              "endColumn": 19
-            }
-          },
-          "position": {
-            "startLine": 14,
-            "startColumn": 3,
-            "endLine": 14,
-            "endColumn": 19
-          }
-        }
-      },
-      "data_clump_type_additional": {
-        "cluster_id": 2,
-        "cluster_type": 3
-      }
-    },
-    "fields_to_fields_data_clump-apps/web/src/components/PaletteElement.tsx-apps/web/src/components/PaletteElement.tsx/interface/Props-apps/web/src/components/BlattModal.tsx/interface/Props-titeluntertiteltestID": {
-      "type": "data_clump",
-      "key": "fields_to_fields_data_clump-apps/web/src/components/PaletteElement.tsx-apps/web/src/components/PaletteElement.tsx/interface/Props-apps/web/src/components/BlattModal.tsx/interface/Props-titeluntertiteltestID",
-      "probability": 1,
-      "from_file_path": "apps/web/src/components/PaletteElement.tsx",
-      "from_class_or_interface_key": "apps/web/src/components/PaletteElement.tsx/interface/Props",
-      "from_class_or_interface_name": "Props",
-      "from_method_name": null,
-      "from_method_key": null,
-      "to_file_path": "apps/web/src/components/BlattModal.tsx",
-      "to_class_or_interface_key": "apps/web/src/components/BlattModal.tsx/interface/Props",
-      "to_class_or_interface_name": "Props",
-      "to_method_key": null,
-      "to_method_name": null,
-      "data_clump_type": "fields_to_fields_data_clump",
-      "data_clump_data": {
-        "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/titel": {
-          "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/titel",
-          "name": "titel",
-          "type": "string",
-          "probability": 1,
-          "modifiers": [],
-          "to_variable": {
-            "key": "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/titel",
-            "name": "titel",
-            "type": "string",
-            "modifiers": [],
-            "position": {
-              "startLine": 9,
-              "startColumn": 3,
-              "endLine": 9,
-              "endColumn": 17
-            }
-          },
-          "position": {
-            "startLine": 6,
-            "startColumn": 3,
-            "endLine": 6,
-            "endColumn": 17
-          }
-        },
-        "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/untertitel": {
-          "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/untertitel",
-          "name": "untertitel",
-          "type": "string",
-          "probability": 1,
-          "modifiers": [],
-          "to_variable": {
-            "key": "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/untertitel",
-            "name": "untertitel",
-            "type": "string",
-            "modifiers": [],
-            "position": {
-              "startLine": 11,
-              "startColumn": 3,
-              "endLine": 11,
-              "endColumn": 23
-            }
-          },
-          "position": {
-            "startLine": 8,
-            "startColumn": 3,
-            "endLine": 8,
-            "endColumn": 23
-          }
-        },
-        "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/testID": {
-          "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/testID",
-          "name": "testID",
-          "type": "string",
-          "probability": 1,
-          "modifiers": [],
-          "to_variable": {
-            "key": "apps/web/src/components/BlattModal.tsx/interface/Props/memberField/testID",
-            "name": "testID",
-            "type": "string",
-            "modifiers": [],
-            "position": {
-              "startLine": 14,
-              "startColumn": 3,
-              "endLine": 14,
-              "endColumn": 19
-            }
-          },
-          "position": {
-            "startLine": 21,
-            "startColumn": 3,
-            "endLine": 21,
-            "endColumn": 19
-          }
-        }
-      },
-      "data_clump_type_additional": {
-        "cluster_id": 2,
-        "cluster_type": 3
-      }
-    },
-    "fields_to_fields_data_clump-apps/web/src/components/PaletteElement.tsx-apps/web/src/components/PaletteElement.tsx/interface/Props-apps/web/src/components/VorlagenModal.tsx/interface/Props-titeluntertiteltestID": {
-      "type": "data_clump",
-      "key": "fields_to_fields_data_clump-apps/web/src/components/PaletteElement.tsx-apps/web/src/components/PaletteElement.tsx/interface/Props-apps/web/src/components/VorlagenModal.tsx/interface/Props-titeluntertiteltestID",
-      "probability": 1,
-      "from_file_path": "apps/web/src/components/PaletteElement.tsx",
-      "from_class_or_interface_key": "apps/web/src/components/PaletteElement.tsx/interface/Props",
-      "from_class_or_interface_name": "Props",
-      "from_method_name": null,
-      "from_method_key": null,
-      "to_file_path": "apps/web/src/components/VorlagenModal.tsx",
-      "to_class_or_interface_key": "apps/web/src/components/VorlagenModal.tsx/interface/Props",
-      "to_class_or_interface_name": "Props",
-      "to_method_key": null,
-      "to_method_name": null,
-      "data_clump_type": "fields_to_fields_data_clump",
-      "data_clump_data": {
-        "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/titel": {
-          "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/titel",
-          "name": "titel",
-          "type": "string",
-          "probability": 1,
-          "modifiers": [],
-          "to_variable": {
-            "key": "apps/web/src/components/VorlagenModal.tsx/interface/Props/memberField/titel",
-            "name": "titel",
-            "type": "string",
-            "modifiers": [],
-            "position": {
-              "startLine": 25,
-              "startColumn": 3,
-              "endLine": 25,
-              "endColumn": 17
-            }
-          },
-          "position": {
-            "startLine": 6,
-            "startColumn": 3,
-            "endLine": 6,
-            "endColumn": 17
-          }
-        },
-        "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/untertitel": {
-          "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/untertitel",
-          "name": "untertitel",
-          "type": "string",
-          "probability": 1,
-          "modifiers": [],
-          "to_variable": {
-            "key": "apps/web/src/components/VorlagenModal.tsx/interface/Props/memberField/untertitel",
-            "name": "untertitel",
-            "type": "string",
-            "modifiers": [],
-            "position": {
-              "startLine": 27,
-              "startColumn": 3,
-              "endLine": 27,
-              "endColumn": 23
-            }
-          },
-          "position": {
-            "startLine": 8,
-            "startColumn": 3,
-            "endLine": 8,
-            "endColumn": 23
-          }
-        },
-        "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/testID": {
-          "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/testID",
-          "name": "testID",
-          "type": "string",
-          "probability": 1,
-          "modifiers": [],
-          "to_variable": {
-            "key": "apps/web/src/components/VorlagenModal.tsx/interface/Props/memberField/testID",
-            "name": "testID",
-            "type": "string",
-            "modifiers": [],
-            "position": {
-              "startLine": 37,
-              "startColumn": 3,
-              "endLine": 37,
-              "endColumn": 19
-            }
-          },
-          "position": {
-            "startLine": 21,
-            "startColumn": 3,
-            "endLine": 21,
-            "endColumn": 19
-          }
-        }
-      },
-      "data_clump_type_additional": {
-        "cluster_id": 2,
-        "cluster_type": 3
+        "cluster_type": 2
       }
     },
     "fields_to_fields_data_clump-apps/web/src/components/Raumplan.tsx-apps/web/src/components/Raumplan.tsx/interface/Props-apps/web/src/components/RaumplanEditor.tsx/interface/BuehneProps-schemaschluesselbelegungnummernpersonenausgewaehlthoehebearbeitenanzeigetestID": {
@@ -1599,9 +1308,9 @@
             "type": "Raumschema",
             "modifiers": [],
             "position": {
-              "startLine": 679,
+              "startLine": 688,
               "startColumn": 3,
-              "endLine": 679,
+              "endLine": 688,
               "endColumn": 22
             }
           },
@@ -1624,9 +1333,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 685,
+              "startLine": 694,
               "startColumn": 3,
-              "endLine": 685,
+              "endLine": 694,
               "endColumn": 23
             }
           },
@@ -1649,9 +1358,9 @@
             "type": "Platzbelegung[]",
             "modifiers": [],
             "position": {
-              "startLine": 692,
+              "startLine": 701,
               "startColumn": 3,
-              "endLine": 692,
+              "endLine": 701,
               "endColumn": 30
             }
           },
@@ -1674,9 +1383,9 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 693,
+              "startLine": 702,
               "startColumn": 3,
-              "endLine": 693,
+              "endLine": 702,
               "endColumn": 33
             }
           },
@@ -1699,9 +1408,9 @@
             "type": "Map<string, Sitzplatz>",
             "modifiers": [],
             "position": {
-              "startLine": 694,
+              "startLine": 703,
               "startColumn": 3,
-              "endLine": 694,
+              "endLine": 703,
               "endColumn": 37
             }
           },
@@ -1724,9 +1433,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 697,
+              "startLine": 706,
               "startColumn": 3,
-              "endLine": 697,
+              "endLine": 706,
               "endColumn": 31
             }
           },
@@ -1749,9 +1458,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 689,
+              "startLine": 698,
               "startColumn": 3,
-              "endLine": 689,
+              "endLine": 698,
               "endColumn": 17
             }
           },
@@ -1774,9 +1483,9 @@
             "type": "boolean",
             "modifiers": [],
             "position": {
-              "startLine": 691,
+              "startLine": 700,
               "startColumn": 3,
-              "endLine": 691,
+              "endLine": 700,
               "endColumn": 23
             }
           },
@@ -1799,9 +1508,9 @@
             "type": "PlanAnzeige",
             "modifiers": [],
             "position": {
-              "startLine": 696,
+              "startLine": 705,
               "startColumn": 3,
-              "endLine": 696,
+              "endLine": 705,
               "endColumn": 25
             }
           },
@@ -1824,9 +1533,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 700,
+              "startLine": 709,
               "startColumn": 3,
-              "endLine": 700,
+              "endLine": 709,
               "endColumn": 19
             }
           },
@@ -1975,9 +1684,9 @@
             }
           },
           "position": {
-            "startLine": 679,
+            "startLine": 688,
             "startColumn": 3,
-            "endLine": 679,
+            "endLine": 688,
             "endColumn": 22
           }
         },
@@ -2000,9 +1709,9 @@
             }
           },
           "position": {
-            "startLine": 685,
+            "startLine": 694,
             "startColumn": 3,
-            "endLine": 685,
+            "endLine": 694,
             "endColumn": 23
           }
         },
@@ -2025,9 +1734,9 @@
             }
           },
           "position": {
-            "startLine": 689,
+            "startLine": 698,
             "startColumn": 3,
-            "endLine": 689,
+            "endLine": 698,
             "endColumn": 17
           }
         },
@@ -2050,9 +1759,9 @@
             }
           },
           "position": {
-            "startLine": 691,
+            "startLine": 700,
             "startColumn": 3,
-            "endLine": 691,
+            "endLine": 700,
             "endColumn": 23
           }
         },
@@ -2075,9 +1784,9 @@
             }
           },
           "position": {
-            "startLine": 692,
+            "startLine": 701,
             "startColumn": 3,
-            "endLine": 692,
+            "endLine": 701,
             "endColumn": 30
           }
         },
@@ -2100,9 +1809,9 @@
             }
           },
           "position": {
-            "startLine": 693,
+            "startLine": 702,
             "startColumn": 3,
-            "endLine": 693,
+            "endLine": 702,
             "endColumn": 33
           }
         },
@@ -2125,9 +1834,9 @@
             }
           },
           "position": {
-            "startLine": 694,
+            "startLine": 703,
             "startColumn": 3,
-            "endLine": 694,
+            "endLine": 703,
             "endColumn": 37
           }
         },
@@ -2150,9 +1859,9 @@
             }
           },
           "position": {
-            "startLine": 696,
+            "startLine": 705,
             "startColumn": 3,
-            "endLine": 696,
+            "endLine": 705,
             "endColumn": 25
           }
         },
@@ -2175,9 +1884,9 @@
             }
           },
           "position": {
-            "startLine": 697,
+            "startLine": 706,
             "startColumn": 3,
-            "endLine": 697,
+            "endLine": 706,
             "endColumn": 31
           }
         },
@@ -2200,9 +1909,9 @@
             }
           },
           "position": {
-            "startLine": 700,
+            "startLine": 709,
             "startColumn": 3,
-            "endLine": 700,
+            "endLine": 709,
             "endColumn": 19
           }
         }
@@ -2247,9 +1956,9 @@
             }
           },
           "position": {
-            "startLine": 685,
+            "startLine": 694,
             "startColumn": 3,
-            "endLine": 685,
+            "endLine": 694,
             "endColumn": 23
           }
         },
@@ -2272,9 +1981,9 @@
             }
           },
           "position": {
-            "startLine": 687,
+            "startLine": 696,
             "startColumn": 3,
-            "endLine": 687,
+            "endLine": 696,
             "endColumn": 18
           }
         },
@@ -2297,9 +2006,9 @@
             }
           },
           "position": {
-            "startLine": 693,
+            "startLine": 702,
             "startColumn": 3,
-            "endLine": 693,
+            "endLine": 702,
             "endColumn": 33
           }
         }
@@ -2622,104 +2331,7 @@
       },
       "data_clump_type_additional": {
         "cluster_id": 2,
-        "cluster_type": 3
-      }
-    },
-    "fields_to_fields_data_clump-apps/web/src/components/VorlagenModal.tsx-apps/web/src/components/VorlagenModal.tsx/interface/Props-apps/web/src/components/PaletteElement.tsx/interface/Props-titeluntertiteltestID": {
-      "type": "data_clump",
-      "key": "fields_to_fields_data_clump-apps/web/src/components/VorlagenModal.tsx-apps/web/src/components/VorlagenModal.tsx/interface/Props-apps/web/src/components/PaletteElement.tsx/interface/Props-titeluntertiteltestID",
-      "probability": 1,
-      "from_file_path": "apps/web/src/components/VorlagenModal.tsx",
-      "from_class_or_interface_key": "apps/web/src/components/VorlagenModal.tsx/interface/Props",
-      "from_class_or_interface_name": "Props",
-      "from_method_name": null,
-      "from_method_key": null,
-      "to_file_path": "apps/web/src/components/PaletteElement.tsx",
-      "to_class_or_interface_key": "apps/web/src/components/PaletteElement.tsx/interface/Props",
-      "to_class_or_interface_name": "Props",
-      "to_method_key": null,
-      "to_method_name": null,
-      "data_clump_type": "fields_to_fields_data_clump",
-      "data_clump_data": {
-        "apps/web/src/components/VorlagenModal.tsx/interface/Props/memberField/titel": {
-          "key": "apps/web/src/components/VorlagenModal.tsx/interface/Props/memberField/titel",
-          "name": "titel",
-          "type": "string",
-          "probability": 1,
-          "modifiers": [],
-          "to_variable": {
-            "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/titel",
-            "name": "titel",
-            "type": "string",
-            "modifiers": [],
-            "position": {
-              "startLine": 6,
-              "startColumn": 3,
-              "endLine": 6,
-              "endColumn": 17
-            }
-          },
-          "position": {
-            "startLine": 25,
-            "startColumn": 3,
-            "endLine": 25,
-            "endColumn": 17
-          }
-        },
-        "apps/web/src/components/VorlagenModal.tsx/interface/Props/memberField/untertitel": {
-          "key": "apps/web/src/components/VorlagenModal.tsx/interface/Props/memberField/untertitel",
-          "name": "untertitel",
-          "type": "string",
-          "probability": 1,
-          "modifiers": [],
-          "to_variable": {
-            "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/untertitel",
-            "name": "untertitel",
-            "type": "string",
-            "modifiers": [],
-            "position": {
-              "startLine": 8,
-              "startColumn": 3,
-              "endLine": 8,
-              "endColumn": 23
-            }
-          },
-          "position": {
-            "startLine": 27,
-            "startColumn": 3,
-            "endLine": 27,
-            "endColumn": 23
-          }
-        },
-        "apps/web/src/components/VorlagenModal.tsx/interface/Props/memberField/testID": {
-          "key": "apps/web/src/components/VorlagenModal.tsx/interface/Props/memberField/testID",
-          "name": "testID",
-          "type": "string",
-          "probability": 1,
-          "modifiers": [],
-          "to_variable": {
-            "key": "apps/web/src/components/PaletteElement.tsx/interface/Props/memberField/testID",
-            "name": "testID",
-            "type": "string",
-            "modifiers": [],
-            "position": {
-              "startLine": 21,
-              "startColumn": 3,
-              "endLine": 21,
-              "endColumn": 19
-            }
-          },
-          "position": {
-            "startLine": 37,
-            "startColumn": 3,
-            "endLine": 37,
-            "endColumn": 19
-          }
-        }
-      },
-      "data_clump_type_additional": {
-        "cluster_id": 2,
-        "cluster_type": 3
+        "cluster_type": 2
       }
     },
     "fields_to_fields_data_clump-apps/web/src/projekt.tsx-apps/web/src/projekt.tsx/interface/ProjektDatei-apps/web/src/projektSpeicher.ts/interface/StandDatei-pfadtextbytes": {
@@ -3138,9 +2750,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 687,
+              "startLine": 696,
               "startColumn": 3,
-              "endLine": 687,
+              "endLine": 696,
               "endColumn": 18
             }
           },
@@ -3163,9 +2775,9 @@
             "type": "Map<string, number>",
             "modifiers": [],
             "position": {
-              "startLine": 693,
+              "startLine": 702,
               "startColumn": 3,
-              "endLine": 693,
+              "endLine": 702,
               "endColumn": 33
             }
           },
@@ -3188,9 +2800,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 685,
+              "startLine": 694,
               "startColumn": 3,
-              "endLine": 685,
+              "endLine": 694,
               "endColumn": 23
             }
           },

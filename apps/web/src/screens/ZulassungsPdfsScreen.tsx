@@ -1,14 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import {
   erstelleZip,
   istZulassungsDatei,
   ladeZulassungsBestand,
+  ladeZulassungsFunde,
   nichtDarstellbareZeichen,
   parseStudipExport,
+  sucheImBestand,
   teilnehmerMitZulassung,
   winAnsiText,
   Zulassung,
+  ZulassungsQuelle,
   zulassungsPdf,
 } from '@exam-manager/core';
 import {
@@ -52,36 +55,54 @@ function umgeschriebeneNamen(zulassungen: Zulassung[]): string[] {
 }
 
 /**
- * Schritt 2 des Prüfungs-Workflows: Für alle Veranstaltungsteilnehmenden mit
+ * Schritt 2 des Prüfungs-Workflows: Der Zulassungsbestand lässt sich nach
+ * einzelnen Personen durchsuchen, und für alle Veranstaltungsteilnehmenden mit
  * Zulassung (neu oder aus Vorjahren) wird je ein PDF `<Matrikelnummer>.pdf`
  * erzeugt und gesammelt als ZIP heruntergeladen – alles lokal im Browser.
  */
 export function ZulassungsPdfsScreen() {
-  /** Inhalte aller erkannten Zulassungslisten (CSV-Texte). */
-  const [zulassungsListen, setZulassungsListen] = useState<string[]>([]);
+  /**
+   * Alle erkannten Zulassungslisten mit ihrem Dateinamen. Der Name ist nicht
+   * nur Zierde: Die Suche unten beantwortet das „wann“ einer Zulassung über
+   * die Datei, in der die Person steht (`pv2025_zulassungen.csv`).
+   */
+  const [quellen, setQuellen] = useState<ZulassungsQuelle[]>([]);
   /** Inhalt des Stud.IP-Teilnehmendenexports. */
   const [teilnehmerCsv, setTeilnehmerCsv] = useState<string | null>(null);
   const [status, setStatus] = useState<{ kind: 'info' | 'error'; text: string } | null>(null);
   const [laeuft, setLaeuft] = useState(false);
   const [ergebnis, setErgebnis] = useState<Ergebnis | null>(null);
   const [dateiname, setDateiname] = useState('zulassungs_pdfs.zip');
+  /** Eingabe des Suchfelds „Zulassung einer Person prüfen“. */
+  const [suche, setSuche] = useState('');
 
   // Eingaben aus dem Projektordner, solange nichts eigenes geladen wurde.
   const projekt = useProjekt();
   useEffect(() => {
-    if (zulassungsListen.length > 0 || teilnehmerCsv !== null) return;
+    if (quellen.length > 0 || teilnehmerCsv !== null) return;
     const listen = projekt.dateienMit('zulassungsbestand').filter((datei) => !!datei.text);
     const studip = projekt.datei('studipExport');
     if (listen.length === 0 && !studip?.text) return;
-    if (listen.length > 0) setZulassungsListen(listen.map((datei) => datei.text ?? ''));
+    if (listen.length > 0) {
+      setQuellen(listen.map((datei) => ({ datei: datei.pfad, text: datei.text ?? '' })));
+    }
     if (studip?.text) setTeilnehmerCsv(studip.text);
-  }, [projekt, zulassungsListen, teilnehmerCsv]);
+  }, [projekt, quellen, teilnehmerCsv]);
+
+  // Der Bestand mit Herkunft je Eintrag – Grundlage der Suche unten. Er hängt
+  // nur an den Listen, nicht am Suchbegriff: Beim Tippen wird nicht neu
+  // geparst, nur gefiltert.
+  const funde = useMemo(() => ladeZulassungsFunde(quellen), [quellen]);
+  const treffer = useMemo(() => sucheImBestand(funde, suche), [funde, suche]);
+  const wirdGesucht = suche.trim() !== '';
 
   const ladeZulassungsOrdner = async (files: File[]) => {
     try {
       const listen = files.filter((file) => istZulassungsDatei(file.name));
-      const inhalte = await Promise.all(listen.map((file) => readFileAsText(file)));
-      setZulassungsListen(inhalte);
+      const inhalte = await Promise.all(
+        listen.map(async (file) => ({ datei: file.name, text: await readFileAsText(file) })),
+      );
+      setQuellen(inhalte);
       setStatus({ kind: 'info', text: `${inhalte.length} Zulassungslisten erkannt.` });
     } catch (fehler) {
       setStatus({ kind: 'error', text: fehler instanceof Error ? fehler.message : String(fehler) });
@@ -97,19 +118,21 @@ export function ZulassungsPdfsScreen() {
   };
 
   const ladeBeispieldaten = () => {
-    setZulassungsListen(Object.values(BEISPIEL_ZULASSUNGS_BESTAND));
+    setQuellen(
+      Object.entries(BEISPIEL_ZULASSUNGS_BESTAND).map(([datei, text]) => ({ datei, text })),
+    );
     setTeilnehmerCsv(BEISPIEL_TEILNEHMENDENEXPORT);
     setStatus({ kind: 'info', text: 'Beispieldaten geladen.' });
   };
 
   const erzeugePdfs = async () => {
-    if (zulassungsListen.length === 0 || !teilnehmerCsv) return;
+    if (quellen.length === 0 || !teilnehmerCsv) return;
     setLaeuft(true);
     setErgebnis(null);
     setStatus({ kind: 'info', text: 'PDFs werden erzeugt …' });
     try {
       const teilnehmer = parseStudipExport(teilnehmerCsv);
-      const bestand = ladeZulassungsBestand(zulassungsListen);
+      const bestand = ladeZulassungsBestand(quellen.map((quelle) => quelle.text));
       const zulassungen = teilnehmerMitZulassung(teilnehmer, bestand);
       const dateien = new Map<string, Uint8Array | string>();
       for (const zulassung of zulassungen) {
@@ -132,8 +155,8 @@ export function ZulassungsPdfsScreen() {
 
   return (
     <ScreenContainer
-      title="2. Zulassungs-PDFs generieren"
-      intro="Für alle Teilnehmenden mit Zulassung wird je ein PDF erzeugt und als ZIP gebündelt. Alles läuft lokal im Browser – nichts wird hochgeladen."
+      title="2. Zulassung prüfen & PDF generieren"
+      intro="Nachschlagen, ob eine einzelne Person zugelassen ist, und für alle Teilnehmenden mit Zulassung je ein PDF erzeugen. Alles läuft lokal im Browser – nichts wird hochgeladen."
       testID="ZulassungsPdfs-screen"
     >
       <Section title="Eingabedaten">
@@ -166,10 +189,61 @@ export function ZulassungsPdfsScreen() {
         </Text>
       </Section>
 
+      {quellen.length > 0 ? (
+        <Section title="Zulassung einer Person prüfen">
+          <Text style={styles.hinweis}>
+            Sucht in allen geladenen Zulassungslisten ({funde.length} Einträge aus{' '}
+            {quellen.length} Datei(en)). Groß-/Kleinschreibung, Reihenfolge der Namen und Umlaute
+            sind egal; die Matrikelnummer führt genauso zum Treffer.
+          </Text>
+          <LabeledTextInput
+            label="Name oder Matrikelnummer"
+            value={suche}
+            onChangeText={setSuche}
+            placeholder="z. B. Schrödinger oder 1000005"
+            testID="zulassungspdfs-suche"
+          />
+          {wirdGesucht && treffer.length === 0 ? (
+            <StatusText kind="error" testID="zulassungspdfs-suche-ergebnis">
+              {`„${suche.trim()}“ steht in keiner der geladenen Zulassungslisten – keine Zulassung gefunden.`}
+            </StatusText>
+          ) : null}
+          {wirdGesucht && treffer.length > 0 ? (
+            <>
+              <StatusText kind="success" testID="zulassungspdfs-suche-ergebnis">
+                {`Zulassung vorhanden – ${
+                  treffer.length === 1 ? 'ein Eintrag' : `${treffer.length} Einträge`
+                } im Bestand:`}
+              </StatusText>
+              <DataTable
+                columns={[
+                  { key: 'nachname', title: 'Nachname' },
+                  { key: 'vorname', title: 'Vorname' },
+                  { key: 'matrikelnummer', title: 'Matrikelnummer' },
+                  { key: 'datei', title: 'Zulassung aus Datei' },
+                ]}
+                rows={treffer.map((fund) => ({
+                  nachname: fund.zulassung.nachname,
+                  vorname: fund.zulassung.vorname,
+                  matrikelnummer: fund.zulassung.matrikelnummer,
+                  datei: fund.datei,
+                }))}
+                testID="zulassungspdfs-suche-tabelle"
+              />
+            </>
+          ) : null}
+          <Text style={styles.hinweis}>
+            Ein Datum der Zulassung wird nirgends gespeichert – die Datei ist die einzige
+            Zeitangabe: Sie trägt das Jahr im Namen (pv2025_zulassungen.csv). Steht jemand in
+            mehreren Listen, wurde die Zulassung in mehreren Jahren erworben.
+          </Text>
+        </Section>
+      ) : null}
+
       <AppButton
         title="PDFs erzeugen"
         onPress={erzeugePdfs}
-        disabled={laeuft || zulassungsListen.length === 0 || !teilnehmerCsv}
+        disabled={laeuft || quellen.length === 0 || !teilnehmerCsv}
         testID="zulassungspdfs-erzeugen"
       />
 

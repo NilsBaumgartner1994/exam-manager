@@ -1,4 +1,4 @@
-import { DateiRolle, PROJEKT_ORDNER, ROLLEN_TITEL } from '@exam-manager/core';
+import { DateiRolle, dateiMuster, PROJEKT_ORDNER, ROLLEN_TITEL } from '@exam-manager/core';
 import { useProjekt } from '../projekt';
 import { StatusText } from './StatusText';
 
@@ -40,10 +40,13 @@ export function ProjektQuelle({ rolle, alle, testID }: Props) {
     );
   }
 
+  // Bei „alle“ steht das Muster statt der Dateiliste: Welche Datei am Zug
+  // wäre, ist hier keine Frage – es sind alle –, und ein Bestand aus vielen
+  // Jahreslisten würde die Zeile sonst über den halben Screen ziehen.
   if (alle) {
     return (
       <StatusText kind="success" testID={testID}>
-        {`Aus dem Projekt (${dateien.length}): ${dateien.map((datei) => datei.pfad).join(', ')}`}
+        {`Aus dem Projekt (${dateien.length}): ${dateiMuster(rolle) || `${ordner}/`}`}
       </StatusText>
     );
   }

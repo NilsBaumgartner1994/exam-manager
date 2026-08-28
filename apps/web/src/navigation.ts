@@ -24,9 +24,9 @@ export const SCREENS: ScreenInfo[] = [
   },
   {
     route: 'ZulassungsPdfs',
-    titel: '2. Zulassungs-PDFs generieren',
+    titel: '2. Zulassung prüfen & PDF generieren',
     beschreibung:
-      'Für alle Teilnehmenden mit Zulassung (neu oder aus Vorjahren) PDFs erzeugen und als ZIP herunterladen.',
+      'Einzelne Personen im Zulassungsbestand nachschlagen und für alle Teilnehmenden mit Zulassung (neu oder aus Vorjahren) PDFs erzeugen.',
   },
   {
     route: 'KlausurTeilnehmer',

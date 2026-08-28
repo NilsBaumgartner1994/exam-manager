@@ -136,6 +136,21 @@ export const PROJEKT_ORDNER: Partial<Record<DateiRolle, string>> = Object.fromEn
   PROJEKT_SCHEMA.flatMap((regel) => regel.rollen.map((rolle) => [rolle, regel.ordner])),
 ) as Partial<Record<DateiRolle, string>>;
 
+/**
+ * Kurzform, wie die Dateien einer Rolle im Projekt heißen –
+ * z. B. `Zulassungen/*zulassungen*.csv`.
+ *
+ * Wo ein Schritt **alle** Dateien einer Rolle verwendet, ist die Aufzählung
+ * der einzelnen Pfade nur Rauschen: Bei knapp zwanzig Jahreslisten füllt sie
+ * den halben Bildschirm, ohne mehr zu sagen als das Muster in einer Zeile.
+ */
+export function dateiMuster(rolle: DateiRolle): string {
+  const regel = PROJEKT_SCHEMA.find((eintrag) => eintrag.rollen.includes(rolle));
+  if (regel === undefined) return '';
+  const name = regel.nameEnthaelt === undefined ? '*' : `*${regel.nameEnthaelt}*`;
+  return `${regel.ordner}/${regel.endungen.map((endung) => `${name}${endung}`).join(', ')}`;
+}
+
 function basisname(pfad: string): string {
   return pfad.split('/').pop() ?? pfad;
 }

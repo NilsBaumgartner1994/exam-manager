@@ -33,15 +33,19 @@ url: http://localhost:8081
     element: 'Aktualisiertes Projekt herunterladen'
 # Der Weiter-Knopf führt auf Screen 2 – ab hier läuft der Flow dort weiter.
 - scrollUntilVisible:
-    element: 'Weiter zu 2. Zulassungs-PDFs generieren'
-- tapOn: 'Weiter zu 2. Zulassungs-PDFs generieren'
-- assertVisible: '2. Zulassungs-PDFs generieren'
+    element: 'Weiter zu 2. Zulassung prüfen & PDF generieren'
+- tapOn: 'Weiter zu 2. Zulassung prüfen & PDF generieren'
+- assertVisible: '2. Zulassung prüfen & PDF generieren'
 
-# ---------- Screen 2: Zulassungs-PDFs ----------
+# ---------- Screen 2: Zulassung prüfen & PDF generieren ----------
 - launchApp
-- tapOn: '2. Zulassungs-PDFs generieren'
+- tapOn: '2. Zulassung prüfen & PDF generieren'
 - tapOn: 'Beispieldaten laden'
 - assertVisible: 'Beispieldaten geladen.'
+# Suche im Bestand: Pascal steht in der Liste von 2024, nicht in der von 2025.
+- tapOn: 'Name oder Matrikelnummer'
+- inputText: 'Pascal'
+- assertVisible: 'swe++24_zulassungen.csv'
 - scrollUntilVisible:
     element: 'PDFs erzeugen'
 - tapOn: 'PDFs erzeugen'

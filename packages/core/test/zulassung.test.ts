@@ -1,11 +1,13 @@
-import { lies, liesZulassungsBestand, pfad } from './fixtures';
+import { lies, liesZulassungsBestand, liesZulassungsQuellen, pfad } from './fixtures';
 import {
   istZulassungsDatei,
   ladeZulassungsBestand,
+  ladeZulassungsFunde,
   parseAnmeldungen,
   parseStudipExport,
   pruefeAnmeldungen,
   pruefeZulassungen,
+  sucheImBestand,
   teilnehmerMitZulassung,
 } from '../src';
 
@@ -45,6 +47,31 @@ describe('Zulassungsprüfung (Screen 2 + 3)', () => {
     // Die E-Mail fehlt im HIS-Export und kommt aus dem Zulassungsbestand.
     expect(pruefung.zugelassen.every((a) => a.email !== '')).toBe(true);
     expect(pruefung.nichtZugelassen[0].email).toBe('');
+  });
+
+  describe('Suche im Bestand („hat diese Person eine Zulassung – und woher?“)', () => {
+    const funde = ladeZulassungsFunde(liesZulassungsQuellen());
+
+    it('nennt die Datei, aus der die Zulassung stammt', () => {
+      const treffer = sucheImBestand(funde, 'Pascal');
+      expect(treffer).toHaveLength(1);
+      expect(treffer[0].zulassung.vorname).toBe('Blaise');
+      expect(treffer[0].datei).toBe('swe++24_zulassungen.csv');
+    });
+
+    it('findet unabhängig von Groß-/Kleinschreibung, Reihenfolge und Umlauten', () => {
+      // Umlaut getippt, Umlaut umschrieben, Namen vertauscht, Matrikelnummer.
+      const varianten = ['schrödinger', 'SCHRÖDINGER', 'erwin schroedinger', '1000005'];
+      for (const eingabe of varianten) {
+        const treffer = sucheImBestand(funde, eingabe);
+        expect(treffer.map((fund) => fund.datei)).toEqual(['pv2025_zulassungen.csv']);
+      }
+    });
+
+    it('findet niemanden ohne Zulassung und nichts bei leerer Eingabe', () => {
+      expect(sucheImBestand(funde, 'Crick')).toHaveLength(0);
+      expect(sucheImBestand(funde, '   ')).toHaveLength(0);
+    });
   });
 
   it('meldet „alle zugelassen“, wenn niemand ohne Zulassung angemeldet ist', () => {

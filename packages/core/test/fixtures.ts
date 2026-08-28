@@ -45,7 +45,16 @@ export function liesRaumschemata(): string[] {
 
 /** Alle Zulassungslisten des Bestands (wie das Skript: nur *zulassungen*.csv). */
 export function liesZulassungsBestand(): string[] {
+  return liesZulassungsQuellen().map((quelle) => quelle.text);
+}
+
+/** Derselbe Bestand, aber mit den Dateinamen – für die Suche in Schritt 2. */
+export function liesZulassungsQuellen(): { datei: string; text: string }[] {
   return readdirSync(pfad.zulassungenOrdner)
     .filter((name) => /zulassungen.*\.csv$/i.test(name))
-    .map((name) => readFileSync(join(pfad.zulassungenOrdner, name), 'utf-8'));
+    .sort()
+    .map((name) => ({
+      datei: name,
+      text: readFileSync(join(pfad.zulassungenOrdner, name), 'utf-8'),
+    }));
 }

@@ -4,6 +4,7 @@
  * Abgleich von Personen gegen den Zulassungsbestand aller Jahre.
  */
 import { parseCsvRows } from './csv';
+import { normalizeName } from './namen';
 import { Anmeldung, StudipTeilnehmer, Zulassung } from './types';
 
 /** Eine Zulassungs-CSV (`Nachname;Vorname;Matrikelnummer[;E-Mail]`, Kopfzeile optional). */
@@ -72,6 +73,70 @@ export function teilnehmerMitZulassung(
 /** Mehrere Zulassungslisten (Ordnerinhalt) zu einem Bestand zusammenführen. */
 export function ladeZulassungsBestand(csvTexte: string[]): Zulassung[] {
   return csvTexte.flatMap(parseZulassungsliste);
+}
+
+/** Eine Zulassungsliste zusammen mit der Datei, aus der sie stammt. */
+export interface ZulassungsQuelle {
+  /** Dateiname bzw. Pfad, so wie die Liste im Ordner liegt. */
+  datei: string;
+  /** Inhalt der CSV. */
+  text: string;
+}
+
+/**
+ * Fundstelle einer Person im Bestand: ihr Eintrag und die Liste, in der er
+ * steht.
+ *
+ * Das Datum der Zulassung steht nirgends in den Daten – gespeichert wird nur,
+ * wer zugelassen ist. Die Datei ist die einzige Zeitangabe, die es gibt: Sie
+ * trägt das Jahr im Namen (`pv2025_zulassungen.csv`). Mehrere Funde zu einer
+ * Person heißen, dass sie die Zulassung in mehreren Jahren erworben hat.
+ */
+export interface ZulassungsFund {
+  zulassung: Zulassung;
+  /** Datei, aus der der Eintrag stammt. */
+  datei: string;
+}
+
+/**
+ * Bestand aus benannten Listen lesen und dabei mitführen, aus welcher Datei
+ * jeder Eintrag stammt (siehe `ZulassungsFund`).
+ */
+export function ladeZulassungsFunde(quellen: ZulassungsQuelle[]): ZulassungsFund[] {
+  return quellen.flatMap((quelle) =>
+    parseZulassungsliste(quelle.text).map((zulassung) => ({ zulassung, datei: quelle.datei })),
+  );
+}
+
+/**
+ * Personen im Bestand suchen – für die Frage „hat diese Person eine Zulassung,
+ * und wenn ja, aus welchem Jahr?“.
+ *
+ * Gesucht wird bewusst großzügiger als beim Abgleich der Listen
+ * (`pruefeZulassungen`, exakter Vergleich): Wer von Hand tippt, kennt selten
+ * die Schreibweise des Exports. Jedes Wort der Eingabe muss irgendwo in
+ * Vorname, Nachname oder Matrikelnummer vorkommen – Groß-/Kleinschreibung,
+ * Reihenfolge und Umlaute (`Schrödinger` = `Schroedinger`) sind egal.
+ */
+export function sucheImBestand(funde: ZulassungsFund[], suchbegriff: string): ZulassungsFund[] {
+  const worte = suchWorte(suchbegriff);
+  if (worte.length === 0) return [];
+  return funde.filter((fund) => {
+    const heuhaufen = suchtext(
+      `${fund.zulassung.vorname} ${fund.zulassung.nachname} ${fund.zulassung.matrikelnummer}`,
+    );
+    return worte.every((wort) => heuhaufen.includes(wort));
+  });
+}
+
+function suchtext(text: string): string {
+  return normalizeName(text).toLowerCase();
+}
+
+function suchWorte(suchbegriff: string): string[] {
+  return suchtext(suchbegriff)
+    .split(/\s+/)
+    .filter((wort) => wort !== '');
 }
 
 /**

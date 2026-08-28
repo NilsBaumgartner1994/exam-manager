@@ -245,11 +245,16 @@ Und die vier Schritte selbst:
    Anzahl Blätter). Unten: **„Zugelassene Studierende in den
    Zulassungen-Ordner ablegen“** – die neue Jahresliste landet im Projekt
    unter `Zulassungen/` und wird zugleich heruntergeladen – und **„Weiter zu
-   2. Zulassungs-PDFs generieren“**.
-2. **Zulassungs-PDFs generieren** – nimmt die Zulassungslisten und den
+   2. Zulassung prüfen & PDF generieren“**.
+2. **Zulassung prüfen & PDF generieren** – nimmt die Zulassungslisten und den
    Stud.IP-Export direkt aus dem Projektordner (inklusive der Liste aus
-   Schritt 1) und erzeugt je Person mit Zulassung ein `<Matrikelnummer>.pdf`,
-   gesammelt als ZIP (für die Stud.IP-„Klausureinsicht“). Im Projekt landen
+   Schritt 1). Ein Suchfeld beantwortet die Einzelfrage „hat diese Person eine
+   Zulassung?“: Name (Schreibweise, Reihenfolge und Umlaute egal) oder
+   Matrikelnummer eingeben, und es zeigt jeden Treffer samt der Datei, aus der
+   die Zulassung stammt – ein Datum wird nirgends gespeichert, das Jahr steht
+   im Dateinamen (`pv2025_zulassungen.csv`). Der Rest des Screens erzeugt je
+   Person mit Zulassung ein `<Matrikelnummer>.pdf`, gesammelt als ZIP (für die
+   Stud.IP-„Klausureinsicht“). Im Projekt landen
    sie in `2_Zulassungs_PDFs_Export/`; **PDFs eines früheren Laufs werden
    dabei entfernt** – sie gehören zu einem Stand, den es nicht mehr gibt.
    Die eingebaute PDF-Schrift kann nur WinAnsi: Umlaute und ß stehen darin,

@@ -228,7 +228,7 @@ export function VipsScreen() {
       <Section title="Weiter">
         <View style={styles.spalte}>
           <AppButton
-            title="Weiter zu 2. Zulassungs-PDFs generieren"
+            title="Weiter zu 2. Zulassung prüfen & PDF generieren"
             onPress={() => navigate('ZulassungsPdfs')}
             testID="vips-weiter"
           />

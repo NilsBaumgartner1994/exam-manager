@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { mitDurchgaengen, Raum } from '@exam-manager/core';
 import { useResponsiveLayout } from '../responsive';
@@ -59,11 +60,14 @@ function RaumEditorZeile({
   zeile,
   onChange,
   onRemove,
+  aktionen,
   testID,
 }: {
   zeile: RaumZeile;
   onChange: (zeile: RaumZeile) => void;
   onRemove: () => void;
+  /** Weitere Knöpfe der Zeile – Schritt 5 hängt hier Plan und Duplizieren an. */
+  aktionen?: ReactNode;
   testID?: string;
 }) {
   const { isCompact } = useResponsiveLayout();
@@ -93,6 +97,7 @@ function RaumEditorZeile({
         placeholder="Reservierte Zeit"
         placeholderTextColor={colors.textMuted}
       />
+      {aktionen}
       <AppButton title="Entfernen" variant="secondary" onPress={onRemove} />
     </View>
   );
@@ -103,6 +108,14 @@ interface Props {
   onChange: (zeilen: RaumZeile[]) => void;
   /** Beschriftung des Knopfes zum Anlegen – je nach Screen anders formuliert. */
   hinzufuegenTitel?: string;
+  /**
+   * Was „Entfernen“ tut, wenn der Screen mehr daran hängen hat als die Zeile:
+   * In Schritt 5 verschwindet mit dem Raum auch sein Raster, und danach wird
+   * gefragt. Ohne Angabe wird die Zeile einfach gestrichen.
+   */
+  onEntfernen?: (index: number) => void;
+  /** Weitere Knöpfe je Zeile (Schritt 5: „Plan“, „Duplizieren“). */
+  aktionen?: (zeile: RaumZeile, index: number) => ReactNode;
   /**
    * Denselben Raum mehrfach eintragen ist erlaubt und benannt den Durchgang
    * („2. Durchgang“). Nur in Schritt 4 sinnvoll: Im Bestand des Hauses
@@ -122,6 +135,8 @@ export function RaumListe({
   zeilen,
   onChange,
   hinzufuegenTitel = 'Raum hinzufügen',
+  onEntfernen,
+  aktionen,
   mitDurchgang,
   testIDPrefix = 'raum',
 }: Props) {
@@ -137,7 +152,10 @@ export function RaumListe({
           <RaumEditorZeile
             zeile={zeile}
             onChange={(neu) => onChange(zeilen.map((alt, j) => (j === i ? neu : alt)))}
-            onRemove={() => onChange(zeilen.filter((_, j) => j !== i))}
+            onRemove={() =>
+              onEntfernen ? onEntfernen(i) : onChange(zeilen.filter((_, j) => j !== i))
+            }
+            aktionen={aktionen?.(zeile, i)}
             testID={`${testIDPrefix}-zeile-${i}`}
           />
         </View>

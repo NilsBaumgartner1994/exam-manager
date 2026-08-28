@@ -274,6 +274,20 @@ Konventionen des Datensatzes:
   Belegung (alle Räume in einer Datei, je Einsatz eine Seite), in Schritt 5
   ohne (der gezeigte Raum als eigene Datei, benannt nach `raumDateiname`).
   Eine zweite Zeichenroutine für den leeren Grundriss gibt es nicht.
+- **Ein Raum ist Zeile *und* Raster.** Wer in Schritt 5 einen Raum anlegt,
+  dupliziert, umbenennt oder löscht, fasst beides an: `raeume.csv` und die
+  Datei in `Raeume/`. Nur die Zeile zu ändern ließe ein Raster zu einem Raum
+  liegen, den es nicht mehr gibt – und der Raum stünde ohne Grundriss da. Das
+  gilt auch für das Namensfeld der Raumliste (`zeilenGeaendert` zieht das
+  Raster nach). Kopiert wird mit `kopiereRaumschema` (Core) – eine echte
+  Kopie, sonst änderte ein Strich im Duplikat auch das Original. Zwei Räume
+  mit demselben Namen lässt die App nicht zu: Der Name ist der Dateiname in
+  `Raeume/`.
+- **Namen werden gefragt, nicht geraten.** Anlegen, Duplizieren, Umbenennen
+  und Löschen laufen über ein Blatt (`RaumVorgangBlatt`, ein `RaumVorgang`) –
+  kein „Raum 3“, der hinterher auf dem Aushang steht, und vor dem Löschen eine
+  Rückfrage. Die Vorgänge stehen im Menü „Räume“ **und** an jeder Zeile der
+  Raumliste: Wer den Bestand pflegt, ist mal im Plan und mal in der Liste.
 - **Screen 5 zeigt genau einen Raum** – den aus dem Menü „Räume“. Gespeichert
   werden weiterhin alle Räume. Speichern, Laden und PDF liegen im Menü
   „Datei“, wie das Dateimenü einer Tabellenkalkulation, nicht in einer Section
@@ -573,9 +587,16 @@ sie im Projekt unter `Vorlagen/` ab (Rolle `pdfVorlage`).
 
 Fertige Änderungen gehen **direkt nach `main`** – auch die von KI-Agenten. Ein
 Branch und ein Pull Request sind nicht nötig: Das Repository hat einen
-Betreuer, und der Umweg kostet hier mehr, als er einbringt. Der Push auf
-`main` baut zugleich die GitHub-Pages-Seite neu (siehe „Automatische
-Prüfungen“), fertig heißt also wirklich fertig:
+Betreuer, und der Umweg kostet hier mehr, als er einbringt.
+
+**Diese Erlaubnis gilt dauerhaft und für jede Session**; sie ist nicht jedes
+Mal neu zu erfragen. Startet eine Session auf einem eigenen Branch (etwa aus
+der Claude-Code-Web-Oberfläche), gilt dasselbe: Die fertige Arbeit darf ohne
+weitere Nachfrage nach `main` – ein Pull Request nur, wenn jemand ausdrücklich
+darum bittet.
+
+Der Push auf `main` baut zugleich die GitHub-Pages-Seite neu (siehe
+„Automatische Prüfungen“), fertig heißt also wirklich fertig:
 
 - **Vorher** `yarn test` und `yarn typecheck` lokal grün, und was an der
   Oberfläche geändert wurde, einmal im Browser angesehen.

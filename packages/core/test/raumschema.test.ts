@@ -11,6 +11,7 @@ import {
   verschiebeBereich,
   belegungToCsv,
   erstelleRaumzuteilung,
+  kopiereRaumschema,
   leeresRaumschema,
   mitGroesse,
   parseBelegung,
@@ -398,6 +399,24 @@ describe('Raster als einzelne Dateien', () => {
     const schemata = parseRaumschemaDateien([SCHEMA_CSV, 'Raum;94/E01\nT;T\n']);
     expect(schemata.map((s) => s.raum)).toEqual(['94/E01', '94/E03']);
     expect(tischzellen(schemata[0])).toHaveLength(6);
+  });
+});
+
+describe('Raum kopieren und umbenennen', () => {
+  it('nimmt das Raster mit unter den neuen Namen', () => {
+    const schema = parseRaumschemata(SCHEMA_CSV)[0];
+    const kopie = kopiereRaumschema(schema, '94/E99');
+    expect(kopie.raum).toBe('94/E99');
+    expect(kopie.zellen).toEqual(schema.zellen);
+    expect(kopie.beschriftungen).toEqual(schema.beschriftungen);
+  });
+
+  it('teilt keine Zeilen mit dem Original', () => {
+    // Sonst änderte ein Strich im Duplikat auch den Raum, aus dem es kommt.
+    const schema = leeresRaumschema('A', 2, 2);
+    const kopie = kopiereRaumschema(schema, 'B');
+    kopie.zellen[0][0] = 'tisch';
+    expect(schema.zellen[0][0]).toBe('leer');
   });
 });
 

@@ -172,3 +172,26 @@ url: http://localhost:8081
 - tapOn: 'Raster als CSV speichern'
 # Je Raum eine Datei, benannt nach dem Raum (01_E01.csv, 66_E33.csv, ...).
 - assertVisible: 'Raster heruntergeladen'
+# Bestand pflegen: Ein neuer Raum entsteht mit Namen und Vorschlagsraster.
+- tapOn:
+    id: 'raeume-menue-raeume'
+- tapOn:
+    id: 'raeume-neu'
+- tapOn:
+    id: 'raeume-vorgang-name'
+- inputText: '99/A01'
+- tapOn:
+    id: 'raeume-vorgang-ok'
+- assertVisible: 'Raum 99/A01 angelegt'
+# Umbenennen zieht das Raster mit – der Raum heißt danach überall anders.
+- tapOn:
+    id: 'raeume-menue-raeume'
+- tapOn:
+    id: 'raeume-umbenennen'
+- tapOn:
+    id: 'raeume-vorgang-name'
+- eraseText
+- inputText: '99/A02'
+- tapOn:
+    id: 'raeume-vorgang-ok'
+- assertVisible: '99/A01 heißt jetzt 99/A02'

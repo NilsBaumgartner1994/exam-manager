@@ -282,6 +282,24 @@ export function leeresRaumschema(raum: string, anzahlZeilen: number, anzahlSpalt
 }
 
 /**
+ * Dasselbe Raster unter einem anderen Raumnamen – als **echte Kopie**, ohne
+ * geteilte Zeilen: Sonst änderte ein Strich im einen Raum auch den anderen.
+ *
+ * Damit läuft beides in Schritt 5: Ein Raum wird umbenannt (die Kopie ersetzt
+ * das alte Raster) oder dupliziert (sie kommt daneben). Der Name gehört zum
+ * Raster, denn er ist zugleich der Dateiname in `Raeume/`
+ * (`raumschemaDateiname`) – zwei Raster mit demselben Namen überschrieben
+ * einander.
+ */
+export function kopiereRaumschema(schema: Raumschema, raum: string): Raumschema {
+  return {
+    raum,
+    zellen: schema.zellen.map((zeile) => [...zeile]),
+    beschriftungen: schema.beschriftungen.map((beschriftung) => ({ ...beschriftung })),
+  };
+}
+
+/**
  * Vorschlag für einen Raum mit `plaetze` Tischen: Tische in Zweierblöcken mit
  * Gang dazwischen, Pult vorne links, Tür hinten links. Damit lässt sich sofort
  * arbeiten, ohne den Raum von Hand zu zeichnen.

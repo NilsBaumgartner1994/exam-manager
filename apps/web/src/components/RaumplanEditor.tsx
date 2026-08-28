@@ -27,6 +27,7 @@ import { colors, spacing } from '../theme';
 import { AppButton } from './AppButton';
 import { BlattModal } from './BlattModal';
 import { LabeledTextInput } from './LabeledInput';
+import type { RaumZeile } from './RaumListe';
 import type { MenuEintrag } from './Menueband';
 import { useModalEbene } from './ModalHost';
 import {
@@ -123,10 +124,15 @@ export interface RaumplanAnbindung {
  * wird (Schritt 4) – die Belegung dazu. Beides gehört zusammen: Wandert ein
  * Tischblock, wandern die Personen darin mit; einzeln zurückgesetzt stünde
  * hinterher das eine ohne das andere.
+ *
+ * Aus demselben Grund liegt die **Raumliste** dabei, wo ein Screen sie führt
+ * (Schritt 5): Wer einen Raum löscht oder umbenennt, ändert Liste und Raster
+ * in einem Zug – käme nur das Raster zurück, stünde es hinterher ohne Raum.
  */
 export interface PlanZustand {
   schemata: Raumschema[];
   belegung?: Platzbelegung[];
+  raeume?: RaumZeile[];
 }
 
 export interface RaumplanEditor {
@@ -161,6 +167,12 @@ export interface RaumplanEditor {
   zugBeendet: () => void;
   drehungen: Record<string, number>;
   drehen: (raum: string, richtung: 1 | -1) => void;
+  /**
+   * Ein Raum heißt jetzt anders: Drehung und Auswahl wandern mit. Das Raster
+   * benennt der Screen um – hier hängt nur, was der Editor selbst über den
+   * Raum weiß und was sonst beim Umbenennen zurückspränge.
+   */
+  benenneUm: (alt: string, neu: string) => void;
   zellePress: (raum: string, zeile: number, spalte: number) => void;
   bereichAufziehen: (raum: string, bereich: Bereich) => void;
   bereichVerschieben: (raum: string, dZeile: number, dSpalte: number) => void;
@@ -357,6 +369,20 @@ export function useRaumplanEditor({
     drehungen,
     drehen: (raum, richtung) =>
       setzeDrehungen((alt) => ({ ...alt, [raum]: ((((alt[raum] ?? 0) + richtung) % 4) + 4) % 4 })),
+
+    benenneUm: (alt, neu) => {
+      setzeDrehungen((bisher) => {
+        if (!(alt in bisher)) return bisher;
+        const { [alt]: drehung, ...rest } = bisher;
+        return { ...rest, [neu]: drehung };
+      });
+      setzeAuswahl((bisher) => (bisher && bisher.raum === alt ? { ...bisher, raum: neu } : bisher));
+      const groesse = gezeichneteGroesse.current[alt];
+      if (groesse !== undefined) {
+        gezeichneteGroesse.current[neu] = groesse;
+        delete gezeichneteGroesse.current[alt];
+      }
+    },
 
     zellePress: (raum, zeile, spalte) => {
       // „Auswählen“ und „Text“ ziehen einen Bereich auf – das erledigt

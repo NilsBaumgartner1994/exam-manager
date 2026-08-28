@@ -468,6 +468,16 @@ Und die vier Schritte selbst:
    Der Editor ist derselbe wie in Schritt 4 (Palette, verbundene Zellen,
    Ansicht/Zoom, Rückgängig, Drehen); dazu kommen:
 
+   - **Bestand pflegen** – im Menü **Räume** unter „Bestand“ und in der
+     **Raumliste** an jeder Zeile: **Neuer Raum …** (Name und Plätze, legt
+     gleich ein Vorschlagsraster an), **Raum duplizieren …** (dasselbe Raster
+     unter neuem Namen – zwei Hörsäle sind sich ähnlicher, als man denkt),
+     **Raum umbenennen …** und **Raum löschen …**. Umbenennen und Löschen
+     fassen immer **beides** an, Raumliste und Raster: Sonst läge in
+     `Raeume/` eine Datei zu einem Raum, den es nicht mehr gibt. Dasselbe gilt
+     für den Namen direkt im Listenfeld – das Raster wandert mit. Jeder dieser
+     Schritte lässt sich mit <kbd>Strg</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd>
+     zurücknehmen.
    - **Fehlende Raster anlegen** – für jeden Raum der Liste ohne Raster einen
      Vorschlag erzeugen (Tische in Zweierblöcken mit Gang, Pult vorne, Tür
      hinten). Von Hand zu zeichnen ist nur noch, was davon abweicht.

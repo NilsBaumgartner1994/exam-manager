@@ -208,6 +208,7 @@ optionalen **Projektordner**:
    0_Input_Vips_Notenliste/               *.csv               Notenliste aus VIPS
    Zulassungen/                           *zulassungen*.csv   je Jahr eine Liste der Zugelassenen
    Raeume/                                *.csv               raeume.csv + je Raum ein Raster (blanko)
+   Vorlagen/                              *vorlage*.md        Text der Schreiben an Studierende (Markdown)
    2_Zulassungs_PDFs_Export/              *.pdf               erzeugte Zulassungs-PDFs (Schritt 2)
    3_Klausur_Teilnehmende_Export/         *.csv               Angemeldete mit/ohne Zulassung (Schritt 3, optional)
    4_Raumzuteilung_Export/                *.csv               Räume dieser Klausur, Sitzplan, Belegung (Schritt 4)
@@ -261,6 +262,9 @@ Und die vier Schritte selbst:
    `ź` oder `ł` nicht. Statt am ersten solchen Namen abzubrechen, schreibt die
    App ihn um (`Woźniak` → `Wozniak`) und nennt jeden betroffenen Namen im
    Ergebnis.
+
+   **Text der PDFs:** Was in den Schreiben steht, ist eine Vorlage und kein
+   Quelltext – „Text anpassen“ öffnet sie (siehe „Text der Schreiben“ unten).
 3. **Klausur-Anmeldungen prüfen** – HIS-Export (`check.xlsx`) gegen den
    Zulassungsbestand prüfen; Zugelassene/Nicht-Zugelassene anzeigen und als
    CSV herunterladen. Der Export ist nur für den Klausurdruck nötig – Schritt 4
@@ -270,7 +274,8 @@ Und die vier Schritte selbst:
    zusammenstellen, Sitzplätze ab Startnummer
    (Default 1001) vergeben; Ansichten: Aushang (anonym), Dozent (nach
    Sitzplatz), Tutor (nach Nachname), Räume/Aushänge je Raum; Export als CSV,
-   Sitzplatz-PDFs (ZIP) und alle Aushänge als PDF über den Druckdialog.
+   Sitzplatz-PDFs (ZIP) und alle Aushänge als PDF über den Druckdialog. Auch
+   hier lässt sich der **Text der PDFs** anpassen (siehe unten).
 
    **Ohne Umweg über Schritt 3:** Liegt im Projektordner keine Teilnehmerliste
    in `3_Klausur_Teilnehmende_Export/`, prüft dieser Schritt die Anmeldungen
@@ -454,6 +459,29 @@ ebenfalls dort.
 Jeder Screen hat einen Button **„Beispieldaten laden“**, der den
 anonymisierten Datensatz dieses Repos lädt – zum Ausprobieren und für den
 E2E-Test (`.maestro/durchlauf.yaml`, siehe `.maestro/README.md`).
+
+### Text der Schreiben (Schritt 2 und 4)
+
+Was in den erzeugten PDFs steht, ändert sich jedes Semester – ein anderer
+Hinweis, eine andere Uhrzeit, ein anderer Ton. Der Text ist deshalb kein
+Quelltext, sondern eine **Vorlage**: In Schritt 2 („Text anpassen“) und in
+Schritt 4 („Text der PDFs anpassen“) öffnet sich ein Blatt mit dem Text als
+Markdown, darunter eine **Vorschau mit echten Daten** – der ersten Person der
+Liste, sonst einer erfundenen.
+
+- **Platzhalter** in spitzen Klammern werden je Person ersetzt:
+  `<Vorname>`, `<Nachname>`, `<Matrikelnummer>`, `<E-Mail>`, in Schritt 4
+  zusätzlich `<Raum>`, `<Sitzplatznummer>` und `<Zeit>`. Ein Klick auf den
+  Platzhalter setzt ihn an der Cursorstelle ein. Was nicht bekannt ist, bleibt
+  im PDF stehen – ein `<Vornmae>` soll auffallen und nicht ein Feld still
+  leeren.
+- **Markdown**, so viel wie ein Anschreiben braucht: `#`/`##`/`###` für
+  Überschriften, `**fett**`, `*kursiv*`, `- ` und `1. ` für Aufzählungen,
+  `---` für eine Trennlinie. Anders als sonst in Markdown beginnt **jede Zeile
+  eine neue Zeile**; eine Leerzeile ist ein Abstand.
+- Der Text wird im Projekt unter `Vorlagen/` gespeichert (`zulassung_vorlage.md`,
+  `sitzplatz_vorlage.md`) und ist damit in der ZIP und nach dem Neuladen
+  wieder da. „Auf Standardtext zurücksetzen“ holt den Anfangstext zurück.
 
 ### Projektaufbau (Yarn Workspaces)
 

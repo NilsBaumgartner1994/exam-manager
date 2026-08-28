@@ -9,14 +9,16 @@ import {
   sitzplatznummern,
   tabellenPdf,
   verteileImRaum,
+  vorlagenPdf,
   winAnsiText,
   zulassungsPdf,
 } from '../src';
 
 /**
- * Der Text einer PDF, Zeile für Zeile – die Seiteninhalte sind Flate-gepackt
- * und schreiben ihre Zeilen als `<hex> Tj`. Reicht, um zu prüfen, dass der
- * Wortlaut wirklich im Dokument landet.
+ * Der Text einer PDF, Zeile für Zeile. Die Seiteninhalte sind Flate-gepackt
+ * und setzen jedes Wort einzeln (`… Tm` mit Position, dann `<hex> Tj`) – für
+ * den Test werden die Wörter wieder nach ihrer Zeile gruppiert. Reicht, um zu
+ * prüfen, dass der Wortlaut wirklich im Dokument landet.
  */
 function pdfZeilen(pdf: Uint8Array): string[] {
   const roh = Buffer.from(pdf);
@@ -30,8 +32,15 @@ function pdfZeilen(pdf: Uint8Array): string[] {
     } catch {
       continue;
     }
-    for (const text of inhalt.matchAll(/<([0-9A-Fa-f]+)> Tj/g)) {
-      zeilen.push(Buffer.from(text[1], 'hex').toString('latin1'));
+    const worte = new Map<string, { x: number; text: string }[]>();
+    const muster = /1 0 0 1 ([\d.]+) ([\d.]+) Tm\s*<([0-9A-Fa-f]+)> Tj/g;
+    for (const wort of inhalt.matchAll(muster)) {
+      const zeile = worte.get(wort[2]) ?? [];
+      zeile.push({ x: Number(wort[1]), text: Buffer.from(wort[3], 'hex').toString('latin1') });
+      worte.set(wort[2], zeile);
+    }
+    for (const [, zeile] of worte) {
+      zeilen.push(zeile.sort((a, b) => a.x - b.x).map((wort) => wort.text).join(' '));
     }
   }
   return zeilen;
@@ -70,6 +79,29 @@ describe('PDF und ZIP (Screen 2 + 4)', () => {
     // Die Nummer steht als eigene Zeile am Ende – groß und fett auf dem Blatt.
     const zeilen = pdfZeilen(pdf);
     expect(zeilen[zeilen.length - 1]).toBe('SITZPLATZNUMMER: 1001');
+  });
+
+  it('setzt eine eigene Vorlage statt des Anfangstexts', async () => {
+    const pdf = await sitzplatzPdf(
+      {
+        anfangNachname: 'S', sitzplatznummer: 7, raum: '94/E01', raumSchluessel: '94/E01',
+        reservierteZeit: 'morgen', matrikelnummer: '1000005', anwesend: '',
+        nachname: 'Schrödinger', vorname: 'Erwin', zeitUndRaum: '', email: 'erwin@test.de',
+      },
+      '# Hallo <Vorname>\n\nDu sitzt in <Raum> auf Platz <Sitzplatznummer>.',
+    );
+    const text = pdfZeilen(pdf).join('\n');
+    expect(text).toContain('Hallo Erwin');
+    expect(text).toContain('Du sitzt in 94/E01 auf Platz 7.');
+    // Vom Anfangstext darf nichts übrig sein.
+    expect(text).not.toContain('Klausur Information');
+  });
+
+  it('verteilt eine lange Vorlage auf mehrere Seiten', async () => {
+    // Die Vorlage kann jeder ändern – ein zu langer Text darf nicht unten aus
+    // dem Blatt laufen.
+    const lang = Array.from({ length: 120 }, (_, i) => `Zeile ${i + 1}`).join('\n');
+    expect((await PDFDocument.load(await vorlagenPdf(lang))).getPageCount()).toBeGreaterThan(1);
   });
 
   it('bündelt PDFs in ein ZIP mit <Matrikelnummer>.pdf', async () => {

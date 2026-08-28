@@ -46,6 +46,14 @@ url: http://localhost:8081
 - tapOn: 'Name oder Matrikelnummer'
 - inputText: 'Pascal'
 - assertVisible: 'swe++24_zulassungen.csv'
+# Der Text der Schreiben ist eine Vorlage: Blatt öffnen, Vorschau prüfen,
+# wieder schließen – erzeugt wird danach mit dem unveränderten Standardtext.
+- scrollUntilVisible:
+    element: 'Text anpassen'
+- tapOn: 'Text anpassen'
+- assertVisible: 'Text der Zulassungs-PDFs'
+- assertVisible: '<Matrikelnummer>'
+- tapOn: 'Schließen'
 - scrollUntilVisible:
     element: 'PDFs erzeugen'
 - tapOn: 'PDFs erzeugen'
@@ -101,6 +109,12 @@ url: http://localhost:8081
 - tapOn: 'Aushang'
 - scrollUntilVisible:
     element: 'Sitzplan-CSV herunterladen'
+# Der Text der Sitzplatz-PDFs ist eine Vorlage: Blatt öffnen, Vorschau mit den
+# Daten der ersten Person prüfen, wieder schließen.
+- tapOn: 'Text der PDFs anpassen'
+- assertVisible: 'Text der Sitzplatz-PDFs'
+- assertVisible: '<Sitzplatznummer>'
+- tapOn: 'Schließen'
 
 # ---------- Screen 5: Räume & Raumpläne ----------
 # Räume ohne Teilnehmende bearbeiten: Beispieldaten laden, ein Raster liegt vor,

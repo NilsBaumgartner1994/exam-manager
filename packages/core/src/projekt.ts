@@ -11,6 +11,8 @@
  * aufnimmt (`Raeume/` hält Raumliste und Raumschema).
  */
 
+import { VORLAGE_SITZPLATZ, VORLAGE_ZULASSUNG } from './pdfVorlage';
+
 export type DateiRolle =
   /** VIPS-Notenliste des Semesters. */
   | 'notenliste'
@@ -34,6 +36,8 @@ export type DateiRolle =
   | 'sitzplan'
   /** Erzeugte Zulassungs-PDFs aus Schritt 2 (je Matrikelnummer eines). */
   | 'zulassungsPdf'
+  /** Markdown-Vorlage für die Schreiben an Studierende (Schritt 2 und 4). */
+  | 'pdfVorlage'
   | 'unbekannt';
 
 /** Menschenlesbare Bezeichnung – für Anzeige und Statusmeldungen. */
@@ -49,6 +53,7 @@ export const ROLLEN_TITEL: Record<DateiRolle, string> = {
   teilnehmer: 'Klausur-Teilnehmende',
   sitzplan: 'Sitzplan',
   zulassungsPdf: 'Zulassungs-PDF',
+  pdfVorlage: 'PDF-Vorlage',
   unbekannt: 'nicht zugeordnet',
 };
 
@@ -110,6 +115,14 @@ export const PROJEKT_SCHEMA: OrdnerRegel[] = [
       'Bestand des Hauses: Raumliste (raeume.csv) und je Raum eine Raster-Datei (94_E01.csv) – ohne Studierende, jedes Jahr wiederverwendbar.',
   },
   {
+    ordner: 'Vorlagen',
+    endungen: ['.md'],
+    nameEnthaelt: 'vorlage',
+    rollen: ['pdfVorlage'],
+    zweck:
+      'Text der Schreiben an Studierende als Markdown mit Platzhaltern (zulassung_vorlage.md, sitzplatz_vorlage.md) – in der App über „Text anpassen“ zu bearbeiten.',
+  },
+  {
     ordner: '2_Zulassungs_PDFs_Export',
     endungen: ['.pdf'],
     rollen: ['zulassungsPdf'],
@@ -150,6 +163,18 @@ export function dateiMuster(rolle: DateiRolle): string {
   const name = regel.nameEnthaelt === undefined ? '*' : `*${regel.nameEnthaelt}*`;
   return `${regel.ordner}/${regel.endungen.map((endung) => `${name}${endung}`).join(', ')}`;
 }
+
+/** Dateiname der Vorlage für die Zulassungs-PDFs (Schritt 2). */
+export const VORLAGE_NAME_ZULASSUNG = 'zulassung_vorlage.md';
+
+/** Dateiname der Vorlage für die Sitzplatz-PDFs (Schritt 4). */
+export const VORLAGE_NAME_SITZPLATZ = 'sitzplatz_vorlage.md';
+
+/** Pfad der Zulassungs-Vorlage im Projekt. */
+export const VORLAGE_DATEI_ZULASSUNG = projektPfad('pdfVorlage', VORLAGE_NAME_ZULASSUNG);
+
+/** Pfad der Sitzplatz-Vorlage im Projekt. */
+export const VORLAGE_DATEI_SITZPLATZ = projektPfad('pdfVorlage', VORLAGE_NAME_SITZPLATZ);
 
 function basisname(pfad: string): string {
   return pfad.split('/').pop() ?? pfad;
@@ -277,6 +302,10 @@ export function projektVorlage(): Map<string, string> {
     'Nachname;Vorname;Matrikelnummer;E-Mail\n',
   );
   vorlage.set('Raeume/raeume.csv', 'Raum;Plätze;ReservierteZeit\n');
+  // Die Anfangstexte liegen als Dateien im Ordner: So ist auch ohne die App
+  // zu sehen, was in den Schreiben steht und wo es geändert wird.
+  vorlage.set(VORLAGE_DATEI_ZULASSUNG, VORLAGE_ZULASSUNG);
+  vorlage.set(VORLAGE_DATEI_SITZPLATZ, VORLAGE_SITZPLATZ);
   // Je Raum eine Datei, benannt nach dem Raum – so ist im Ordner zu sehen,
   // welche Räume es gibt (`raumschemaDateiname`).
   vorlage.set(

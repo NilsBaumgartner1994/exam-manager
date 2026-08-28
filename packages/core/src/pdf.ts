@@ -6,6 +6,15 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { PLAN_ANZEIGE_STANDARD, PlanAnzeige, Platzbelegung, platzSchluessel } from './raumbelegung';
 import { anzeigeBereich, anzeigeRaster, Raumschema, ZellTyp } from './raumschema';
+import {
+  fuelleVorlage,
+  parseMarkdown,
+  sitzplatzWerte,
+  TextStueck,
+  VORLAGE_SITZPLATZ,
+  VORLAGE_ZULASSUNG,
+  zulassungsWerte,
+} from './pdfVorlage';
 import { Sitzplatz, Zulassung } from './types';
 
 const A4 = { width: 595.28, height: 841.89 };
@@ -71,121 +80,210 @@ export function nichtDarstellbareZeichen(text: string): string[] {
   return [...new Set([...text].filter((zeichen) => !WINANSI.has(zeichen)))];
 }
 
-/** Ein Absatz einer Text-PDF – ohne weitere Angaben Fließtext in Helvetica. */
-export interface TextAbsatz {
+// ---------------------------------------------------------------------------
+// Schreiben an Studierende: Markdown-Vorlage → PDF
+//
+// Gesetzt wird, was in der Vorlage steht (`pdfVorlage.ts`) – die App lässt sie
+// bearbeiten. Deshalb kann hier alles vorkommen: eine Überschrift, ein fettes
+// Wort mitten im Satz, eine Aufzählung, mehr Text als auf ein Blatt passt.
+// ---------------------------------------------------------------------------
+
+/** Ein Wort mit seiner Schrift – die Einheit, in der umbrochen wird. */
+interface Wort {
   text: string;
-  /** Halbfett – für Überschriften und die Sitzplatznummer. */
-  fett?: boolean;
-  /** Schriftgröße in Punkt (Vorgabe: die des Fließtexts). */
-  groesse?: number;
-  /** Leerzeilen über dem Absatz. */
-  abstandOben?: number;
+  font: import('pdf-lib').PDFFont;
+  breite: number;
+  /** Schließt ohne Leerzeichen ans vorige Wort an (`**fett**,`). */
+  klebt: boolean;
 }
 
-interface TextPdfOptionen {
-  /** Schriftgröße des Fließtexts. */
-  groesse?: number;
-  /** Abstand von Zeile zu Zeile. */
-  zeilenhoehe?: number;
-  /** Abstand nach jedem Absatz, in Zeilen. */
-  absatzAbstand?: number;
+/** Die vier Schnitte, die eine Vorlage benutzen kann. */
+interface Schriften {
+  normal: import('pdf-lib').PDFFont;
+  fett: import('pdf-lib').PDFFont;
+  kursiv: import('pdf-lib').PDFFont;
+  fettKursiv: import('pdf-lib').PDFFont;
 }
 
-async function textPdf(
-  rohAbsaetze: (string | TextAbsatz)[],
-  optionen: TextPdfOptionen = {},
-): Promise<Uint8Array> {
-  const { groesse = FONT_SIZE, zeilenhoehe = LINE_HEIGHT, absatzAbstand = 0.5 } = optionen;
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([A4.width, A4.height]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const fett = await doc.embedFont(StandardFonts.HelveticaBold);
-  const maxWidth = A4.width - 2 * MARGIN;
-  let y = A4.height - 80;
+const schriftFuer = (schriften: Schriften, stueck: TextStueck, fettBlock: boolean) => {
+  const fett = stueck.fett || fettBlock;
+  if (fett && stueck.kursiv) return schriften.fettKursiv;
+  if (fett) return schriften.fett;
+  return stueck.kursiv ? schriften.kursiv : schriften.normal;
+};
 
-  for (const roh of rohAbsaetze) {
-    const absatz: TextAbsatz = typeof roh === 'string' ? { text: roh } : roh;
-    const schrift = absatz.fett ? fett : font;
-    const schriftgroesse = absatz.groesse ?? groesse;
-    // Größerer Text braucht mehr Luft, sonst berühren sich die Zeilen.
-    const hoehe = schriftgroesse === groesse ? zeilenhoehe : schriftgroesse * 1.3;
-
-    y -= (absatz.abstandOben ?? 0) * zeilenhoehe;
-    for (const zeile of wrap(winAnsiText(absatz.text), schrift, schriftgroesse, maxWidth)) {
-      page.drawText(zeile, {
-        x: MARGIN, y, size: schriftgroesse, font: schrift, color: rgb(0, 0, 0),
-      });
-      y -= hoehe;
+/** Textstücke in Wörter zerlegen, jedes mit seiner Schrift und Breite. */
+function worte(
+  stuecke: TextStueck[],
+  schriften: Schriften,
+  fettBlock: boolean,
+  groesse: number,
+): Wort[] {
+  const ergebnis: Wort[] = [];
+  // An der Naht zwischen zwei Stücken entscheidet, ob dort ein Leerzeichen
+  // stand: Aus `**fett**,` darf kein `fett ,` werden und aus `mit **fett**`
+  // kein `mitfett`. Das Zeichen selbst geht beim Zerlegen verloren.
+  let luecke = true;
+  for (const stueck of stuecke) {
+    const font = schriftFuer(schriften, stueck, fettBlock);
+    const text = winAnsiText(stueck.text);
+    let klebt = ergebnis.length > 0 && !luecke && !/^\s/.test(text);
+    for (const wort of text.split(/\s+/)) {
+      if (wort === '') continue;
+      ergebnis.push({ text: wort, font, breite: font.widthOfTextAtSize(wort, groesse), klebt });
+      klebt = false;
     }
-    y -= absatzAbstand * zeilenhoehe;
+    luecke = /\s$/.test(text);
   }
-  return doc.save();
+  return ergebnis;
 }
 
-function wrap(text: string, font: import('pdf-lib').PDFFont, size: number, maxWidth: number): string[] {
-  if (text === '') return [''];
-  const woerter = text.split(' ');
-  const zeilen: string[] = [];
-  let aktuelle = '';
-  for (const wort of woerter) {
-    const test = aktuelle === '' ? wort : `${aktuelle} ${wort}`;
-    if (font.widthOfTextAtSize(test, size) <= maxWidth) {
-      aktuelle = test;
-    } else {
-      if (aktuelle !== '') zeilen.push(aktuelle);
-      aktuelle = wort;
+/** Wörter auf Zeilen verteilen, solange sie in die Breite passen. */
+function umbrich(worte: Wort[], leerzeichen: number, maxBreite: number): Wort[][] {
+  const zeilen: Wort[][] = [];
+  let zeile: Wort[] = [];
+  let breite = 0;
+  for (const wort of worte) {
+    const abstand = zeile.length === 0 || wort.klebt ? 0 : leerzeichen;
+    if (zeile.length > 0 && !wort.klebt && breite + abstand + wort.breite > maxBreite) {
+      zeilen.push(zeile);
+      zeile = [wort];
+      breite = wort.breite;
+      continue;
     }
+    zeile.push(wort);
+    breite += abstand + wort.breite;
   }
-  zeilen.push(aktuelle);
+  if (zeile.length > 0) zeilen.push(zeile);
   return zeilen;
 }
 
-/** Zulassungs-PDF (`<Matrikelnummer>.pdf`) für die Stud.IP-„Klausureinsicht“. */
-export async function zulassungsPdf(zulassung: Zulassung): Promise<Uint8Array> {
-  return textPdf([
-    'Klausurzulassung',
-    '',
-    'Dies ist eine automatisch generierte Datei und soll Sie darüber informieren, ' +
-      `dass Sie ${zulassung.vorname} ${zulassung.nachname} ${zulassung.matrikelnummer} ` +
-      `${zulassung.email} zur Klausur zugelassen sind.`,
-  ]);
+/** Wie ein Schreiben gesetzt wird. */
+export interface VorlagenPdfOptionen {
+  /** Schriftgröße des Fließtexts. */
+  groesse?: number;
+  /** Abstand von Zeile zu Zeile im Fließtext. */
+  zeilenhoehe?: number;
 }
 
 /**
- * Raum-/Sitzplatz-PDF (`<Matrikelnummer>.pdf`) mit den Klausurinformationen –
- * derselbe Wortlaut wie in `2_generate_studip_pdfs.py`. Die Sitzplatznummer
- * steht groß und fett am Ende: Sie ist das, was am Prüfungstag gesucht wird.
+ * Eine Markdown-Vorlage als PDF setzen. Platzhalter sind zu diesem Zeitpunkt
+ * schon ersetzt (`fuelleVorlage`), hier geht es nur noch ums Papier: Der Text
+ * läuft über so viele Seiten, wie er braucht.
  */
-export async function sitzplatzPdf(platz: Sitzplatz): Promise<Uint8Array> {
-  return textPdf(
-    [
-      { text: 'Klausur Information', fett: true, groesse: 14 },
-      { text: `Liebe/r ${platz.vorname},`, abstandOben: 0.5 },
-      {
-        text: 'Sie haben sich für die Klausur angemeldet. Bitte beachten Sie folgende Informationen:',
-        abstandOben: 0.5,
-      },
-      '- Um an der Prüfung teilnehmen zu können, müssen Sie unbedingt Ihr Stud.IP-Login ' +
-        '(User und Passwort) auswendig wissen.',
-      'Tipp: Passen Sie Ihr Passwort ggf. vor der Prüfung temporär so an, dass Sie es sich ' +
-        'sicher merken können.',
-      '- Bitte halten Sie zu Beginn und während der Prüfung Ihren Studierendenausweis / ' +
-        'Ihre Immatrikulationsbescheinigung (und ggf. den EXA-Anmeldenachweis) bereit.',
-      '- Bitte kommen Sie mit etwas zeitlichem Vorlauf zum Prüfungsraum und planen Sie am ' +
-        'Ende zusätzliche Zeit ein, da am Anfang etwas Zeit für Organisatorisches benötigt wird.',
-      { text: 'Datum / Gruppe / Zeiten:', abstandOben: 0.5 },
-      platz.reservierteZeit,
-      { text: 'Raum:', abstandOben: 0.5 },
-      platz.raum,
-      {
-        text: `SITZPLATZNUMMER: ${platz.sitzplatznummer}`,
-        fett: true,
-        groesse: 18,
-        abstandOben: 1.5,
-      },
-    ],
-    { groesse: 11, zeilenhoehe: 14, absatzAbstand: 0 },
-  );
+export async function vorlagenPdf(
+  markdown: string,
+  optionen: VorlagenPdfOptionen = {},
+): Promise<Uint8Array> {
+  const { groesse = FONT_SIZE, zeilenhoehe = LINE_HEIGHT } = optionen;
+  const doc = await PDFDocument.create();
+  const schriften: Schriften = {
+    normal: await doc.embedFont(StandardFonts.Helvetica),
+    fett: await doc.embedFont(StandardFonts.HelveticaBold),
+    kursiv: await doc.embedFont(StandardFonts.HelveticaOblique),
+    fettKursiv: await doc.embedFont(StandardFonts.HelveticaBoldOblique),
+  };
+  const maxBreite = A4.width - 2 * MARGIN;
+  const obenY = A4.height - 80;
+
+  let seite = doc.addPage([A4.width, A4.height]);
+  let y = obenY;
+  /** Platz für eine Zeile schaffen – notfalls auf einem neuen Blatt. */
+  const platzFuer = (hoehe: number) => {
+    if (y - hoehe >= MARGIN) return;
+    seite = doc.addPage([A4.width, A4.height]);
+    y = obenY;
+  };
+
+  for (const block of parseMarkdown(markdown)) {
+    // Eine Leerzeile ist ein halber Zeilenabstand; über einer Überschrift
+    // steht etwas mehr Luft, sonst klebt sie am Absatz davor.
+    y -= (block.leerzeilenDavor * 0.5 + (block.art === 'ueberschrift' ? 0.5 : 0)) * zeilenhoehe;
+
+    const schriftgroesse = groesse * block.faktor;
+    const hoehe = zeilenhoehe * block.faktor;
+
+    if (block.art === 'linie') {
+      platzFuer(hoehe);
+      y -= hoehe / 2;
+      seite.drawLine({
+        start: { x: MARGIN, y },
+        end: { x: MARGIN + maxBreite, y },
+        thickness: 0.75,
+        color: rgb(0.7, 0.74, 0.78),
+      });
+      y -= hoehe / 2;
+      continue;
+    }
+
+    // Der Einzug eines Aufzählungspunkts: Die Marke steht links davor, die
+    // Folgezeilen fluchten mit dem Text – nicht mit dem Strich.
+    const marke = block.marke ? winAnsiText(block.marke) : '';
+    const einzug =
+      marke === ''
+        ? 0
+        : schriften.normal.widthOfTextAtSize(`${marke} `, schriftgroesse);
+
+    const leerzeichen = schriften.normal.widthOfTextAtSize(' ', schriftgroesse);
+    const zeilen = umbrich(
+      worte(block.stuecke, schriften, block.fett, schriftgroesse),
+      leerzeichen,
+      maxBreite - einzug,
+    );
+
+    zeilen.forEach((zeile, i) => {
+      platzFuer(hoehe);
+      y -= hoehe;
+      if (i === 0 && marke !== '') {
+        seite.drawText(marke, {
+          x: MARGIN, y, size: schriftgroesse, font: schriften.normal, color: rgb(0, 0, 0),
+        });
+      }
+      let x = MARGIN + einzug;
+      zeile.forEach((wort, stelle) => {
+        if (stelle > 0 && !wort.klebt) x += leerzeichen;
+        seite.drawText(wort.text, {
+          x, y, size: schriftgroesse, font: wort.font, color: rgb(0, 0, 0),
+        });
+        x += wort.breite;
+      });
+    });
+    // Eine leere Zeile in der Vorlage („##“ ohne Text) verbraucht trotzdem
+    // ihre Höhe – sonst verschwindet sie spurlos.
+    if (zeilen.length === 0) y -= hoehe;
+  }
+
+  return doc.save();
+}
+
+/**
+ * Zulassungs-PDF (`<Matrikelnummer>.pdf`) für die Stud.IP-„Klausureinsicht“.
+ * Ohne eigene Vorlage gilt der Anfangstext aus `pdfVorlage.ts`.
+ */
+export async function zulassungsPdf(
+  zulassung: Zulassung,
+  vorlage: string = VORLAGE_ZULASSUNG,
+): Promise<Uint8Array> {
+  return vorlagenPdf(fuelleVorlage(vorlage, zulassungsWerte(zulassung)), {
+    groesse: 11,
+    zeilenhoehe: 14,
+  });
+}
+
+/**
+ * Raum-/Sitzplatz-PDF (`<Matrikelnummer>.pdf`) mit den Klausurinformationen.
+ * Ohne eigene Vorlage gilt der Anfangstext aus `pdfVorlage.ts` – derselbe
+ * Wortlaut wie in `2_generate_studip_pdfs.py`, mit der Sitzplatznummer groß
+ * am Ende: Sie ist das, was am Prüfungstag gesucht wird.
+ */
+export async function sitzplatzPdf(
+  platz: Sitzplatz,
+  vorlage: string = VORLAGE_SITZPLATZ,
+): Promise<Uint8Array> {
+  return vorlagenPdf(fuelleVorlage(vorlage, sitzplatzWerte(platz)), {
+    groesse: 11,
+    zeilenhoehe: 14,
+  });
 }
 
 // ---------------------------------------------------------------------------

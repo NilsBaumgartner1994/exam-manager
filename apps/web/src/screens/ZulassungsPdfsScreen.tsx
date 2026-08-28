@@ -1,18 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import {
+  BEISPIEL_WERTE,
   erstelleZip,
   istZulassungsDatei,
   ladeZulassungsBestand,
   ladeZulassungsFunde,
   nichtDarstellbareZeichen,
   parseStudipExport,
+  PLATZHALTER_ZULASSUNG,
   sucheImBestand,
   teilnehmerMitZulassung,
+  VORLAGE_DATEI_ZULASSUNG,
+  VORLAGE_NAME_ZULASSUNG,
+  VORLAGE_ZULASSUNG,
   winAnsiText,
   Zulassung,
   ZulassungsQuelle,
   zulassungsPdf,
+  zulassungsWerte,
 } from '@exam-manager/core';
 import {
   AppButton,
@@ -24,6 +30,7 @@ import {
   ScreenContainer,
   Section,
   StatusText,
+  VorlagenModal,
 } from '../components';
 import { downloadZip, readFileAsText } from '../files';
 import { useProjekt } from '../projekt';
@@ -75,6 +82,9 @@ export function ZulassungsPdfsScreen() {
   const [dateiname, setDateiname] = useState('zulassungs_pdfs.zip');
   /** Eingabe des Suchfelds „Zulassung einer Person prüfen“. */
   const [suche, setSuche] = useState('');
+  /** Text der Schreiben – bearbeitbar, mit dem Anfangstext als Vorgabe. */
+  const [vorlage, setVorlage] = useState(VORLAGE_ZULASSUNG);
+  const [vorlageOffen, setVorlageOffen] = useState(false);
 
   // Eingaben aus dem Projektordner, solange nichts eigenes geladen wurde.
   const projekt = useProjekt();
@@ -95,6 +105,15 @@ export function ZulassungsPdfsScreen() {
   const funde = useMemo(() => ladeZulassungsFunde(quellen), [quellen]);
   const treffer = useMemo(() => sucheImBestand(funde, suche), [funde, suche]);
   const wirdGesucht = suche.trim() !== '';
+
+  // Eine im Projekt gespeicherte Vorlage sticht den Anfangstext: Wer den Text
+  // einmal angepasst hat, findet ihn nach dem Neuladen wieder vor.
+  const vorlageDatei = projekt.dateienMit('pdfVorlage').find(
+    (datei) => datei.pfad === VORLAGE_DATEI_ZULASSUNG,
+  );
+  useEffect(() => {
+    if (vorlageDatei?.text) setVorlage(vorlageDatei.text);
+  }, [vorlageDatei?.text]);
 
   const ladeZulassungsOrdner = async (files: File[]) => {
     try {
@@ -125,7 +144,7 @@ export function ZulassungsPdfsScreen() {
     setStatus({ kind: 'info', text: 'Beispieldaten geladen.' });
   };
 
-  const erzeugePdfs = async () => {
+  const erzeugePdfs = async (mitVorlage = vorlage) => {
     if (quellen.length === 0 || !teilnehmerCsv) return;
     setLaeuft(true);
     setErgebnis(null);
@@ -136,7 +155,10 @@ export function ZulassungsPdfsScreen() {
       const zulassungen = teilnehmerMitZulassung(teilnehmer, bestand);
       const dateien = new Map<string, Uint8Array | string>();
       for (const zulassung of zulassungen) {
-        dateien.set(`${zulassung.matrikelnummer}.pdf`, await zulassungsPdf(zulassung));
+        dateien.set(
+          `${zulassung.matrikelnummer}.pdf`,
+          await zulassungsPdf(zulassung, mitVorlage),
+        );
       }
       const zip = await erstelleZip(dateien);
       // Der PDF-Ordner des Projekts wird komplett ersetzt: Ein PDF aus einem
@@ -240,9 +262,28 @@ export function ZulassungsPdfsScreen() {
         </Section>
       ) : null}
 
+      <Section title="Text der PDFs">
+        <Text style={styles.hinweis}>
+          Was in den Schreiben steht, lässt sich als Markdown mit Platzhaltern anpassen –
+          etwa die Anrede oder ein Hinweis zur Einsicht. Der Text wird im Projekt gespeichert
+          und liegt in Vorlagen/.
+        </Text>
+        <AppButton
+          title="Text anpassen"
+          variant="secondary"
+          onPress={() => setVorlageOffen(true)}
+          testID="zulassungspdfs-vorlage-oeffnen"
+        />
+        {vorlage !== VORLAGE_ZULASSUNG ? (
+          <StatusText kind="info" testID="zulassungspdfs-vorlage-geaendert">
+            Der Text weicht vom Standardtext ab.
+          </StatusText>
+        ) : null}
+      </Section>
+
       <AppButton
         title="PDFs erzeugen"
-        onPress={erzeugePdfs}
+        onPress={() => erzeugePdfs()}
         disabled={laeuft || quellen.length === 0 || !teilnehmerCsv}
         testID="zulassungspdfs-erzeugen"
       />
@@ -308,6 +349,27 @@ export function ZulassungsPdfsScreen() {
           testID="pdfs-projekt-download"
         />
       </Section>
+
+      <VorlagenModal
+        offen={vorlageOffen}
+        titel="Text der Zulassungs-PDFs"
+        untertitel="Markdown mit Platzhaltern – gilt für alle erzeugten Schreiben"
+        vorlage={vorlage}
+        standard={VORLAGE_ZULASSUNG}
+        platzhalter={PLATZHALTER_ZULASSUNG}
+        werte={
+          ergebnis?.zulassungen[0] ? zulassungsWerte(ergebnis.zulassungen[0]) : BEISPIEL_WERTE
+        }
+        onSpeichern={(neu) => {
+          setVorlage(neu);
+          projekt.schreibe(VORLAGE_NAME_ZULASSUNG, neu, 'pdfVorlage');
+          // Liegen schon PDFs vor, gehören sie zum alten Text – also neu
+          // erzeugen, statt sie stillschweigend veralten zu lassen.
+          if (ergebnis) void erzeugePdfs(neu);
+        }}
+        onSchliessen={() => setVorlageOffen(false)}
+        testID="zulassungspdfs-vorlage"
+      />
     </ScreenContainer>
   );
 }

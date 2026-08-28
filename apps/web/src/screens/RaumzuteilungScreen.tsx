@@ -4,6 +4,7 @@ import readXlsxFile from 'read-excel-file';
 import {
   AnmeldungsPruefung,
   anzeigeBereich,
+  BEISPIEL_WERTE,
   Bereich,
   bereichAus,
   bereichName,
@@ -23,6 +24,7 @@ import {
   parseRaeume,
   parseRaumschemaDateien,
   parseZulassungsliste,
+  PLATZHALTER_SITZPLATZ,
   Platzbelegung,
   platzSchluessel,
   pruefeAnmeldungen,
@@ -42,6 +44,7 @@ import {
   sitzplaetzeToCsv,
   sitzplatznummern,
   sitzplatzPdf,
+  sitzplatzWerte,
   sortByNachname,
   standardRaumschema,
   tabellenPdf,
@@ -49,6 +52,9 @@ import {
   verschiebeBelegung,
   verteileAufRaumschemata,
   Verteilmodus,
+  VORLAGE_DATEI_SITZPLATZ,
+  VORLAGE_NAME_SITZPLATZ,
+  VORLAGE_SITZPLATZ,
   winAnsiText,
   Zulassung,
 } from '@exam-manager/core';
@@ -73,6 +79,7 @@ import {
   Section,
   StatusText,
   useRaumplanEditor,
+  VorlagenModal,
   zeilenZuRaeumen,
   type RaumZeile,
   type Verschiebung,
@@ -234,6 +241,9 @@ export function RaumzuteilungScreen() {
   const [dateiname, setDateiname] = useState('studierendeZuRaumUndZeitZuordnung.csv');
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
   const [pdfHinweis, setPdfHinweis] = useState<string | null>(null);
+  /** Text der Sitzplatz-PDFs – bearbeitbar, mit dem Anfangstext als Vorgabe. */
+  const [vorlage, setVorlage] = useState(VORLAGE_SITZPLATZ);
+  const [vorlageOffen, setVorlageOffen] = useState(false);
 
   // Sitzplan im Raum.
   const [schemata, setSchemata] = useState<Raumschema[]>([]);
@@ -754,6 +764,15 @@ export function RaumzuteilungScreen() {
     }, 100);
   };
 
+  // Eine im Projekt gespeicherte Vorlage sticht den Anfangstext: Wer den Text
+  // einmal angepasst hat, findet ihn nach dem Neuladen wieder vor.
+  const vorlageDatei = projekt
+    .dateienMit('pdfVorlage')
+    .find((datei) => datei.pfad === VORLAGE_DATEI_SITZPLATZ);
+  useEffect(() => {
+    if (vorlageDatei?.text) setVorlage(vorlageDatei.text);
+  }, [vorlageDatei?.text]);
+
   const pdfsHerunterladen = async () => {
     if (!angezeigteSitzplaetze) return;
     setFehler(null);
@@ -762,7 +781,7 @@ export function RaumzuteilungScreen() {
     try {
       const dateien = new Map<string, Uint8Array | string>();
       for (const platz of angezeigteSitzplaetze) {
-        dateien.set(`${platz.matrikelnummer}.pdf`, await sitzplatzPdf(platz));
+        dateien.set(`${platz.matrikelnummer}.pdf`, await sitzplatzPdf(platz, vorlage));
       }
       downloadZip('sitzplatz_pdfs.zip', await erstelleZip(dateien));
       // Die eingebaute PDF-Schrift kennt nicht jedes Sonderzeichen; statt am
@@ -1380,6 +1399,21 @@ export function RaumzuteilungScreen() {
             disabled={pdfLaeuft}
             testID="raum-download-pdfs"
           />
+          <AppButton
+            title="Text der PDFs anpassen"
+            variant="secondary"
+            onPress={() => setVorlageOffen(true)}
+            testID="raum-vorlage-oeffnen"
+          />
+          <Text style={styles.hinweis}>
+            Was in den Sitzplatz-PDFs steht, lässt sich als Markdown mit Platzhaltern anpassen.
+            Der Text wird im Projekt gespeichert und liegt in Vorlagen/.
+          </Text>
+          {vorlage !== VORLAGE_SITZPLATZ ? (
+            <StatusText kind="info" testID="raum-vorlage-geaendert">
+              Der Text weicht vom Standardtext ab.
+            </StatusText>
+          ) : null}
           {pdfHinweis ? (
             <StatusText kind="info" testID="raum-pdf-sonderzeichen">{pdfHinweis}</StatusText>
           ) : null}
@@ -1392,6 +1426,24 @@ export function RaumzuteilungScreen() {
           testID="raum-projekt-download"
         />
       </Section>
+
+      <VorlagenModal
+        offen={vorlageOffen}
+        titel="Text der Sitzplatz-PDFs"
+        untertitel="Markdown mit Platzhaltern – gilt für alle erzeugten Schreiben"
+        vorlage={vorlage}
+        standard={VORLAGE_SITZPLATZ}
+        platzhalter={PLATZHALTER_SITZPLATZ}
+        werte={
+          angezeigteSitzplaetze?.[0] ? sitzplatzWerte(angezeigteSitzplaetze[0]) : BEISPIEL_WERTE
+        }
+        onSpeichern={(neu) => {
+          setVorlage(neu);
+          projekt.schreibe(VORLAGE_NAME_SITZPLATZ, neu, 'pdfVorlage');
+        }}
+        onSchliessen={() => setVorlageOffen(false)}
+        testID="raum-vorlage"
+      />
 
       {/* Was an einem Platz zu tun ist, steht im Blatt – nicht in einem Modus,
           den man vorher wählen muss. */}

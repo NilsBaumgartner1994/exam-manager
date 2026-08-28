@@ -9,5 +9,6 @@ export * from './projekt';
 export * from './raumzuteilung';
 export * from './raumschema';
 export * from './raumbelegung';
+export * from './pdfVorlage';
 export * from './pdf';
 export * from './zip';

@@ -129,7 +129,8 @@ Konventionen des Datensatzes:
   Das ist Absicht: In der Praxis heißen Exporte uneinheitlich, und die falsche
   Datei stillschweigend auszuwerten ist schlimmer, als eine sichtbar zu
   ignorieren. Die Kopfzeile entscheidet nur noch dort, wo ein Ordner mehrere
-  Rollen aufnimmt (`Raeume/`: Raumliste oder Raumschema).
+  Rollen aufnimmt (`Raeume/`: Raumliste oder Raumschema). `Vorlagen/` nimmt
+  nur `*vorlage*.md` auf – die LIESMICH daneben bleibt „nicht zugeordnet“.
 - Der Aufbau folgt den Schritten der App: `0_Input_…` für alles, was von außen
   kommt (Prüfungsamt, Stud.IP, VIPS), nummerierte Export-Ordner für die
   Ergebnisse der Schritte. `Zulassungen/` und `Raeume/` bleiben unnummeriert,
@@ -466,6 +467,29 @@ jedes Zeichen, das es durchlässt, auch wirklich ins PDF“ als Kontrolle: Er
 jagt jedes Zeichen bis U+201F durch pdf-lib. Die Screens melden über
 `nichtDarstellbareZeichen()`, welche Namen betroffen sind – ein Name, der im
 PDF anders steht als in der Liste, darf nicht stillschweigend passieren.
+
+## Text der Schreiben (Vorlagen)
+
+Was in den Zulassungs- und Sitzplatz-PDFs steht, gehört **nicht in den
+Quelltext**: Der Wortlaut ändert sich jedes Semester, und wer ihn ändern will,
+soll dafür nicht das Repository anfassen müssen. `packages/core/src/pdfVorlage.ts`
+hält den Anfangstext (`VORLAGE_ZULASSUNG`, `VORLAGE_SITZPLATZ`), die
+Platzhalterlisten und den Markdown-Leser; `vorlagenPdf()` in `pdf.ts` setzt das
+Ergebnis aufs Blatt. Die App bearbeitet die Vorlage im `VorlagenModal` und legt
+sie im Projekt unter `Vorlagen/` ab (Rolle `pdfVorlage`).
+
+- Unterstützt wird nur, was ein Anschreiben braucht: `#`/`##`/`###`,
+  `**fett**`, `*kursiv*`, `- `/`1. `, `---`. **Jede Zeile beginnt eine neue
+  Zeile** – ein Anschreiben wird zeilenweise gesetzt, nicht zu einem
+  Fließtextabsatz zusammengezogen; eine Leerzeile ist ein halber Zeilenabstand.
+- Kursiv gilt nur für Sternchen, nicht für Unterstriche: `94_E01 bis 94_E03`
+  soll aufrecht bleiben.
+- Unbekannte Platzhalter bleiben stehen (`<Vornmae>` im PDF ist ein sichtbarer
+  Tippfehler, ein leeres Feld wäre ein unsichtbarer).
+- Wer die Anfangstexte ändert, führt `python3 tools/build_sample_project.py`
+  aus: Der Builder liest sie aus `pdfVorlage.ts` und schreibt sie nach
+  `Beispielprojekt/Vorlagen/` – zwei Fassungen desselben Textes laufen sonst
+  binnen eines Semesters auseinander.
 
 ## Automatische Prüfungen
 

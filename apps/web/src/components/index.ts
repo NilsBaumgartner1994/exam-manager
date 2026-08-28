@@ -39,3 +39,4 @@ export { ScreenContainer } from './ScreenContainer';
 export { Section } from './Section';
 export { StatusText } from './StatusText';
 export { Tile } from './Tile';
+export { VorlagenModal } from './VorlagenModal';

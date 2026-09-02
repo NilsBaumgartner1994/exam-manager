@@ -319,13 +319,27 @@ Und die vier Schritte selbst:
    Die E-Mail-Adressen kommen dabei aus dem Zulassungsbestand; der HIS-Export
    hat keine.
 
-   **Verteilen:** Über die Räume hinweg entweder **gleichmäßig** (nach
-   relativer Auslastung) oder **Raum für Raum**. Innerhalb eines Raums
-   entweder **der Reihe nach** oder mit **größtmöglichem Abstand**: Dann
-   werden die Plätze so gewählt, dass die Geprüften möglichst weit
-   auseinandersitzen – ein Platz zur Seite zählt doppelt (dort schaut man
+   **Verteilen – erst die Plätze, dann die Personen:** Zuerst werden die
+   Plätze gewählt: ein erster, danach immer der mit dem **größten Abstand** zu
+   den schon gewählten (Häkchen „Plätze so weit auseinander wie möglich“,
+   voreingestellt). Ein Platz zur Seite zählt dabei doppelt (dort schaut man
    direkt aufs Nachbarblatt), und zwei sitzen lieber hintereinander als schräg
-   versetzt, weil man dem Vordermann in den Rücken sieht.
+   versetzt, weil man dem Vordermann in den Rücken sieht. Ohne Haken werden
+   die Plätze schlicht der Reihe nach genommen. Über die Räume hinweg wird
+   entweder **ein Raum gefüllt, bis er voll ist, und dann der nächste**
+   (voreingestellt) oder **gleichmäßig** – dann geht jeder neue Platz in den
+   Raum, in dem prozentual am meisten frei ist.
+
+   **Erst danach** kommen die Teilnehmenden auf die Plätze, der Reihe nach:
+   Raum für Raum, darin Reihe für Reihe. Mit dem Nachnamen steigt so die
+   Sitzplatznummer, auch wenn die Plätze quer durch den Raum liegen.
+
+   **Die Vorschau steht darunter** und rechnet mit: Jede Umstellung zeigt
+   sofort, wo die Leute säßen – ein Plan je benutztem Raumeinsatz, leer
+   bleibende Räume als Zeile darunter. Erst „Verteilung übernehmen“ macht
+   daraus den Sitzplan, an dem sich danach von Hand weiterarbeiten lässt
+   (jemanden festsetzen, einen Platz mit einer Nachricht freihalten, neu
+   verteilen). Heruntergeladen wird danach, in den Menüs „Datei“ und „PDF“.
 
    **Räume der Klausur:** Der Bestand des Hauses steht in `Raeume/` (Schritt 5)
    und gilt für jedes Jahr. Hier wird ausgewählt, welche dieser Räume die
@@ -371,6 +385,11 @@ Und die vier Schritte selbst:
      übrig, nennt die App die Person). Die Reserve steht in der Belegung,
      nicht im Raster des Raums – ein dauerhaft freier Tisch bekommt in
      Schritt 5 das Element „Reserve“.
+   - **Nachricht am Platz** – zu einem freigehaltenen Platz lässt sich
+     hinschreiben, **warum** er frei bleibt („Tisch wackelt“,
+     „Nachteilsausgleich“). Sie steht statt „Reserve“ im Kasten des Plans, im
+     PDF, in der Belegungs-CSV (Spalte `Hinweis`) und im Sitzplan als Tabelle
+     – damit die Aufsicht die Lücke nicht für einen Fehler hält.
    - **Was in den Kästen steht** – Häkchen über dem Plan: Namenskürzel,
      Matrikelnummer, Sitzplatznummer, „Pult“ beschriften. Sie gelten für den
      Bildschirm **und** für die PDFs; auf dem Aushang steht die Sitzplatznummer
@@ -673,8 +692,8 @@ yarn 4_raumzuteilung [<allowedStudents.csv>] [<klausurraeume.csv>] [Schalter]
 |---|---|
 | `--projekt <Ordner>` | Projektordner, aus dem fehlende Eingaben kommen |
 | `--raeume <Ordner>` | Ordner mit den Rastern, je Raum eine CSV |
-| `--modus <Wort>` | `balanced` (gleichmäßig) oder `sequential` (Raum für Raum), Standard `balanced` |
-| `--sitzverteilung <Wort>` | Plätze im Raum: `lesereihenfolge` oder `abstand`, Standard `lesereihenfolge` |
+| `--modus <Wort>` | Räume füllen: `nacheinander` oder `gleichmaessig`, Standard `nacheinander` (die englischen Wörter `sequential`/`balanced` der ersten Fassung gelten weiter) |
+| `--sitzverteilung <Wort>` | Plätze im Raum: `abstand` (so weit auseinander wie möglich) oder `lesereihenfolge`, Standard `abstand` |
 | `--start <Zahl>` | erste Sitzplatznummer (Standard 1001) |
 | `--out <Datei>` | Sitzplan hierhin schreiben; die beiden Raster-CSVs landen daneben (mit `--projekt`: `4_Raumzuteilung_Export/`) |
 | `--trotzdem` | auch verteilen, wenn die Plätze nicht reichen |
@@ -689,7 +708,7 @@ Matrikelnummer und Name (`sitzplan_namen.csv`).
 
 ```bash
 yarn 4_raumzuteilung allowedStudents.csv klausurraeume.csv --raeume Raeume/
-yarn 4_raumzuteilung --projekt Beispielprojekt --modus sequential --sitzverteilung abstand
+yarn 4_raumzuteilung --projekt Beispielprojekt --modus gleichmaessig --sitzverteilung lesereihenfolge
 ```
 
 #### `yarn 5_raeume` – Räume & Raumpläne (Schritt 5)

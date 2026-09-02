@@ -11,7 +11,7 @@ import {
   bestandeneBlaetter,
   defaultZulassungsDateiname,
   einsatzRaster,
-  erstelleRaumzuteilung,
+  planeSitzplan,
   kursAusDateiname,
   ladeZulassungsBestand,
   ladeZulassungsFunde,
@@ -30,7 +30,6 @@ import {
   raumschemataToCsv,
   reservezellen,
   raumSchluessel,
-  sitzplaetzeMitBelegung,
   sitzplaetzeToCsv,
   sitzplanRasterCsv,
   sitzplatznummern,
@@ -40,8 +39,8 @@ import {
   teilnehmerMitZulassung,
   tischzellen,
   veranstaltungAlsKennung,
-  verteileAufRaumschemata,
-  Verteilmodus,
+  raumfuellungAus,
+  RAUMFUELLUNGEN,
   VORLAGE_ZULASSUNG,
   zulassungenToCsv,
   zulassungsPdf,
@@ -417,6 +416,8 @@ const raumzuteilung: Befehl = {
     titel: '4. Raumzuteilung & Sitzplan',
     beschreibung:
       'Verteilt die Teilnehmenden auf die Räume dieser Klausur und vergibt Sitzplatznummern.\n' +
+      'Zuerst werden die Plätze gewählt (so weit auseinander wie möglich), erst danach\n' +
+      'kommen die Personen der Reihe nach darauf – Raum für Raum, darin Reihe für Reihe.\n' +
       'Wie viele Plätze ein Raum hat, sind die Tische in seinem Raster – reichen sie nicht,\n' +
       'sagt der Befehl, wie viele fehlen, und verteilt nicht.\n' +
       'Geschrieben werden drei Dateien: der Sitzplan als Liste und der Raumplan als Tabelle,\n' +
@@ -431,15 +432,15 @@ const raumzuteilung: Befehl = {
       {
         name: 'modus',
         art: 'text',
-        beschreibung: 'balanced (gleichmäßig) oder sequential (Raum für Raum)',
-        standard: 'balanced',
+        beschreibung: 'Räume nacheinander füllen oder gleichmaessig',
+        standard: 'nacheinander',
       },
       { name: 'start', art: 'zahl', beschreibung: 'erste Sitzplatznummer', standard: 1001 },
       {
         name: 'sitzverteilung',
         art: 'text',
-        beschreibung: 'Plätze im Raum: lesereihenfolge oder abstand',
-        standard: 'lesereihenfolge',
+        beschreibung: 'Plätze im Raum: abstand (so weit auseinander wie möglich) oder lesereihenfolge',
+        standard: 'abstand',
       },
       {
         name: 'out',
@@ -451,7 +452,7 @@ const raumzuteilung: Befehl = {
     ],
     beispiele: [
       'yarn 4_raumzuteilung allowedStudents.csv klausurraeume.csv --raeume Raeume/',
-      'yarn 4_raumzuteilung --projekt Beispielprojekt --modus sequential --sitzverteilung abstand',
+      'yarn 4_raumzuteilung --projekt Beispielprojekt --modus gleichmaessig --sitzverteilung lesereihenfolge',
     ],
   },
   async ausfuehren(args) {
@@ -491,7 +492,7 @@ const raumzuteilung: Befehl = {
         `Raster ${schema.raum}: ${tischzellen(schema).length} Tische, ${reservezellen(schema).length} dauerhaft frei`,
       );
     }
-    melde(`Verteilung über die Räume: ${text(args, 'modus') ?? 'balanced'}`);
+    melde(`Räume füllen: ${text(args, 'modus') ?? 'nacheinander'}`);
     console.log('');
     console.log(
       tabelle(
@@ -519,35 +520,36 @@ const raumzuteilung: Befehl = {
       );
     }
 
-    const modus = text(args, 'modus') ?? 'balanced';
-    if (modus !== 'balanced' && modus !== 'sequential') {
-      throw new FehlendeAngabe(`--modus kennt nur balanced und sequential, nicht „${modus}“.`);
+    const modusWort = text(args, 'modus') ?? 'nacheinander';
+    const fuellung = raumfuellungAus(modusWort);
+    if (fuellung === null) {
+      throw new FehlendeAngabe(
+        `--modus kennt nur ${RAUMFUELLUNGEN.join(' und ')}, nicht „${modusWort}“.`,
+      );
     }
-    const sitzverteilung = text(args, 'sitzverteilung') ?? 'lesereihenfolge';
+    const sitzverteilung = text(args, 'sitzverteilung') ?? 'abstand';
     if (sitzverteilung !== 'lesereihenfolge' && sitzverteilung !== 'abstand') {
       throw new FehlendeAngabe(
         `--sitzverteilung kennt nur lesereihenfolge und abstand, nicht „${sitzverteilung}“.`,
       );
     }
     const ersteNummer = zahl(args, 'start', 1001);
-    const { sitzplaetze: verteilt, ohnePlatz } = erstelleRaumzuteilung(teilnehmer, raeume, {
-      modus: modus as Verteilmodus,
-      plaetze,
-      ersteSitzplatznummer: ersteNummer,
-    });
 
-    // Wer in welchem Raum sitzt, ist die eine Hälfte; an welchem Tisch, die
-    // andere. Beides zusammen ergibt den Plan, den auch der Screen zeigt –
-    // deshalb geht die Zuteilung hier noch durch die Raster.
+    // Erst die Plätze, dann die Personen: `planeSitzplan` wählt die Tische
+    // (mit Abstand oder der Reihe nach, die Räume nacheinander oder
+    // gleichmäßig) und setzt erst danach die Teilnehmenden darauf.
     const einsaetze = einsatzRaster(raeume, schemata);
-    const nummern = sitzplatznummern(einsaetze, ersteNummer);
-    const { belegung, ohnePlatz: ohneTisch } = verteileAufRaumschemata(
-      verteilt,
-      einsaetze,
+    const { belegung, sitzplaetze, nummern, ohnePlatz } = planeSitzplan(
+      teilnehmer,
+      raeume,
+      schemata,
       [],
-      sitzverteilung as Sitzverteilung,
+      {
+        sitzverteilung: sitzverteilung as Sitzverteilung,
+        fuellung,
+        ersteSitzplatznummer: ersteNummer,
+      },
     );
-    const sitzplaetze = sitzplaetzeMitBelegung(verteilt, belegung, nummern);
     melde(`Plätze im Raum: ${sitzverteilung}, erste Sitzplatznummer ${ersteNummer}`);
     for (const einsatz of einsaetze) {
       const belegt = belegung.filter(
@@ -572,12 +574,7 @@ const raumzuteilung: Befehl = {
     console.log(`${sitzplaetze.length} Sitzplätze vergeben.`);
     if (ohnePlatz.length > 0) {
       console.log(
-        `Kein Platz für: ${ohnePlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')}`,
-      );
-    }
-    if (ohneTisch.length > 0) {
-      console.log(
-        `Ohne Tisch im Sitzplan: ${ohneTisch.map((p) => `${p.vorname} ${p.nachname}`).join(', ')} – im Raster mehr Tische setzen.`,
+        `Kein Platz für: ${ohnePlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')} – weitere Räume eintragen oder im Raster mehr Tische setzen.`,
       );
     }
 

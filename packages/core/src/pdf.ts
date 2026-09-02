@@ -477,7 +477,9 @@ function zellTexte(
   // Dieselbe Reihenfolge wie am Bildschirm: erst wer, dann welche Nummer.
   const texte: string[] = [];
   if (inhalt.platz?.reserviert) {
-    texte.push('Reserve');
+    // Steht eine Nachricht am Platz, steht sie auch auf dem Papier: „Reserve“
+    // beantwortet nicht, warum hier niemand sitzt.
+    texte.push(inhalt.platz.notiz || 'Reserve');
   } else if (inhalt.person) {
     if (anzeige.namensPraefix) texte.push(inhalt.person.anfangNachname);
     if (anzeige.matrikelnummer) texte.push(inhalt.person.matrikelnummer);

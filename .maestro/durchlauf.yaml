@@ -96,11 +96,19 @@ url: http://localhost:8081
 # haben zusammen 345 Plätze (die Tische in ihren Rastern).
 - scrollUntilVisible:
     element: 'höchstens 345 Plätze'
+# Unter den Einstellungen steht die Vorschau: Sie rechnet mit, sobald eine
+# Verteilungsart gewählt wird – erst der Knopf darunter übernimmt sie.
 - scrollUntilVisible:
-    element: 'Zuteilung erstellen'
-- tapOn: 'Zuteilung erstellen'
-# Danach steht das Ergebnis im Reiter „Listen“.
-- assertVisible: '7 Sitzplätze in 5 Räumen vergeben'
+    element: 'Plätze so weit auseinander wie möglich'
+- scrollUntilVisible:
+    element: 'Vorschau'
+- assertVisible: '7 von 7 Teilnehmenden bekämen einen Platz'
+- scrollUntilVisible:
+    element: 'Verteilung übernehmen'
+- tapOn: 'Verteilung übernehmen'
+# Danach steht das Ergebnis im Reiter „Listen“. Die Räume werden nacheinander
+# gefüllt, und in 01/E01 (193 Plätze) ist für alle sieben Platz.
+- assertVisible: '7 Sitzplätze in einem Raum vergeben'
 # Der Plan als Tabelle: einmal nur mit den Nummern (Aushang), einmal mit
 # Matrikelnummer und Name (Aufsicht).
 - tapOn:

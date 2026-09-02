@@ -1,14 +1,18 @@
 /**
- * Portierung von `4_MailRaumZuordnung/2_raum_zuteilung_erstellen/createRoomAssignment.py`:
- * Studierende auf Räume verteilen, Sitzplatznummern und eindeutige
- * Namenspräfixe (für den Aushang) vergeben.
+ * Die Räume einer Klausur: welche es sind, wie viele Plätze sie haben und ob
+ * sie reichen.
+ *
+ * **Wer wo sitzt, steht hier nicht** – das rechnet `planeSitzplan`
+ * (`sitzplanung.ts`) aus den Rastern: erst die Plätze wählen, dann die
+ * Personen zuordnen. Hier bleibt, was für alle Schritte davor gilt – die
+ * Raumliste, die Platzzahl aus dem Raster, die Platzfrage und das CSV-Format
+ * des Sitzplans (Portierung von
+ * `4_MailRaumZuordnung/2_raum_zuteilung_erstellen/createRoomAssignment.py`).
  */
 import { parseCsvObjects, toCsv } from './csv';
 import { normalizeName } from './namen';
 import { Raumschema, tischzellen } from './raumschema';
 import { Raum, Sitzplatz, Zulassung } from './types';
-
-export type Verteilmodus = 'balanced' | 'sequential';
 
 /**
  * Raumliste einer Klausur (`Raum;ReservierteZeit`) einlesen.
@@ -67,7 +71,7 @@ export function plaetzeGesamt(raeume: Raum[], plaetze: Map<string, number>): num
  *
  * Die Frage steht vor jeder Zuteilung: Erst wenn genug Plätze da sind, lohnt
  * sich das Verteilen. Deshalb ist sie eine eigene Auskunft und nicht bloß ein
- * Nebenprodukt von `erstelleRaumzuteilung` – die Antwort „für 12 Leute fehlen
+ * Nebenprodukt des Verteilens – die Antwort „für 12 Leute fehlen
  * 4 Plätze“ kommt sonst erst, wenn schon verteilt wurde.
  */
 export interface Platzbedarf {
@@ -137,114 +141,6 @@ export function raeumeToCsv(raeume: Raum[]): string {
     ['Raum', 'ReservierteZeit'],
     ...raeume.map((r) => [r.raum, r.reservierteZeit]),
   ]);
-}
-
-export interface RaumzuteilungsOptionen {
-  modus: Verteilmodus;
-  /**
-   * Plätze je Raum, aus den Rastern (`plaetzeJeRaum`). Ein Raum ohne Raster
-   * hat keine Plätze – wer dort landen würde, steht hinterher in `ohnePlatz`.
-   */
-  plaetze: Map<string, number>;
-  /** Erste vergebene Sitzplatznummer (Default 1001). */
-  ersteSitzplatznummer?: number;
-  /**
-   * Wer schon fest auf einem Platz sitzt: Matrikelnummer → Schlüssel des
-   * Raumeinsatzes (`raumSchluessel`). Diese Personen kommen in ihren Raum,
-   * bevor verteilt wird – sonst landete jemand, den man vorher von Hand
-   * gesetzt hat, beim nächsten Verteilen woanders.
-   */
-  vorgaben?: Map<string, string>;
-}
-
-export interface Raumzuteilung {
-  sitzplaetze: Sitzplatz[];
-  /** Personen, für die kein Platz mehr frei war. */
-  ohnePlatz: Zulassung[];
-}
-
-/**
- * Teilnehmende auf Räume verteilen.
- * `balanced` füllt nach geringster relativer Auslastung, `sequential` Raum für Raum.
- * Sitzplatznummern werden anschließend je Raum/Zeit alphabetisch vergeben.
- */
-export function erstelleRaumzuteilung(
-  teilnehmer: Zulassung[],
-  raeume: Raum[],
-  optionen: RaumzuteilungsOptionen,
-): Raumzuteilung {
-  const belegung = raeume.map((raum) => ({
-    raum,
-    belegt: 0,
-    plaetze: plaetzeDesRaums(raum, optionen.plaetze),
-  }));
-  const zuteilung: { person: Zulassung; raum: Raum }[] = [];
-  const ohnePlatz: Zulassung[] = [];
-  let raumIndex = 0;
-
-  // Erst die Vorgaben: Wer im Sitzplan festgesetzt wurde, bleibt in seinem
-  // Raum – der Platz dort ist belegt, bevor der Rest verteilt wird.
-  const vorgaben = optionen.vorgaben ?? new Map<string, string>();
-  const festgesetzt = new Set<string>();
-  for (const person of teilnehmer) {
-    const schluessel = vorgaben.get(person.matrikelnummer);
-    if (schluessel === undefined) continue;
-    const ziel = belegung.find((eintrag) => raumSchluessel(eintrag.raum) === schluessel);
-    if (!ziel) continue;
-    ziel.belegt++;
-    zuteilung.push({ person, raum: ziel.raum });
-    festgesetzt.add(person.matrikelnummer);
-  }
-
-  for (const person of teilnehmer) {
-    if (festgesetzt.has(person.matrikelnummer)) continue;
-    let ziel: { raum: Raum; belegt: number; plaetze: number } | undefined;
-    if (optionen.modus === 'balanced') {
-      ziel = [...belegung]
-        .filter((b) => b.belegt < b.plaetze)
-        .sort((a, b) => a.belegt / a.plaetze - b.belegt / b.plaetze)[0];
-    } else {
-      while (raumIndex < belegung.length && belegung[raumIndex].belegt >= belegung[raumIndex].plaetze) {
-        raumIndex++;
-      }
-      ziel = belegung[raumIndex];
-    }
-    if (!ziel) {
-      ohnePlatz.push(person);
-      continue;
-    }
-    ziel.belegt++;
-    zuteilung.push({ person, raum: ziel.raum });
-  }
-
-  // Sitzplatznummern: sortiert nach Zeit+Raum, dann Nachname (normalisiert).
-  // Sortiert wird über den Schlüssel des Einsatzes: Zwei Durchgänge desselben
-  // Raums sind zwei Gruppen, auch wenn der Name derselbe ist.
-  zuteilung.sort((a, b) => {
-    const zeitRaumA = `${a.raum.reservierteZeit} - ${raumSchluessel(a.raum)}`;
-    const zeitRaumB = `${b.raum.reservierteZeit} - ${raumSchluessel(b.raum)}`;
-    if (zeitRaumA !== zeitRaumB) return zeitRaumA.localeCompare(zeitRaumB);
-    return normalizeName(a.person.nachname).localeCompare(normalizeName(b.person.nachname));
-  });
-
-  const start = optionen.ersteSitzplatznummer ?? 1001;
-  const praefixe = eindeutigeNamenspraefixe(zuteilung.map(({ person }) => person));
-
-  const sitzplaetze = zuteilung.map(({ person, raum }, i) => ({
-    anfangNachname: praefixe.get(person) ?? person.nachname,
-    sitzplatznummer: start + i,
-    raum: raum.raum,
-    raumSchluessel: raumSchluessel(raum),
-    reservierteZeit: raum.reservierteZeit,
-    matrikelnummer: person.matrikelnummer,
-    anwesend: '',
-    nachname: person.nachname,
-    vorname: person.vorname,
-    zeitUndRaum: `${raum.reservierteZeit} - ${raum.raum}`,
-    email: person.email,
-  }));
-
-  return { sitzplaetze, ohnePlatz };
 }
 
 /**

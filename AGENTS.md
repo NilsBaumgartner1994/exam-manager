@@ -254,9 +254,11 @@ Konventionen des Datensatzes:
   Zahl daneben wäre nach dem ersten Umbau falsch, und niemand könnte sagen,
   welche der beiden gilt – deshalb gibt es `Raeume/raeume.csv` nicht mehr.
   Eine ältere Datei mit einer Spalte `Plätze` bleibt lesbar, die Spalte wird
-  überlesen. Wer eine Verteilung rechnet, gibt die Plätze als Map mit
-  (`erstelleRaumzuteilung(..., { plaetze })`); ein Raum ohne Raster hat keine
-  und bleibt leer, statt geraten zu werden.
+  überlesen. Verteilt wird deshalb über die Raster selbst
+  (`planeSitzplan(teilnehmer, raeume, schemata, …)`); ein Raum ohne Raster hat
+  keine Plätze und bleibt leer, statt geraten zu werden. Für Auskünfte über
+  die Menge gibt es die Map aus `plaetzeJeRaum` (`pruefePlatzbedarf`,
+  Raumliste).
 - **Vor dem Verteilen steht die Frage, ob es reicht** (`pruefePlatzbedarf`):
   Teilnehmende, die maximale Zahl der Plätze, wie viele frei bleiben oder
   fehlen und welche Räume kein Raster haben. Schritt 4 zeigt das über der
@@ -408,6 +410,12 @@ Konventionen des Datensatzes:
   Reserveplatz in der `Platzbelegung` gehört zu **einer** Klausur und steht in
   `4_Raumzuteilung_Export/raumbelegung.csv`. Wer im Sitzplan einen Platz
   freihält, ändert deshalb nie das Raster.
+- **Ein freigehaltener Platz darf sagen, warum** (`Platzbelegung.notiz`,
+  gesetzt mit `setzeNotiz`): Die Nachricht steht statt „Reserve“ im Kasten des
+  Plans, im PDF, in der Spalte `Hinweis` der Belegungs-CSV und im Sitzplan als
+  Tabelle. Eine Lücke ohne Begründung hält die Aufsicht sonst für einen
+  Fehler. Eine Nachricht hält den Platz zugleich frei – sonst stünde dort ein
+  Hinweis und beim nächsten Verteilen säße jemand darauf.
 - **Zellen sind halb so hoch wie breit** (`ZELL_HOEHE_ANTEIL` in
   `Raumplan.tsx`): Es sind Tische, keine Quadrate. Wer dort rechnet, braucht
   zwei Schrittweiten – `schritt` für Spalten, `schrittZeile` für Zeilen –, und
@@ -424,8 +432,8 @@ Konventionen des Datensatzes:
   verdeckte sonst den Plan, um den es gerade geht. Darin steht, wer sitzt, und dort wird
   gesetzt, geräumt, festgehalten und freigehalten. Wer von Hand setzt, setzt
   automatisch eine Vorgabe – sonst säße die Person nach dem nächsten Verteilen
-  woanders; `erstelleRaumzuteilung` bekommt diese Vorgaben als
-  Matrikelnummer → Raumeinsatz mit.
+  woanders; `planeSitzplan` liest die Vorgaben aus der bestehenden Belegung
+  und lässt sie liegen.
 - Zwei Regeln, an denen sich alles andere ausrichtet:
   1. **Die Sitzplatznummer gehört zum Tisch**, nicht zur Person – vergeben in
      Lesereihenfolge des gespeicherten Rasters, über alle Räume fortlaufend.
@@ -438,12 +446,36 @@ Konventionen des Datensatzes:
   Verteilung von vorne vorher `ohneFreieBelegung()` anwenden. Eine Vorgabe
   bleibt immer liegen – auch wenn die Person (noch) nicht zu diesem Raum
   gehört; „fest“ heißt fest.
-- **Zwei Sitzverteilungen** (`Sitzverteilung`): `lesereihenfolge` füllt von
-  vorne links, `abstand` wählt die Plätze mit `plaetzeMitAbstand()` so, dass
-  die Geprüften möglichst weit auseinandersitzen. Der Abstand ist gewichtet:
-  ein Platz zur Seite zählt doppelt (`SPALTEN_GEWICHT`), und wer genau
-  hintereinander sitzt, bekommt einen Zuschlag (`RUECKEN_BONUS`) – man sieht
-  dem Vordermann in den Rücken, schräg dagegen aufs Blatt.
+- **Erst die Plätze, dann die Personen** (`sitzplanung.ts`, `planeSitzplan`):
+  Zuerst wählt `waehlePlaetze()` so viele Tische, wie Personen zu setzen sind,
+  und **erst danach** kommen die Leute darauf – der Reihe nach (nach Nachname)
+  durch die Räume und darin durch die Reihen. Nur so kann „möglichst weit
+  auseinander“ überhaupt gelten: Wer zuerst Personen auf Räume verteilt und
+  dann Plätze sucht, hat die Zahl je Raum schon festgelegt. Der Nebeneffekt
+  ist die Ordnung, die man am Aushang sehen will – mit dem Nachnamen steigt
+  die Sitzplatznummer, außer bei Vorgaben.
+- **Zwei Sitzverteilungen** (`Sitzverteilung`): `lesereihenfolge` nimmt die
+  Plätze von vorne links, `abstand` (die Vorgabe) wählt jeden nächsten Platz
+  so, dass sein kleinster Abstand zu den schon gewählten am größten ist. Der
+  Abstand ist gewichtet (`platzAbstand`): ein Platz zur Seite zählt doppelt
+  (`SPALTEN_GEWICHT`), und wer genau hintereinander sitzt, bekommt einen
+  Zuschlag (`RUECKEN_BONUS`) – man sieht dem Vordermann in den Rücken, schräg
+  dagegen aufs Blatt. Dieselbe Rechnung steckt in `plaetzeMitAbstand()`, das
+  einen einzelnen Raum nachbelegt.
+- **Zwei Raumfüllungen** (`Raumfuellung`): `nacheinander` (die Vorgabe) füllt
+  einen Raum, bis er voll ist, und dann den nächsten – wer zwei Räume hat und
+  einen braucht, stellt sonst zweimal Aufsicht. `gleichmaessig` gibt jeden
+  neuen Platz dem Raum, in dem prozentual am meisten frei ist. Die englischen
+  Wörter der ersten Fassung (`sequential`, `balanced`) liest `raumfuellungAus`
+  weiter.
+- **Die Vorschau ist die Verteilung** (`SitzplanVorschau` unter den
+  Einstellungen in Schritt 4): Der Screen rechnet `planeSitzplan` bei jeder
+  Änderung neu und zeigt das Ergebnis als Plan je Raumeinsatz; der Knopf
+  darunter übernimmt genau dieses Ergebnis, ohne es noch einmal zu rechnen.
+  Wer eine Option ändert, soll sehen, was sie tut, statt zu verteilen,
+  nachzusehen und zurückzugehen. Weil `planeSitzplan` aus der bestehenden
+  Belegung nur Reserven und Vorgaben mitnimmt und sonst von vorne verteilt,
+  ist es wiederholbar: zweimal gerufen kommt zweimal dasselbe heraus.
 - **PDFs entstehen im Core, nicht im Druckdialog:** `sitzplaenePdf()` zeichnet
   das Raster der Räume (je Raumeinsatz eine neue Seite), `tabellenPdf()` setzt
   Listen (je Abschnitt eine Seite). So fällt eine Sitzplan-PDF heraus und

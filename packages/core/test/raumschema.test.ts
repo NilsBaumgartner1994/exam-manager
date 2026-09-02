@@ -10,8 +10,7 @@ import {
   verschiebeBelegung,
   verschiebeBereich,
   belegungToCsv,
-  erstelleRaumzuteilung,
-  plaetzeJeRaum,
+  planeSitzplan,
   kopiereRaumschema,
   leeresRaumschema,
   mitGroesse,
@@ -352,11 +351,10 @@ describe('Raumbelegung', () => {
       { raum: '94/E01', reservierteZeit: 'Gruppe 1' },
       { raum: '94/E03', reservierteZeit: 'Gruppe 2' },
     ];
-    const { sitzplaetze } = erstelleRaumzuteilung(PERSONEN, raeume, {
-      modus: 'sequential',
-      plaetze: plaetzeJeRaum(schemata),
+    const { sitzplaetze, belegung, ohnePlatz } = planeSitzplan(PERSONEN, raeume, schemata, [], {
+      sitzverteilung: 'lesereihenfolge',
+      fuellung: 'nacheinander',
     });
-    const { belegung, ohnePlatz } = verteileAufRaumschemata(sitzplaetze, schemata);
     expect(ohnePlatz).toHaveLength(0);
     const mitPlatz = sitzplaetzeMitBelegung(sitzplaetze, belegung, alleNummern);
     expect(mitPlatz.map((s) => s.sitzplatznummer)).toEqual([1001, 1002, 1003, 1004]);

@@ -10,7 +10,6 @@ import {
   bereichName,
   belegungToCsv,
   einsatzRaster,
-  erstelleRaumzuteilung,
   erstelleZip,
   ladeZulassungsBestand,
   eindeutigeNamenspraefixe,
@@ -25,18 +24,21 @@ import {
   parseRaumschemaDateien,
   parseZulassungsliste,
   plaetzeJeRaum,
+  planeSitzplan,
   PLATZHALTER_SITZPLATZ,
   Platzbelegung,
   platzSchluessel,
   pruefeAnmeldungen,
   pruefePlatzbedarf,
   Raum,
+  Raumfuellung,
   Raumschema,
   raeumeToCsv,
   raumSchluessel,
   raumschemaDateien,
   schalteReserve,
   schalteVorgabe,
+  setzeNotiz,
   setzePerson,
   setzeVorgabe,
   sitzplaenePdf,
@@ -46,6 +48,7 @@ import {
   sitzplaetzeToCsv,
   SitzplanFeld,
   sitzplanRasterCsv,
+  Sitzplanung,
   sitzplatznummern,
   sitzplatzPdf,
   sitzplatzWerte,
@@ -54,7 +57,6 @@ import {
   tischzellen,
   verschiebeBelegung,
   verteileAufRaumschemata,
-  Verteilmodus,
   VORLAGE_DATEI_SITZPLATZ,
   VORLAGE_NAME_SITZPLATZ,
   VORLAGE_SITZPLATZ,
@@ -65,6 +67,7 @@ import {
   AppButton,
   Arbeitsflaeche,
   BlattModal,
+  Checkbox,
   DataTable,
   LabeledNumberInput,
   LabeledTextInput,
@@ -84,6 +87,7 @@ import {
   raumZuZeile,
   Reiterinhalt,
   Section,
+  SitzplanVorschau,
   StatusText,
   StudipEinsicht,
   useProjektDownloadEintrag,
@@ -252,9 +256,12 @@ export function RaumzuteilungScreen() {
   const [fehler, setFehler] = useState<string | null>(null);
   const [hinweis, setHinweis] = useState<string | null>(null);
 
-  // Zuteilungs-Optionen.
+  // Zuteilungs-Optionen. Voreingestellt ist, was eine Klausur meistens will:
+  // die Plätze so weit auseinander wie möglich und einen Raum nach dem
+  // anderen füllen (wer zwei Räume hat und einen braucht, stellt sonst
+  // zweimal Aufsicht).
   const [startnummer, setStartnummer] = useState<number | null>(1001);
-  const [modus, setModus] = useState<Verteilmodus>('balanced');
+  const [fuellung, setFuellung] = useState<Raumfuellung>('nacheinander');
 
   // Ergebnis & Ausgabe.
   const [sitzplaetze, setSitzplaetze] = useState<Sitzplatz[] | null>(null);
@@ -277,12 +284,14 @@ export function RaumzuteilungScreen() {
   /** Was in den Kästen steht – am Bildschirm und im PDF dasselbe. */
   const [anzeige, setAnzeige] = useState<PlanAnzeige>(PLAN_ANZEIGE_STANDARD);
   /** Wie die freien Tische eines Raums vergeben werden. */
-  const [sitzverteilung, setSitzverteilung] = useState<Sitzverteilung>('lesereihenfolge');
+  const [sitzverteilung, setSitzverteilung] = useState<Sitzverteilung>('abstand');
   /** Der Platz, dessen Blatt gerade offen ist. */
   const [platzDialog, setPlatzDialog] = useState<
     { schluessel: string; raumName: string; titel: string; zeile: number; spalte: number } | null
   >(null);
   const [personSuche, setPersonSuche] = useState('');
+  /** Nachricht des offenen Platzes – warum er freigehalten wird. */
+  const [platzNotiz, setPlatzNotiz] = useState('');
 
   const aushangRef = useRef<View>(null);
 
@@ -413,6 +422,26 @@ export function RaumzuteilungScreen() {
   const nummern = useMemo(
     () => sitzplatznummern(raster, startnummer ?? 1001),
     [raster, startnummer],
+  );
+
+  /**
+   * Wie die Verteilung **aussähe** – gerechnet, sobald eine Art gewählt wird,
+   * und noch nicht übernommen. Das ist die Vorschau unter den Einstellungen:
+   * Wer zwischen „nacheinander“ und „gleichmäßig“ umschaltet, sieht sofort,
+   * wo die Leute säßen, statt erst zu verteilen und dann nachzusehen.
+   *
+   * `planeSitzplan` nimmt aus der bestehenden Belegung nur die freigehaltenen
+   * Plätze und die Vorgaben mit und verteilt alles andere von vorne – zweimal
+   * gerufen kommt zweimal dasselbe heraus.
+   */
+  const vorschau: Sitzplanung = useMemo(
+    () =>
+      planeSitzplan(teilnehmer, raeume, schemata, belegung, {
+        sitzverteilung,
+        fuellung,
+        ersteSitzplatznummer: startnummer ?? 1001,
+      }),
+    [teilnehmer, raeume, schemata, belegung, sitzverteilung, fuellung, startnummer],
   );
 
   /**
@@ -607,30 +636,24 @@ export function RaumzuteilungScreen() {
     },
   });
 
-  const zuteilungErstellen = () => {
+  /**
+   * Die Vorschau übernehmen: Aus „so sähe es aus“ wird der Sitzplan, an dem
+   * sich danach von Hand weiterarbeiten lässt (umsetzen, festhalten,
+   * freihalten). Gerechnet wird hier nichts mehr – das steht schon in
+   * `vorschau`, und zweimal dasselbe zu rechnen hieße, dass beides
+   * auseinanderlaufen kann.
+   */
+  const zuteilungUebernehmen = () => {
     setFehler(null);
     setHinweis(null);
-    // Wer im Sitzplan festgesetzt wurde, bleibt in seinem Raum.
-    const vorgaben = new Map(
-      belegungRef.current
-        .filter((platz) => platz.vorgabe && platz.matrikelnummer !== '')
-        .map((platz) => [platz.matrikelnummer, platz.raum]),
-    );
-    const ergebnis = erstelleRaumzuteilung(teilnehmer, raeume, {
-      modus,
-      // Die Plätze kommen aus den Rastern: Ein Raum ohne Raster hat keine,
-      // und wer dort landen würde, steht hinterher unter „Kein Platz für“.
-      plaetze,
-      ersteSitzplatznummer: startnummer ?? 1001,
-      vorgaben,
-    });
-    setSitzplaetze(ergebnis.sitzplaetze);
-    setOhnePlatz(ergebnis.ohnePlatz);
+    editor.merkeStand();
+    setSitzplaetze(vorschau.sitzplaetze);
+    setOhnePlatz(vorschau.ohnePlatz);
+    setOhnePlanPlatz([]);
+    uebernehmeBelegung(vorschau.belegung);
     setAnsicht('aushang');
     // Das Ergebnis steht in den Listen – also dorthin.
     setReiter(REITER_LISTEN);
-
-    belegungAktualisieren(schemataRef.current, ergebnis.sitzplaetze, belegungRef.current, true);
   };
 
   /**
@@ -662,11 +685,19 @@ export function RaumzuteilungScreen() {
     );
   };
 
+  /**
+   * Noch einmal verteilen – nach einer Vorgabe oder einem freigehaltenen
+   * Platz. Gerechnet wird dieselbe Verteilung wie in der Vorschau: Was fest
+   * ist, bleibt liegen, alles andere wird neu gewählt.
+   */
   const neuVerteilen = () => {
     if (!sitzplaetze) return;
     editor.merkeStand();
-    belegungAktualisieren(schemataRef.current, sitzplaetze, belegungRef.current, true);
-    setHinweis('Sitzplan neu verteilt – Reserveplätze und Vorgaben sind geblieben.');
+    setSitzplaetze(vorschau.sitzplaetze);
+    setOhnePlatz(vorschau.ohnePlatz);
+    setOhnePlanPlatz([]);
+    uebernehmeBelegung(vorschau.belegung);
+    setHinweis('Sitzplan neu verteilt – freigehaltene Plätze und Vorgaben sind geblieben.');
   };
 
   /** Raster laden – je Raum eine Datei, deshalb ruhig mehrere auf einmal. */
@@ -720,6 +751,11 @@ export function RaumzuteilungScreen() {
   ) => {
     setHinweis(null);
     setPersonSuche('');
+    setPlatzNotiz(
+      belegungRef.current.find(
+        (platz) => platz.raum === schluessel && platz.zeile === zeile && platz.spalte === spalte,
+      )?.notiz ?? '',
+    );
     setPlatzDialog({ schluessel, raumName, titel, zeile, spalte });
   };
 
@@ -779,8 +815,30 @@ export function RaumzuteilungScreen() {
   const reserveSchalten = () => {
     if (!platzDialog) return;
     editor.merkeStand();
+    if (dialogPlatz?.reserviert) setPlatzNotiz('');
     belegungSetzen(
       schalteReserve(belegungRef.current, platzDialog.schluessel, platzDialog.zeile, platzDialog.spalte),
+    );
+  };
+
+  /**
+   * Die Nachricht am freigehaltenen Platz – „warum bleibt der hier frei?“.
+   * Sie steht im Kasten des Plans, in der Belegungs-CSV und im Sitzplan als
+   * Tabelle: Wer den Plan in die Hand bekommt, soll die Lücke nicht für einen
+   * Fehler halten. Verteilt wird dabei nicht neu – der Platz war schon vorher
+   * gesperrt.
+   */
+  const notizSchreiben = (text: string) => {
+    if (!platzDialog) return;
+    setPlatzNotiz(text);
+    uebernehmeBelegung(
+      setzeNotiz(
+        belegungRef.current,
+        platzDialog.schluessel,
+        platzDialog.zeile,
+        platzDialog.spalte,
+        text,
+      ),
     );
   };
 
@@ -1002,6 +1060,11 @@ export function RaumzuteilungScreen() {
   const anzahlRaeume = angezeigteSitzplaetze
     ? new Set(angezeigteSitzplaetze.map((platz) => platz.raumSchluessel)).size
     : 0;
+  /**
+   * „in einem Raum“ statt „in 1 Räumen“: Seit die Räume nacheinander gefüllt
+   * werden, ist ein einzelner Raum der Normalfall und nicht die Ausnahme.
+   */
+  const raeumeText = anzahlRaeume === 1 ? 'einem Raum' : `${anzahlRaeume} Räumen`;
 
   /**
    * Ein Reiter je Raumeinsatz – aber nur, wo ein Raster vorliegt: Ohne Raster
@@ -1275,7 +1338,7 @@ export function RaumzuteilungScreen() {
               {
                 art: 'aktion',
                 titel: 'Sitzplan neu verteilen',
-                hinweis: 'verteilt noch einmal – Vorgaben und Reserven bleiben',
+                hinweis: 'wählt die Plätze neu – Vorgaben und freigehaltene Plätze bleiben',
                 deaktiviert: !sitzplaetze,
                 onWaehlen: neuVerteilen,
                 testID: 'raum-neu-verteilen',
@@ -1383,7 +1446,7 @@ export function RaumzuteilungScreen() {
       ? `${belegungText(offenerRaum.key, offenerRaum.schema)} · ${rasterText(editor, offenerRaum.schema)}` +
         (planModus === 'bearbeiten' ? ` · ${PALETTEN_HINWEIS_ZEILE}` : '')
       : angezeigteSitzplaetze
-        ? `${angezeigteSitzplaetze.length} Sitzplätze in ${anzahlRaeume} Räumen vergeben`
+        ? `${angezeigteSitzplaetze.length} Sitzplätze in ${raeumeText} vergeben`
         : `${teilnehmer.length} Teilnehmende · ${raeume.length} Raumeinsätze mit höchstens ${bedarf.plaetze} Plätzen – noch keine Zuteilung`,
   ]
     .filter((teil): teil is string => !!teil)
@@ -1513,7 +1576,7 @@ export function RaumzuteilungScreen() {
                 ) : (
                   <StatusText kind="info">
                     Noch keine Zuteilung – unter „Einstellungen“ die Teilnehmenden und die Räume
-                    prüfen und „Zuteilung erstellen“ wählen.
+                    prüfen, die Vorschau ansehen und „Verteilung übernehmen“ wählen.
                   </StatusText>
                 )}
               </Section>
@@ -1615,55 +1678,100 @@ export function RaumzuteilungScreen() {
                 <ProjektQuelle rolle="raumschema" alle testID="raum-quelle-schema" />
               </Section>
 
-              <Section title="Zuteilung">
+              <Section title="Verteilung">
+                <Text style={styles.hinweis}>
+                  Verteilt wird in zwei Schritten: Erst werden die{' '}
+                  <Text style={styles.pfad}>Plätze</Text> gewählt, dann kommen die{' '}
+                  <Text style={styles.pfad}>Personen</Text> darauf – der Reihe nach, Raum für Raum
+                  und darin Reihe für Reihe. Deshalb steigt mit dem Nachnamen die
+                  Sitzplatznummer, auch wenn die Plätze quer durch den Raum liegen.
+                </Text>
                 <LabeledNumberInput
                   label="Erste Sitzplatznummer"
                   value={startnummer}
                   onChange={setStartnummer}
                   testID="raum-startnummer"
                 />
-                <View style={styles.buttonZeile}>
-                  <AppButton
-                    title="Gleichmäßig verteilen"
-                    variant={modus === 'balanced' ? 'primary' : 'secondary'}
-                    onPress={() => setModus('balanced')}
-                  />
-                  <AppButton
-                    title="Räume nacheinander füllen"
-                    variant={modus === 'sequential' ? 'primary' : 'secondary'}
-                    onPress={() => setModus('sequential')}
-                  />
-                </View>
+                <Checkbox
+                  label="Plätze so weit auseinander wie möglich"
+                  wert={sitzverteilung === 'abstand'}
+                  onChange={(wert) => setSitzverteilung(wert ? 'abstand' : 'lesereihenfolge')}
+                  testID="raum-sitz-abstand"
+                />
                 <Text style={styles.hinweis}>
-                  Und wie die Plätze <Text style={styles.pfad}>innerhalb</Text> eines Raums vergeben
-                  werden: der Reihe nach oder so weit auseinander wie möglich. Beim Abstand zählt
-                  ein Platz zur Seite doppelt (dort schaut man direkt aufs Nachbarblatt), und zwei
-                  sitzen lieber hintereinander als schräg versetzt.
+                  Gewählt wird ein erster Platz, danach immer der mit dem größten Abstand zu den
+                  schon gewählten. Ein Platz zur Seite zählt dabei doppelt (dort schaut man direkt
+                  aufs Nachbarblatt), und zwei sitzen lieber hintereinander als schräg versetzt.
+                  Ohne Haken werden die Plätze schlicht der Reihe nach genommen.
+                </Text>
+                <Text style={styles.hinweis}>
+                  Und über die Räume hinweg: entweder wird ein Raum gefüllt, bis er voll ist, und
+                  dann der nächste – oder gleichmäßig, dann geht jeder neue Platz in den Raum, in
+                  dem prozentual am meisten frei ist.
                 </Text>
                 <View style={styles.buttonZeile}>
                   <AppButton
-                    title="Der Reihe nach"
-                    variant={sitzverteilung === 'lesereihenfolge' ? 'primary' : 'secondary'}
-                    onPress={() => setSitzverteilung('lesereihenfolge')}
-                    testID="raum-sitz-reihe"
+                    title="Räume nacheinander füllen"
+                    variant={fuellung === 'nacheinander' ? 'primary' : 'secondary'}
+                    onPress={() => setFuellung('nacheinander')}
+                    testID="raum-fuellung-nacheinander"
                   />
                   <AppButton
-                    title="Größtmöglicher Abstand"
-                    variant={sitzverteilung === 'abstand' ? 'primary' : 'secondary'}
-                    onPress={() => setSitzverteilung('abstand')}
-                    testID="raum-sitz-abstand"
+                    title="Räume gleichmäßig füllen"
+                    variant={fuellung === 'gleichmaessig' ? 'primary' : 'secondary'}
+                    onPress={() => setFuellung('gleichmaessig')}
+                    testID="raum-fuellung-gleichmaessig"
                   />
                 </View>
                 <PlatzBedarf bedarf={bedarf} testID="raum-platzbedarf-zuteilung" />
+                {fehler ? <StatusText kind="error">{fehler}</StatusText> : null}
+                {hinweis ? <StatusText kind="info">{hinweis}</StatusText> : null}
+              </Section>
+
+              <Section title="Vorschau" testID="raum-vorschau">
+                <Text style={styles.hinweis}>
+                  So sähen die Plätze aus – gerechnet, sobald oben etwas umgestellt wird. Wer im
+                  Sitzplan jemanden festsetzt oder einen Platz freihält, sieht hier gleich die
+                  neue Verteilung. Übernommen wird sie mit dem Knopf darunter; heruntergeladen
+                  wird danach im Menü „Datei“ und „PDF“.
+                </Text>
+                {teilnehmer.length === 0 ? (
+                  <StatusText kind="info" testID="raum-vorschau-leer">
+                    Noch keine Teilnehmenden – oben eine Liste laden oder Beispieldaten wählen.
+                  </StatusText>
+                ) : (
+                  <>
+                    <StatusText
+                      kind={vorschau.ohnePlatz.length > 0 ? 'error' : 'info'}
+                      testID="raum-vorschau-zahl"
+                    >
+                      {`${vorschau.sitzplaetze.length} von ${teilnehmer.length} Teilnehmenden bekämen einen Platz` +
+                        ` – in ${vorschau.raeume.filter((r) => r.belegt > 0).length} von ${vorschau.raeume.length} Raumeinsätzen.`}
+                    </StatusText>
+                    {vorschau.ohnePlatz.length > 0 ? (
+                      <StatusText kind="error">
+                        {`Kein Platz für: ${vorschau.ohnePlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')} – weitere Räume aufnehmen oder im Raster mehr Tische setzen.`}
+                      </StatusText>
+                    ) : null}
+                    <SitzplanVorschau
+                      planung={vorschau}
+                      raeume={raeume}
+                      raster={raster}
+                      drehungen={editor.drehungen}
+                      anzeige={anzeige}
+                      testID="raum-vorschau-plaene"
+                    />
+                  </>
+                )}
                 <AppButton
-                  title="Zuteilung erstellen"
-                  onPress={zuteilungErstellen}
+                  title={sitzplaetze ? 'Verteilung erneut übernehmen' : 'Verteilung übernehmen'}
+                  onPress={zuteilungUebernehmen}
                   disabled={teilnehmer.length === 0 || raeume.length === 0}
                   testID="raum-erstellen"
                 />
                 {angezeigteSitzplaetze ? (
                   <StatusText kind="success" testID="raum-ergebnis">
-                    {`${angezeigteSitzplaetze.length} Sitzplätze in ${anzahlRaeume} Räumen vergeben.`}
+                    {`${angezeigteSitzplaetze.length} Sitzplätze in ${raeumeText} vergeben.`}
                   </StatusText>
                 ) : null}
                 {ohnePlatz.length > 0 ? (
@@ -1676,8 +1784,6 @@ export function RaumzuteilungScreen() {
                     {`Ohne Tisch im Sitzplan: ${ohnePlanPlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')} – im Reiter des Raums unter „Raum bearbeiten“ mehr Tische setzen.`}
                   </StatusText>
                 ) : null}
-                {fehler ? <StatusText kind="error">{fehler}</StatusText> : null}
-                {hinweis ? <StatusText kind="info">{hinweis}</StatusText> : null}
               </Section>
 
               <Section title="Sitzplan im Raum" testID="raum-sitzplan">
@@ -1794,7 +1900,7 @@ export function RaumzuteilungScreen() {
             ) : (
               <Text style={styles.hinweis}>
                 {dialogPlatz?.reserviert
-                  ? 'Dieser Platz wird für diese Klausur freigehalten.'
+                  ? `Dieser Platz wird für diese Klausur freigehalten${dialogPlatz.notiz ? `: ${dialogPlatz.notiz}` : '.'}`
                   : 'Hier sitzt noch niemand.'}
               </Text>
             )}
@@ -1811,6 +1917,23 @@ export function RaumzuteilungScreen() {
               Eine Reserve gilt nur für diese Klausur – sie steht in der Belegung, nicht im Raster
               des Raums. Dauerhaft freie Tische bekommen in Schritt 5 das Element „Reserve“.
             </Text>
+
+            {dialogPlatz?.reserviert ? (
+              <View style={styles.blattBlock}>
+                <LabeledTextInput
+                  label="Nachricht am Platz"
+                  value={platzNotiz}
+                  onChangeText={notizSchreiben}
+                  placeholder="z. B. Tisch wackelt, Nachteilsausgleich"
+                  testID="raum-platz-notiz"
+                />
+                <Text style={styles.hinweis}>
+                  Sie steht im Kasten des Plans und in den Ausgaben (Belegungs-CSV, Sitzplan als
+                  Tabelle) – damit niemand die Lücke für einen Fehler hält. Ohne Nachricht steht
+                  dort schlicht „Reserve“.
+                </Text>
+              </View>
+            ) : null}
 
             {!dialogPlatz?.reserviert ? (
               <View style={styles.blattBlock}>

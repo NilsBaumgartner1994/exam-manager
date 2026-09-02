@@ -2,13 +2,13 @@ import { lies, liesRaumschemata, pfad } from './fixtures';
 import {
   eindeutigeNamenspraefixe,
   einsatzRaster,
-  erstelleRaumzuteilung,
   mitDurchgaengen,
   parseRaeume,
   parseRaumschemaDateien,
   parseRaumschemata,
   parseSitzplaetze,
   plaetzeGesamt,
+  planeSitzplan,
   plaetzeJeRaum,
   pruefePlatzbedarf,
   raumSchluessel,
@@ -72,23 +72,23 @@ describe('Raumzuteilung (Screen 4)', () => {
   });
 
   it('verteilt alle 7 Teilnehmenden und vergibt Sitzplätze ab 1001', () => {
-    const { sitzplaetze, ohnePlatz } = erstelleRaumzuteilung(TEILNEHMER, raeume, {
-      modus: 'balanced',
-      plaetze,
-    });
+    const { sitzplaetze, ohnePlatz } = planeSitzplan(TEILNEHMER, raeume, schemata);
     expect(ohnePlatz).toHaveLength(0);
     expect(sitzplaetze).toHaveLength(7);
-    expect(sitzplaetze.map((s) => s.sitzplatznummer)).toEqual([1001, 1002, 1003, 1004, 1005, 1006, 1007]);
-    // Innerhalb eines Raums alphabetisch nach Nachname
-    const raum1 = sitzplaetze.filter((s) => s.raum === '01/E01').map((s) => s.nachname);
-    expect(raum1.length).toBeGreaterThan(1);
-    expect(raum1).toEqual([...raum1].sort());
+    // Die Nummern gehören zu den Tischen, nicht zu den Personen: In einem
+    // Hörsaal mit 193 Tischen sind die sieben gewählten weit auseinander.
+    expect(sitzplaetze.map((s) => s.sitzplatznummer)).toEqual(
+      [...sitzplaetze].map((s) => s.sitzplatznummer).sort((a, b) => a - b),
+    );
+    // Zugeordnet wird der Reihe nach: alphabetisch aufs Raster, also steigt
+    // mit dem Nachnamen die Sitzplatznummer.
+    const namen = sitzplaetze.map((s) => s.nachname);
+    expect(namen).toEqual([...namen].sort((a, b) => a.localeCompare(b, 'de')));
   });
 
   it('respektiert eine andere Start-Sitzplatznummer', () => {
-    const { sitzplaetze } = erstelleRaumzuteilung(TEILNEHMER, raeume, {
-      modus: 'sequential',
-      plaetze,
+    const { sitzplaetze } = planeSitzplan(TEILNEHMER, raeume, schemata, [], {
+      sitzverteilung: 'lesereihenfolge',
       ersteSitzplatznummer: 1,
     });
     expect(sitzplaetze[0].sitzplatznummer).toBe(1);
@@ -96,19 +96,22 @@ describe('Raumzuteilung (Screen 4)', () => {
 
   it('meldet Teilnehmende ohne Platz, wenn die Räume voll sind', () => {
     // Zwei Tische im Raster heißen zwei Plätze – mehr passen nicht hinein.
-    const klein = [raeume[0]];
-    const { sitzplaetze, ohnePlatz } = erstelleRaumzuteilung(TEILNEHMER, klein, {
-      modus: 'balanced',
-      plaetze: new Map([[raeume[0].raum, 2]]),
-    });
+    const klein = parseRaumschemata('Raum;Klein\nT;T\n');
+    const { sitzplaetze, ohnePlatz } = planeSitzplan(
+      TEILNEHMER,
+      [{ raum: 'Klein', reservierteZeit: '' }],
+      klein,
+    );
     expect(sitzplaetze).toHaveLength(2);
     expect(ohnePlatz).toHaveLength(5);
   });
 
   it('lässt einen Raum ohne Raster leer, statt ihn zu raten', () => {
-    const { sitzplaetze, ohnePlatz } = erstelleRaumzuteilung(TEILNEHMER, [
-      { raum: 'Ohne Raster', reservierteZeit: '' },
-    ], { modus: 'balanced', plaetze: new Map() });
+    const { sitzplaetze, ohnePlatz } = planeSitzplan(
+      TEILNEHMER,
+      [{ raum: 'Ohne Raster', reservierteZeit: '' }],
+      schemata,
+    );
     expect(sitzplaetze).toHaveLength(0);
     expect(ohnePlatz).toHaveLength(TEILNEHMER.length);
   });
@@ -121,10 +124,7 @@ describe('Raumzuteilung (Screen 4)', () => {
   });
 
   it('schreibt und liest das CSV-Format des Python-Originals', () => {
-    const { sitzplaetze } = erstelleRaumzuteilung(TEILNEHMER, raeume, {
-      modus: 'balanced',
-      plaetze,
-    });
+    const { sitzplaetze } = planeSitzplan(TEILNEHMER, raeume, schemata);
     const wieder = parseSitzplaetze(sitzplaetzeToCsv(sitzplaetze));
     expect(wieder).toEqual(sitzplaetze);
   });
@@ -143,7 +143,7 @@ describe('Derselbe Raum mehrfach (zwei Durchgänge)', () => {
       '94/E01;01.02.2026 Gruppe 2\n',
   );
   /** Ein Raster mit zwei Tischen – jeder Durchgang hat also zwei Plätze. */
-  const ZWEI_PLAETZE = new Map([['94/E01', 2]]);
+  const ZWEI_TISCHE = parseRaumschemata('Raum;94/E01\nT;T\n');
 
   it('liest auch eine alte Liste mit Spalte „Plätze“ und überliest sie', () => {
     const alt = parseRaeume('Raum;Plätze;ReservierteZeit\n94/E01;99;Gruppe 1\n');
@@ -165,10 +165,11 @@ describe('Derselbe Raum mehrfach (zwei Durchgänge)', () => {
   });
 
   it('behandelt jeden Durchgang als eigenen Raum mit eigenen Plätzen', () => {
-    const { sitzplaetze, ohnePlatz } = erstelleRaumzuteilung(TEILNEHMER.slice(0, 4), ZWEI_DURCHGAENGE, {
-      modus: 'sequential',
-      plaetze: ZWEI_PLAETZE,
-    });
+    const { sitzplaetze, ohnePlatz } = planeSitzplan(
+      TEILNEHMER.slice(0, 4),
+      ZWEI_DURCHGAENGE,
+      ZWEI_TISCHE,
+    );
     expect(ohnePlatz).toHaveLength(0);
     // Beide Durchgänge heißen im Aushang gleich – auseinander hält sie der
     // Schlüssel und die reservierte Zeit.
@@ -184,11 +185,11 @@ describe('Derselbe Raum mehrfach (zwei Durchgänge)', () => {
     const raster = einsatzRaster(ZWEI_DURCHGAENGE, [schema]);
     expect(raster.map((r) => r.raum)).toEqual(['94/E01', '94/E01 (2. Durchgang)']);
 
-    const { sitzplaetze } = erstelleRaumzuteilung(TEILNEHMER.slice(0, 4), ZWEI_DURCHGAENGE, {
-      modus: 'sequential',
-      plaetze: plaetzeJeRaum([schema]),
-    });
-    const { belegung, ohnePlatz } = verteileAufRaumschemata(sitzplaetze, raster);
+    const { sitzplaetze, belegung, ohnePlatz } = planeSitzplan(
+      TEILNEHMER.slice(0, 4),
+      ZWEI_DURCHGAENGE,
+      [schema],
+    );
     expect(ohnePlatz).toHaveLength(0);
     expect(belegung.filter((p) => p.raum === '94/E01 (2. Durchgang)')).toHaveLength(2);
     // Die Nummern laufen über beide Durchgänge weiter – derselbe Tisch hat im

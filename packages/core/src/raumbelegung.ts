@@ -1,8 +1,10 @@
 /**
  * Belegung eines Raumschemas: Wer sitzt an welchem Tisch?
  *
- * Die Zuteilung aus `erstelleRaumzuteilung` sagt, **wer in welchen Raum**
- * kommt. Hier kommt dazu, **wo genau** im Raum jemand sitzt:
+ * Hier steht, **wo genau** im Raum jemand sitzt. Die Verteilung von vorne
+ * rechnet `planeSitzplan` (`sitzplanung.ts`) – erst die Plätze wählen, dann
+ * die Personen zuordnen. Dieses Modul hält die Bausteine dafür und alles, was
+ * danach noch am Plan geändert wird:
  *
  * - Reserveplätze (`reserviert`) bleiben frei.
  * - Wer schon auf einem Tisch sitzt, bleibt dort – auch wenn der Raum
@@ -67,6 +69,12 @@ export interface Platzbelegung {
   reserviert: boolean;
   /** Feste Vorgabe: Person bleibt beim Verteilen auf diesem Platz. */
   vorgabe: boolean;
+  /**
+   * Warum dieser Platz freigehalten wird – die Nachricht am Platz („Tisch
+   * wackelt“, „Nachteilsausgleich“). Sie steht im Plan im Kasten und in der
+   * Belegungs-CSV; ohne Nachricht steht dort schlicht „Reserve“.
+   */
+  notiz?: string;
 }
 
 /**
@@ -141,7 +149,7 @@ interface Platz {
  *     direkt dahinter (1 Reihe)    4   ← lieber so als schräg
  *     zwei Plätze zur Seite        4
  */
-function abstand(a: Platz, b: Platz): number {
+export function platzAbstand(a: Platz, b: Platz): number {
   const seitlich = Math.abs(a.spalte - b.spalte);
   const hintereinander = Math.abs(a.zeile - b.zeile);
   return (
@@ -163,7 +171,7 @@ export function plaetzeMitAbstand(frei: Platz[], vergeben: Platz[], anzahl: numb
   // Abstand jedes freien Platzes zum nächsten schon vergebenen; wächst ein
   // Platz dazu, wird nur noch gegen diesen einen nachgerechnet.
   const naechster = offen.map((platz) =>
-    vergeben.reduce((min, anderer) => Math.min(min, abstand(platz, anderer)), Infinity),
+    vergeben.reduce((min, anderer) => Math.min(min, platzAbstand(platz, anderer)), Infinity),
   );
 
   while (gewaehlt.length < anzahl && offen.length > 0) {
@@ -176,7 +184,7 @@ export function plaetzeMitAbstand(frei: Platz[], vergeben: Platz[], anzahl: numb
     offen.splice(bester, 1);
     naechster.splice(bester, 1);
     for (let i = 0; i < offen.length; i++) {
-      naechster[i] = Math.min(naechster[i], abstand(offen[i], platz));
+      naechster[i] = Math.min(naechster[i], platzAbstand(offen[i], platz));
     }
   }
   return gewaehlt;
@@ -222,6 +230,7 @@ export function verteileImRaum(
       matrikelnummer: bleibt && alt ? alt.matrikelnummer : '',
       reserviert,
       vorgabe: bleibt ? (alt?.vorgabe ?? false) : false,
+      ...(alt?.notiz ? { notiz: alt.notiz } : {}),
     });
   }
 
@@ -249,8 +258,9 @@ export function verteileImRaum(
 }
 
 /**
- * Alle Räume verteilen. `sitzplaetze` stammt aus `erstelleRaumzuteilung` und
- * legt fest, wer in welchen Raumeinsatz kommt; das Schema legt fest, wo.
+ * Alle Räume verteilen. `sitzplaetze` sagt, wer in welchen Raumeinsatz gehört
+ * (aus `planeSitzplan` oder aus einem gespeicherten Sitzplan); das Schema legt
+ * fest, wo genau im Raum.
  * Die Raster kommen aus `einsatzRaster` und tragen deshalb den Schlüssel des
  * Einsatzes als Namen – zwei Durchgänge desselben Raums sind zwei Raster.
  */
@@ -359,13 +369,45 @@ export function entfernePerson(belegung: Platzbelegung[], matrikelnummer: string
   );
 }
 
-/** Reserveplatz an-/abschalten. Eine dort sitzende Person wird verdrängt. */
+/**
+ * Reserveplatz an-/abschalten. Eine dort sitzende Person wird verdrängt.
+ * Wird die Reserve aufgehoben, geht die Nachricht mit: Sie gehört zum
+ * freigehaltenen Platz, nicht zum Tisch.
+ */
 export function schalteReserve(belegung: Platzbelegung[], raum: string, zeile: number, spalte: number): Platzbelegung[] {
-  return belegung.map((platz) =>
-    platz.raum === raum && platz.zeile === zeile && platz.spalte === spalte
-      ? { ...platz, reserviert: !platz.reserviert, matrikelnummer: platz.reserviert ? platz.matrikelnummer : '', vorgabe: false }
-      : platz,
-  );
+  return belegung.map((platz) => {
+    if (platz.raum !== raum || platz.zeile !== zeile || platz.spalte !== spalte) return platz;
+    const { notiz: _weg, ...ohneNotiz } = platz;
+    return {
+      ...ohneNotiz,
+      reserviert: !platz.reserviert,
+      matrikelnummer: platz.reserviert ? platz.matrikelnummer : '',
+      vorgabe: false,
+      ...(platz.reserviert ? {} : platz.notiz ? { notiz: platz.notiz } : {}),
+    };
+  });
+}
+
+/**
+ * Die Nachricht an einem freigehaltenen Platz setzen – „warum bleibt der hier
+ * frei?“. Ein Platz mit Nachricht wird zugleich freigehalten: Ohne die Reserve
+ * stünde dort ein Hinweis, und beim nächsten Verteilen säße jemand darauf.
+ * Ein leerer Text nimmt die Nachricht wieder weg, die Reserve bleibt.
+ */
+export function setzeNotiz(
+  belegung: Platzbelegung[],
+  raum: string,
+  zeile: number,
+  spalte: number,
+  notiz: string,
+): Platzbelegung[] {
+  const text = notiz.trim();
+  return belegung.map((platz) => {
+    if (platz.raum !== raum || platz.zeile !== zeile || platz.spalte !== spalte) return platz;
+    const { notiz: _weg, ...ohneNotiz } = platz;
+    if (text === '') return ohneNotiz;
+    return { ...ohneNotiz, notiz: text, reserviert: true, matrikelnummer: '', vorgabe: false };
+  });
 }
 
 /** Vorgabe setzen oder lösen (nur sinnvoll, wenn dort jemand sitzt). */
@@ -477,7 +519,7 @@ export function sitzplanRasterCsv(
           const kopf = nummer === undefined ? '' : String(nummer);
           if (feld === 'nummer') return kopf;
           const platz = jePlatz.get(platzKey);
-          if (platz?.reserviert) return [kopf, 'freigehalten'].join('\n');
+          if (platz?.reserviert) return [kopf, platz.notiz || 'freigehalten'].join('\n');
           const person = platz?.matrikelnummer ? jeMatrikel.get(platz.matrikelnummer) : undefined;
           if (!person) return kopf;
           // Drei Zeilen in einem Feld – wie die drei Zeilen im Kasten des
@@ -491,7 +533,7 @@ export function sitzplanRasterCsv(
 }
 
 const BELEGUNG_HEADER = [
-  'Raum', 'Zeile', 'Spalte', 'Sitzplatznummer', 'Matrikelnummer', 'Nachname', 'Vorname', 'Reserviert', 'Vorgabe',
+  'Raum', 'Zeile', 'Spalte', 'Sitzplatznummer', 'Matrikelnummer', 'Nachname', 'Vorname', 'Reserviert', 'Vorgabe', 'Hinweis',
 ];
 
 /**
@@ -519,20 +561,25 @@ export function belegungToCsv(
         person?.vorname ?? '',
         platz.reserviert ? 'ja' : '',
         platz.vorgabe ? 'ja' : '',
+        platz.notiz ?? '',
       ];
     }),
   ]);
 }
 
 export function parseBelegung(csvText: string): Platzbelegung[] {
-  return parseCsvObjects(csvText).map((row) => ({
-    raum: row['Raum'] ?? '',
-    zeile: Number(row['Zeile'] ?? 0),
-    spalte: Number(row['Spalte'] ?? 0),
-    matrikelnummer: row['Matrikelnummer'] ?? '',
-    reserviert: jaNein(row['Reserviert']),
-    vorgabe: jaNein(row['Vorgabe']),
-  }));
+  return parseCsvObjects(csvText).map((row) => {
+    const notiz = (row['Hinweis'] ?? '').trim();
+    return {
+      raum: row['Raum'] ?? '',
+      zeile: Number(row['Zeile'] ?? 0),
+      spalte: Number(row['Spalte'] ?? 0),
+      matrikelnummer: row['Matrikelnummer'] ?? '',
+      reserviert: jaNein(row['Reserviert']),
+      vorgabe: jaNein(row['Vorgabe']),
+      ...(notiz === '' ? {} : { notiz }),
+    };
+  });
 }
 
 function jaNein(wert: string | undefined): boolean {

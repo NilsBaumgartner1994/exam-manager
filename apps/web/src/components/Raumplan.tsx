@@ -1163,7 +1163,9 @@ const Zelle = memo(function Zelle({
       case 'tisch': {
         const zeilen: { text: string; stil: object }[] = [];
         if (platz?.reserviert) {
-          zeilen.push({ text: 'Reserve', stil: styles.reserve });
+          // Warum der Platz frei bleibt, steht im Kasten – sonst sieht die
+          // Aufsicht eine Lücke und hält sie für einen Fehler.
+          zeilen.push({ text: platz.notiz || 'Reserve', stil: styles.reserve });
         } else if (person) {
           if (anzeige.namensPraefix) {
             zeilen.push({ text: person.anfangNachname, stil: styles.name });

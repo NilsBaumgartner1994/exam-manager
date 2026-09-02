@@ -10,8 +10,8 @@ const REITER: Record<EinsichtArt, string> = {
 };
 
 const WAS: Record<EinsichtArt, string> = {
-  zulassung: 'seine Zulassung',
-  sitzplatz: 'seinen Sitzplatz',
+  zulassung: 'ihre eigene Zulassung',
+  sitzplatz: 'ihren eigenen Sitzplatz',
 };
 
 /**
@@ -32,7 +32,7 @@ export function StudipEinsicht({ art, testID }: { art: EinsichtArt; testID?: str
     'Die PDFs aus der ZIP in diesen Ordner hochladen – je Person eine Datei, benannt nach ihrer Matrikelnummer (1000001.pdf).',
     `In der Verwaltung des Kurses das Werkzeug „Klausureinsicht“ aktivieren und seinen Reiter umbenennen: „${REITER[art]}“.`,
     'Im Werkzeug den Ordner auswählen, in dem die PDFs liegen.',
-    `Fertig: Stud.IP zeigt jeder Person nur die Datei, deren Dateiname ihrer Matrikelnummer entspricht – jede sieht also ${WAS[art]} und sonst nichts. Zum Schluss eine Rundmail, dass es dort einzusehen ist.`,
+    `Fertig: Stud.IP zeigt jeder Person nur die Datei, deren Dateiname ihrer Matrikelnummer entspricht – sie sieht also ${WAS[art]} und sonst nichts. Zum Schluss eine Rundmail, dass es dort einzusehen ist.`,
   ];
   return (
     <View style={styles.block} testID={testID}>

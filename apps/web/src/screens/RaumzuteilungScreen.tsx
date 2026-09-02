@@ -304,7 +304,16 @@ export function RaumzuteilungScreen() {
     setBelegung(neu);
   };
 
-  const raeume = zeilenZuRaeumen(zeilen);
+  /**
+   * Die Räume dieser Klausur, mit durchgezählten Durchgängen.
+   *
+   * Gemerkt, und das ist keine Kosmetik: An `raeume` hängt das Raster jedes
+   * Einsatzes (`einsatzRaster`), und daran hängt der Effekt, der die leere
+   * Belegung aufbaut. Eine bei jedem Rendern neu erzeugte Liste ließe ihn bei
+   * jedem Rendern erneut laufen – React bricht das irgendwann mit „Maximum
+   * update depth exceeded“ ab.
+   */
+  const raeume = useMemo(() => zeilenZuRaeumen(zeilen), [zeilen]);
 
   /**
    * Teilnehmerliste direkt aus den Anmeldungen übernehmen – wahlweise alle

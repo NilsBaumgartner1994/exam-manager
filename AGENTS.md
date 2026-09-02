@@ -686,3 +686,10 @@ Zahlen die Tests, README und `.maestro/durchlauf.yaml` anpassen).
   in den Exporten entspricht.
 - `createRoomAssignment.py` fragt den Verteilmodus interaktiv ab
   (`echo 2 | python3 …` für Skripte).
+- **Bewusste Abweichung von der Python-Referenz:** `createRoomAssignment.py`
+  liest die Plätze eines Raums aus der Spalte `Plätze` seiner `raeume.csv`;
+  App und Kommandozeile nehmen dafür die Tische im Raster. Zwei Zahlen für
+  dieselbe Sache liefen in der Praxis auseinander – wer einen Tisch aus dem
+  Plan nahm, hatte hinterher einen Platz zu viel in der Liste. Die
+  Python-Datei bleibt, wie sie ist; die App liest sie weiter und überliest
+  nur die Spalte.

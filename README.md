@@ -98,7 +98,7 @@ Alle CSV-Dateien: Trennzeichen `;`, UTF-8, Zeilenende `\n`.
 | Anmeldungen (`check.csv`) | `Nachname;Vorname;Matrikelnummer` (ohne Kopfzeile) |
 | VIPS-Notenliste | `Nachname;Vorname;Kennung;Matrikelnr.;<Aufgabenblatt …>;Summe` (Zeile 2 = Maximalpunktzahl, Datei mit BOM) |
 | Stud.IP-Export | `Status;Anrede;Titel;Vorname;Nachname;…;E-Mail;Anmeldedatum;Matrikelnummer;Studiengänge;Position` (alle Felder in `"`) |
-| Raumliste | `Raum;Plätze;ReservierteZeit`. In `Raeume/raeume.csv` steht der Bestand des Hauses (jeder Raum einmal), in `4_Raumzuteilung_Export/klausurraeume.csv` die Räume **dieser** Klausur – dort darf ein Raum mehrfach stehen, dann wird er mehrfach belegt (Gruppe 1 / Gruppe 2) |
+| Räume einer Klausur (`klausurraeume.csv`) | `Raum;ReservierteZeit`. Welche Räume **diese** Klausur benutzt – ein Raum darf mehrfach darin stehen, dann wird er mehrfach belegt (Gruppe 1 / Gruppe 2). **Keine Platzzahl:** Wie viele Plätze ein Raum hat, sind die Tische in seinem Raster. Den Bestand des Hauses bildet der Ordner `Raeume/` selbst – je Raum eine Raster-Datei, eine `raeume.csv` daneben gibt es nicht mehr (ältere Dateien mit einer Spalte `Plätze` werden weiter gelesen, die Spalte wird überlesen) |
 | Raumschema (je Raum eine Datei, `94_E01.csv`) | Raster statt Kopfzeile: `Raum;<Name>` beginnt einen Raum, jede weitere Zeile ist eine Reihe im Raum. Zellen: `T` Sitzplatz (Tisch für Studierende), `R` Reserve (Tisch, der in diesem Raum dauerhaft frei bleibt – ohne Sitzplatznummer), `P` Pult (Tisch ohne Sitzplatz), `D` Tür, `W` Wand, `.` frei. Freier Text über verbundenen Zellen steht in eigenen Zeilen: `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>` – er liegt über dem Raster, die Zellen darunter bleiben erhalten |
 | Raumbelegung (`raumbelegung.csv`) | `Raum;Zeile;Spalte;Sitzplatznummer;Matrikelnummer;Nachname;Vorname;Reserviert;Vorgabe` (Sitzplatznummer, Nachname und Vorname stehen nur zur Lesbarkeit darin und werden beim Einlesen ignoriert) |
 
@@ -186,9 +186,12 @@ gespeichert. Kein Server, kein Upload – die Daten verlassen den Rechner nicht.
 nvm use          # Node 22 (siehe .nvmrc)
 yarn install
 yarn web         # Dev-Server: http://localhost:8081
-yarn test        # Jest-Tests der Fachlogik (packages/core)
-yarn typecheck   # TypeScript-Prüfung beider Pakete
+yarn test        # Jest-Tests der Fachlogik (packages/core, packages/cli)
+yarn typecheck   # TypeScript-Prüfung aller Pakete
 ```
+
+Dieselben Schritte gibt es auch [auf der Kommandozeile](#kommandozeile) –
+`yarn 1_vips …` bis `yarn 5_raeume …`.
 
 ### Screens
 
@@ -218,7 +221,7 @@ entlang des Workflows:
    0_Input_Kurs_Teilnehmer_Studip_Liste/  *.csv               Teilnehmendenexport aus Stud.IP
    0_Input_Vips_Notenliste/               *.csv               Notenliste aus VIPS
    Zulassungen/                           *zulassungen*.csv   je Jahr eine Liste der Zugelassenen
-   Raeume/                                *.csv               raeume.csv + je Raum ein Raster (blanko)
+   Raeume/                                *.csv               je Raum ein Raster (blanko) – der Ordner ist die Raumliste
    Vorlagen/                              *vorlage*.md        Text der Schreiben an Studierende (Markdown)
    2_Zulassungs_PDFs_Export/              *.pdf               erzeugte Zulassungs-PDFs (Schritt 2)
    3_Klausur_Teilnehmende_Export/         *.csv               Angemeldete mit/ohne Zulassung (Schritt 3, optional)
@@ -325,8 +328,17 @@ Und die vier Schritte selbst:
 
    **Räume der Klausur:** Der Bestand des Hauses steht in `Raeume/` (Schritt 5)
    und gilt für jedes Jahr. Hier wird ausgewählt, welche dieser Räume die
-   Klausur benutzt: ein Klick auf `+ 01/E01` nimmt den Raum auf, Plätze und
-   reservierte Zeit lassen sich danach ändern. **Denselben Raum mehrfach
+   Klausur benutzt: ein Klick auf `+ 01/E01 (193)` nimmt den Raum auf, die
+   reservierte Zeit lässt sich danach eintragen. **Die Platzzahl wird nicht
+   getippt** – sie sind die Tische im Raster des Raums und stehen neben jeder
+   Zeile.
+
+   **Reichen die Räume?** Über der Liste steht, wie viele Studierende
+   angemeldet sind, wie viele Plätze die gewählten Räume **höchstens** haben
+   und wie viele davon frei bleiben. Reicht es nicht, steht dort rot, wie
+   viele Plätze fehlen – dann kommt ein Raum dazu, bis die Zeile grün ist. Ein
+   Raum ohne Raster hat 0 Plätze und wird dort mit Namen genannt; sein Raster
+   entsteht in Schritt 5. **Denselben Raum mehrfach
    hinzufügen heißt: Er wird mehrfach belegt** – etwa Gruppe 1 vormittags und
    Gruppe 2 nachmittags. Jeder dieser Durchgänge bekommt einen eigenen
    Sitzplan, eine eigene Belegung und eigene Sitzplatznummern; das Raster
@@ -444,33 +456,35 @@ Und die vier Schritte selbst:
    speichern und wieder laden.
 
 5. **Räume & Raumpläne** – dieselben Raster, aber **ohne Teilnehmende**: Räume
-   anlegen, ihre Grundrisse zeichnen und beides speichern. Ein Raum überlebt
+   anlegen, ihre Grundrisse zeichnen und speichern. Ein Raum überlebt
    die einzelne Klausur – derselbe Hörsaal wird jedes Semester wieder
-   gebraucht, sein Grundriss ändert sich fast nie –, deshalb liegen Raumliste
-   und Raster im Projektordner zusammen in `Raeume/`, außerhalb der
-   nummerierten Schritt-Ordner. Hier steht der **Bestand des Hauses**; welche
-   davon eine Klausur benutzt (und ob mehrfach), entscheidet Schritt 4 und legt
-   nur noch die Belegung darüber.
+   gebraucht, sein Grundriss ändert sich fast nie –, deshalb liegen die Raster
+   im Projektordner in `Raeume/`, außerhalb der nummerierten Schritt-Ordner.
+   Hier steht der **Bestand des Hauses**; welche davon eine Klausur benutzt
+   (und ob mehrfach), entscheidet Schritt 4 und legt nur noch die Belegung
+   darüber.
+
+   **Ein Raum ist sein Raster.** Wie viele Plätze er hat, wird nirgends
+   gespeichert – es sind die Tische darin, und wer einen setzt oder entfernt,
+   ändert damit die Platzzahl. Der Ordner `Raeume/` ist zugleich die
+   Raumliste: je Raum eine Datei, benannt nach dem Raum. Eine `raeume.csv`
+   daneben gibt es nicht mehr; eine alte bleibt im Projektordner liegen und
+   wird als „nicht zugeordnet“ angezeigt.
 
    **Derselbe Aufbau wie Schritt 4:** oben die Menüleiste – **Datei**
    (Speichern, Laden, „Raumplan als PDF“, Projekt), **Werkzeuge** (Palette,
    Raster, Rückgängig) und **Räume** –, der Plan in voller Breite dazwischen,
    unten die Fußleiste mit Ansicht/Zoom und dem Stand des Rasters. Im Menü
    **Räume** stehen die **Raumliste** und darunter die Räume (mit ihren
-   Sitzplätzen); dort liegen auch „Plätze übernehmen“ und „Raster entfernen“
-   für den gezeigten Raum. Auf schmalen Bildschirmen dasselbe als Schublade
+   Sitzplätzen). Auf schmalen Bildschirmen dasselbe als Schublade
    hinter dem **☰**.
 
-   **Die Raumliste ist der Bestand, nicht ein Formular daneben:** Sie zeigt
-   *jeden* Raum des Hauses – auch einen, zu dem bisher nur ein Raster in
-   `Raeume/` liegt und der in `raeume.csv` fehlte (die Zeile entsteht dann von
-   selbst, mit den Tischen des Rasters als Platzzahl). Je Raum steht dort, wie
-   viele Sitzplätze sein Raster hat, dazu Plätze und reservierte Zeit zum
-   Ändern und die Knöpfe **Plan bearbeiten** (bzw. **Raster anlegen**, wenn es
-   noch keines gibt), **Umbenennen …**, **Duplizieren …** und **Entfernen**.
+   **Die Raumliste ist der Bestand, nicht ein Formular daneben:** Je Raum
+   steht dort, wie viele Sitzplätze sein Raster hat, dazu die Knöpfe
+   **Plan bearbeiten**, **Umbenennen …**, **Duplizieren …** und **Entfernen**.
    Der Name wird nicht getippt, sondern umbenannt: Er ist zugleich der
-   Dateiname des Rasters. Leere Zeilen gibt es hier nicht – ein Raum entsteht
-   über **Neuer Raum …**, mit Namen und Vorschlagsraster.
+   Dateiname des Rasters. Ein Raum entsteht über **Neuer Raum …**, mit Namen
+   und Vorschlagsraster.
 
    **Bearbeitet wird ein Raum nach dem anderen:** Nebeneinander wären ein
    Hörsaal mit 44 × 32 Feldern und vier weitere Räume nicht zu überblicken.
@@ -483,24 +497,16 @@ Und die vier Schritte selbst:
      **Raumliste** an jeder Zeile: **Neuer Raum …** (Name und Plätze, legt
      gleich ein Vorschlagsraster an), **Raum duplizieren …** (dasselbe Raster
      unter neuem Namen – zwei Hörsäle sind sich ähnlicher, als man denkt),
-     **Raum umbenennen …** und **Raum löschen …**. Umbenennen und Löschen
-     fassen immer **beides** an, Raumliste und Raster: Sonst läge in
-     `Raeume/` eine Datei zu einem Raum, den es nicht mehr gibt. Jeder dieser
+     **Raum umbenennen …** und **Raum löschen …**. Umbenennen nimmt das Raster
+     mit: Sonst läge in `Raeume/` eine Datei zu einem Raum, den es nicht mehr
+     gibt. Die Plätze eines neuen Raums sind nur der Vorschlag, mit dem
+     gezeichnet wird – danach zählen die Tische im Plan. Jeder dieser
      Schritte lässt sich mit <kbd>Strg</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd>
      zurücknehmen.
-   - **Fehlende Raster anlegen** – für jeden Raum der Liste ohne Raster einen
-     Vorschlag erzeugen (Tische in Zweierblöcken mit Gang, Pult vorne, Tür
-     hinten). Von Hand zu zeichnen ist nur noch, was davon abweicht.
-   - **Plätze übernehmen** – die Platzzahl der Raumliste aus dem Raster setzen
-     (die Tische zählen). Weicht beides ab, steht das in der Fußleiste und an
-     der Zeile der Raumliste, dort mit **Plätze aus Raster** daneben – sonst
-     meldet Schritt 4 später Teilnehmende „ohne Tisch“.
    - **Raumplan als PDF** – den Grundriss des gezeigten Raums als PDF-Seite
      (`66_E33.pdf`), gezeichnet von derselben Funktion wie der Sitzplan in
      Schritt 4 – nur ohne Belegung. Je Raum eine Datei: Hier arbeitet man an
      einem Raum und will genau dessen Plan ausdrucken oder weitergeben.
-   - **Raster entfernen** – das Raster eines Raums verwerfen, ohne den Raum
-     aus der Liste zu nehmen.
 
 Liegt ein Projektordner vor, steht unter jeder Dateiauswahl, **welche Datei
 von dort standardmäßig genutzt wird** – bei mehreren Kandidaten auch, welche
@@ -534,23 +540,78 @@ Liste, sonst einer erfundenen.
   `sitzplatz_vorlage.md`) und ist damit in der ZIP und nach dem Neuladen
   wieder da. „Auf Standardtext zurücksetzen“ holt den Anfangstext zurück.
 
+### Die PDFs über Stud.IP verteilen („Klausureinsicht“)
+
+Beide PDF-Stapel – die Zulassungen aus Schritt 2 und die Sitzplätze aus
+Schritt 4 – bestehen aus je einer Datei `<Matrikelnummer>.pdf`. Das ist kein
+Zufall: Das Stud.IP-Werkzeug **Klausureinsicht** gibt jeder Person genau die
+Datei frei, deren Name ihrer Matrikelnummer entspricht. So sieht jede
+Studierende ihr eigenes Schreiben und keines der anderen.
+
+1. Im Kurs einen **Dateiordner anlegen, ihn auf unsichtbar stellen** und den
+   Zugriff auf **„Zugriff auf Dateien per Link“** setzen. Sichtbar zeigte er
+   jeder Person die Schreiben aller anderen – also die Matrikelnummern des
+   ganzen Kurses.
+2. Die PDFs aus der ZIP in diesen Ordner hochladen.
+3. In der Verwaltung des Kurses das Werkzeug **Klausureinsicht** aktivieren
+   und seinen **Reiter umbenennen**: „Klausur Zulassung“ für die Zulassungen,
+   „Klausur Sitzplatz“ für die Sitzpläne.
+4. Im Werkzeug den **Ordner auswählen**, in dem die PDFs liegen.
+5. Rundmail schreiben, dass es dort einzusehen ist.
+
+Dieselben fünf Schritte stehen in der App unter dem jeweiligen PDF-Stapel
+(Schritt 2 „In Stud.IP bereitstellen“, Schritt 4 „Sitzplatz-PDFs in Stud.IP
+bereitstellen“).
+
+### Kommandozeile
+
+Jeder Screen hat einen Befehl – dieselben Eingaben, dieselbe Fachlogik,
+dieselben Zahlen, nur ohne Browser. Fehlt etwas im Aufruf, kommt die Hilfe des
+Befehls statt einer Fehlermeldung; `yarn cli` listet alle Befehle,
+`yarn <befehl> --hilfe` erklärt einen.
+
+```bash
+yarn 1_vips Notenliste.csv Teilnehmendenexport.csv --min_points 30 --min_assignments 3
+yarn 2_zulassung Zulassungen/ Teilnehmendenexport.csv --out pdfs/
+yarn 3_teilnehmende check.xlsx Zulassungen/ --out ./
+yarn 4_raumzuteilung allowedStudents.csv klausurraeume.csv --raeume Raeume/
+yarn 5_raeume Raeume/
+```
+
+Statt einzelner Pfade tut es auch der **Projektordner** – dann holt sich jeder
+Befehl seine Eingaben von dort und legt sein Ergebnis im passenden Ordner ab,
+genau wie die Screens:
+
+```bash
+yarn 1_vips          --projekt Beispielprojekt --min_points 30 --min_assignments 3
+yarn 3_teilnehmende  --projekt Beispielprojekt
+yarn 4_raumzuteilung --projekt Beispielprojekt --modus balanced
+```
+
+`4_raumzuteilung` verteilt nur, wenn die Plätze reichen: Sonst steht da, wie
+viele fehlen und welche Räume kein Raster haben – mit `--trotzdem` wird
+trotzdem verteilt, dann bleiben Personen ohne Platz.
+
 ### Projektaufbau (Yarn Workspaces)
 
 ```
 packages/core   Fachlogik als reines TypeScript – läuft im Browser UND in Node
                 (CSV/Excel-Parsing, VIPS-Auswertung, Zulassungsprüfung,
                 Raumzuteilung, PDF/ZIP-Erzeugung) + Jest-Tests
+packages/cli    Die fünf Schritte auf der Kommandozeile (`yarn 1_vips …`) –
+                liest Dateien, ruft den Core, schreibt das Ergebnis
 apps/web        Expo-Web-App (React Native Web) mit den fünf Screens
 ```
 
-Die Trennung ist Absicht: `packages/core` hat keine UI-Abhängigkeiten und kann
-später unverändert in einen Node-Server eingebunden werden.
+Die Trennung ist Absicht: `packages/core` hat keine UI-Abhängigkeiten und läuft
+deshalb unverändert im Browser, auf der Kommandozeile und später in einem
+Node-Server.
 
 ### Automatische Prüfungen (GitHub Actions)
 
 | Workflow | Wann | Was |
 |---|---|---|
-| `test.yml` | jeder Push, jeder Pull Request | Jest-Tests der Fachlogik und Typecheck beider Pakete |
+| `test.yml` | jeder Push, jeder Pull Request | Jest-Tests von Fachlogik und Kommandozeile, Typecheck aller Pakete |
 | `deploy-web.yml` | Push auf `main` | Tests, Typecheck, Web-Export und Veröffentlichung auf GitHub Pages |
 | `data-clumps.yml` | Push auf `main`, manuell | Data-Clumps-Analyse; Report und Badge landen unter `reports/` |
 
@@ -603,6 +664,7 @@ EXPO_BASE_URL=/exam-manager yarn export:web       # mit Pages-Basispfad
 1. **Anonymisierung & Dokumentation** – erledigt: Beispieldatensatz, READMEs.
 2. **TypeScript-Web-Tool** – in Arbeit: Workspace, Fachlogik in
    `packages/core` (mit Jest-Tests), Expo-Web-App mit den fünf Screens,
+   dieselben fünf Schritte auf der Kommandozeile (`packages/cli`),
    GitHub-Pages-Deployment, Maestro-E2E-Test.
 3. **Python-Skripte ablösen** – sobald die App den kompletten Workflow
    abdeckt, bleiben die Skripte nur noch als Referenz erhalten.

@@ -64,6 +64,16 @@ Konventionen des Datensatzes:
   Node-Server einbindbar). Jede fachliche Funktion gehört hierher, nie in die
   App. Excel-/Datei-I/O bleibt draußen: Funktionen nehmen Strings bzw.
   Zellenmatrizen entgegen (siehe `hisExport.ts`).
+- `packages/cli` – dieselben fünf Schritte auf der Kommandozeile
+  (`yarn 1_vips …` bis `yarn 5_raeume …`). Dünn: Argumente lesen, Dateien
+  einlesen, Core rufen, Ergebnis schreiben – **keine** Fachlogik, die die App
+  nicht auch hätte. Ein neuer Screen bekommt einen Befehl, ein neuer Schalter
+  eine Zeile in seiner `BefehlBeschreibung`; daraus entstehen Prüfung **und**
+  Hilfetext, damit beide nicht auseinanderlaufen. Fehlt etwas im Aufruf, wird
+  `FehlendeAngabe` geworfen: Der Aufrufer sieht die Hilfe des Befehls und
+  darunter den Satz, was fehlt – auf der Kommandozeile ist die Hilfe das, was
+  in der App das Formular ist. Relative Pfade meinen das Verzeichnis, in dem
+  getippt wurde (`INIT_CWD`), nicht das Wurzelverzeichnis des Workspaces.
 - `apps/web` – Expo-Web-App (React Native Web; eigener Hash-Router in
   `src/Router.tsx`). Screens in `src/screens/`, wiederverwendbare Bausteine in
   `src/components/` (FilePickerButton, DataTable, LabeledInput, StatusText …)
@@ -129,8 +139,11 @@ Konventionen des Datensatzes:
   Das ist Absicht: In der Praxis heißen Exporte uneinheitlich, und die falsche
   Datei stillschweigend auszuwerten ist schlimmer, als eine sichtbar zu
   ignorieren. Die Kopfzeile entscheidet nur noch dort, wo ein Ordner mehrere
-  Rollen aufnimmt (`Raeume/`: Raumliste oder Raumschema). `Vorlagen/` nimmt
-  nur `*vorlage*.md` auf – die LIESMICH daneben bleibt „nicht zugeordnet“.
+  Rollen aufnimmt (`4_Raumzuteilung_Export/`: Sitzplan, Belegung oder die
+  Räume dieser Klausur). `Vorlagen/` nimmt nur `*vorlage*.md` auf – die
+  LIESMICH daneben bleibt „nicht zugeordnet“, und eine alte
+  `Raeume/raeume.csv` (Kopfzeile `Raum;Plätze;…`) ebenfalls: Als Raster
+  gelesen ergäbe sie einen Raum namens „Plätze“.
 - Der Aufbau folgt den Schritten der App: `0_Input_…` für alles, was von außen
   kommt (Prüfungsamt, Stud.IP, VIPS), nummerierte Export-Ordner für die
   Ergebnisse der Schritte. `Zulassungen/` und `Raeume/` bleiben unnummeriert,
@@ -201,7 +214,7 @@ Konventionen des Datensatzes:
   (ein stiller Verlust beim nächsten Öffnen wäre die schlechtere Überraschung).
 - Was ein Screen nur bei sich hält (eine geladene CSV, die noch nirgends
   hingeschrieben wurde), überlebt das Neuladen **nicht** – gesichert ist, was
-  im Projektstand steht. Screen 5 schreibt Raster und Raumliste deshalb von
+  im Projektstand steht. Screen 5 schreibt die Raster deshalb von
   selbst dorthin (gebündelt, 400 ms); wer eine ähnliche Bearbeitung baut,
   macht es genauso, statt auf einen Knopf zu warten.
 - Der Browser darf nicht in den gewählten Ordner zurückschreiben; der Weg
@@ -218,13 +231,30 @@ Konventionen des Datensatzes:
   Projektordner liegen sie in `Raeume/`, außerhalb der nummerierten
   Schritt-Ordner. Screen 5 (`RaeumeScreen`) bearbeitet sie für sich, Screen 4
   legt die Belegung darüber.
-- **Bestand und Benutzung sind zwei Listen.** `Raeume/raeume.csv` ist der
-  Bestand des Hauses (jeder Raum einmal), `4_Raumzuteilung_Export/klausurraeume.csv`
-  (Rolle `klausurraeume`) die Räume **dieser** Klausur. Dort darf derselbe Raum
-  mehrfach stehen: Dann wird er mehrfach belegt (Gruppe 1 vormittags, Gruppe 2
-  nachmittags). Der wievielte Einsatz das ist, steht nicht in der Datei –
-  `parseRaeume` zählt die Wiederholungen beim Einlesen durch (`Raum.durchgang`),
-  die Reihenfolge der Zeilen ist also bedeutungstragend.
+- **Der Bestand ist der Ordner, die Benutzung eine Liste.** Welche Räume es
+  gibt, sagt `Raeume/` selbst – je Raum eine Raster-Datei;
+  `4_Raumzuteilung_Export/klausurraeume.csv` (Rolle `klausurraeume`,
+  `Raum;ReservierteZeit`) sagt, welche davon **diese** Klausur benutzt. Dort
+  darf derselbe Raum mehrfach stehen: Dann wird er mehrfach belegt (Gruppe 1
+  vormittags, Gruppe 2 nachmittags). Der wievielte Einsatz das ist, steht
+  nicht in der Datei – `parseRaeume` zählt die Wiederholungen beim Einlesen
+  durch (`Raum.durchgang`), die Reihenfolge der Zeilen ist also
+  bedeutungstragend.
+- **Die Platzzahl wird nirgends gespeichert.** Sie sind die Tische im Raster
+  (`plaetzeJeRaum`, `Raum` hat kein Feld `plaetze`): Wer im Plan einen Tisch
+  setzt oder entfernt, ändert damit die Plätze des Raums. Eine mitgeschriebene
+  Zahl daneben wäre nach dem ersten Umbau falsch, und niemand könnte sagen,
+  welche der beiden gilt – deshalb gibt es `Raeume/raeume.csv` nicht mehr.
+  Eine ältere Datei mit einer Spalte `Plätze` bleibt lesbar, die Spalte wird
+  überlesen. Wer eine Verteilung rechnet, gibt die Plätze als Map mit
+  (`erstelleRaumzuteilung(..., { plaetze })`); ein Raum ohne Raster hat keine
+  und bleibt leer, statt geraten zu werden.
+- **Vor dem Verteilen steht die Frage, ob es reicht** (`pruefePlatzbedarf`):
+  Teilnehmende, die maximale Zahl der Plätze, wie viele frei bleiben oder
+  fehlen und welche Räume kein Raster haben. Schritt 4 zeigt das über der
+  Raumliste (`PlatzBedarf`), die Kommandozeile bricht damit ab
+  (`--trotzdem` verteilt dennoch). Vorher fiel erst nach dem Verteilen auf,
+  dass Leute übrig bleiben.
 - **Was am Raum hängt und was am Durchgang:** Das Raster gehört zum Raum (ein
   Umbau gilt für beide Durchgänge), Belegung und Sitzplatznummern gehören zum
   Durchgang. Angesprochen wird ein Einsatz über `raumSchluessel(raum)` –
@@ -277,29 +307,23 @@ Konventionen des Datensatzes:
   Belegung (alle Räume in einer Datei, je Einsatz eine Seite), in Schritt 5
   ohne (der gezeigte Raum als eigene Datei, benannt nach `raumDateiname`).
   Eine zweite Zeichenroutine für den leeren Grundriss gibt es nicht.
-- **Ein Raum ist Zeile *und* Raster.** Wer in Schritt 5 einen Raum anlegt,
-  dupliziert, umbenennt oder löscht, fasst beides an: `raeume.csv` und die
-  Datei in `Raeume/`. Nur die Zeile zu ändern ließe ein Raster zu einem Raum
-  liegen, den es nicht mehr gibt – und der Raum stünde ohne Grundriss da.
-  Deshalb wird der Name in Schritt 5 **nicht getippt**: Die Bestandsliste hat
-  kein Namensfeld, umbenannt wird über das Blatt, das Zeile und Raster
-  zusammen anfasst. Kopiert wird mit `kopiereRaumschema` (Core) – eine echte
-  Kopie, sonst änderte ein Strich im Duplikat auch das Original. Zwei Räume
-  mit demselben Namen lässt die App nicht zu: Der Name ist der Dateiname in
-  `Raeume/`.
+- **Ein Raum *ist* sein Raster.** Anlegen, Duplizieren, Umbenennen und
+  Löschen in Schritt 5 fassen genau eine Datei in `Raeume/` an – eine Liste
+  daneben, die mitgepflegt werden müsste, gibt es nicht. Der Name wird dabei
+  **nicht getippt**, sondern umbenannt: Er ist der Dateiname des Rasters, und
+  ein halb getippter Name legte je Tastendruck eine Datei an. Kopiert wird mit
+  `kopiereRaumschema` (Core) – eine echte Kopie, sonst änderte ein Strich im
+  Duplikat auch das Original. Zwei Räume mit demselben Namen lässt die App
+  nicht zu: Der Name ist der Dateiname.
 - **Die Bestandsliste ist der Bestand, kein Formular daneben.** Schritt 5
   zeigt sie als `components/RaumBestandListe.tsx`: je Raum ein Kasten mit den
-  Sitzplätzen seines Rasters, den Feldern für Plätze und reservierte Zeit und
-  den Vorgängen, die ihn betreffen („Plan bearbeiten“ bzw. „Raster anlegen“,
-  „Umbenennen …“, „Duplizieren …“, „Entfernen“). Darin steht **jeder** Raum,
-  zu dem es eine Zeile *oder* ein Raster gibt: Ein Raster ohne Zeile bekommt
-  beim Laden eine (Plätze = Tische im Raster), sonst wäre der Raum nur im Menü
-  zu finden und stünde in `raeume.csv` gar nicht. Leere Zeilen legt der Screen
-  nicht an – ein Raum ohne Namen hat kein Raster und gehört nicht in den
-  Bestand; er entsteht über „Neuer Raum …“. Die Klausur-Liste aus Schritt 4
-  (`components/RaumListe.tsx`) bleibt davon unberührt: Dort sind Zeilen
-  **Einsätze**, derselbe Raum darf mehrfach vorkommen, und eine leere Zeile
-  ist ein Raum, den man gleich noch einträgt.
+  Sitzplätzen seines Rasters und den Vorgängen, die ihn betreffen („Plan
+  bearbeiten“, „Umbenennen …“, „Duplizieren …“, „Entfernen“). Eingabefelder
+  gibt es dort keine mehr – die Plätze stehen im Raster, und die reservierte
+  Zeit gehört zur Klausur, nicht zum Haus. Die Klausur-Liste aus Schritt 4
+  (`components/RaumListe.tsx`) ist das Gegenstück: Dort sind Zeilen
+  **Einsätze**, derselbe Raum darf mehrfach vorkommen, getippt wird nur die
+  reservierte Zeit, und die Plätze stehen als Auskunft daneben.
 - **Namen werden gefragt, nicht geraten.** Anlegen, Duplizieren, Umbenennen
   und Löschen laufen über ein Blatt (`RaumVorgangBlatt`, ein `RaumVorgang`) –
   kein „Raum 3“, der hinterher auf dem Aushang steht, und vor dem Löschen eine
@@ -546,6 +570,22 @@ jagt jedes Zeichen bis U+201F durch pdf-lib. Die Screens melden über
 `nichtDarstellbareZeichen()`, welche Namen betroffen sind – ein Name, der im
 PDF anders steht als in der Liste, darf nicht stillschweigend passieren.
 
+## PDFs an Studierende: `<Matrikelnummer>.pdf`
+
+Die Zulassungs-PDFs (Schritt 2) und die Sitzplatz-PDFs (Schritt 4) heißen
+**nach der Matrikelnummer** – das ist kein Namensschema, sondern die
+Schnittstelle: Das Stud.IP-Werkzeug „Klausureinsicht“ gibt jeder Person genau
+die Datei frei, deren Name ihrer Matrikelnummer entspricht. Wer den Dateinamen
+ändert, bricht die Verteilung.
+
+Die Schritte drumherum (unsichtbarer Dateiordner mit „Zugriff auf Dateien per
+Link“, Werkzeug aktivieren, Reiter umbenennen, Ordner im Werkzeug auswählen)
+stehen an **einer** Stelle im Code: `components/StudipEinsicht.tsx`, von beiden
+Screens benutzt und nur im Namen des Reiters unterschieden. Zweimal
+hingeschriebene Anleitungen laufen auseinander, und die Zeile, die zählt, ist
+„der Ordner muss unsichtbar sein“ – sichtbar zeigte er jeder Person die
+Schreiben aller anderen.
+
 ## Text der Schreiben (Vorlagen)
 
 Was in den Zulassungs- und Sitzplatz-PDFs steht, gehört **nicht in den
@@ -589,11 +629,15 @@ sie im Projekt unter `Vorlagen/` ab (Rolle `pdfVorlage`).
 
 ## Änderungen prüfen
 
-- `yarn test` – Jest-Tests der Fachlogik. Sie laufen gegen die Beispieldaten
-  des Repos und prüfen die erwarteten Zahlen (6 neue Zulassungen, 9 mit
-  Zulassung, 7 zugelassene Angemeldete, 1 ohne Zulassung, 7 Sitzplätze).
-  Neue Fachlogik bekommt neue Tests in `packages/core/test/`.
-- `yarn typecheck` – beide Pakete müssen sauber sein.
+- `yarn test` – Jest-Tests der Fachlogik **und** der Kommandozeile. Sie laufen
+  gegen die Beispieldaten des Repos und prüfen die erwarteten Zahlen (6 neue
+  Zulassungen, 9 mit Zulassung, 7 zugelassene Angemeldete, 1 ohne Zulassung,
+  7 Sitzplätze). Neue Fachlogik bekommt neue Tests in `packages/core/test/`,
+  neue Befehle in `packages/cli/test/`.
+- `yarn typecheck` – alle drei Pakete müssen sauber sein.
+- Die Befehle einmal wirklich laufen lassen, am besten gegen eine **Kopie**
+  von `Beispielprojekt/`: `yarn 1_vips --projekt <Kopie> …` schreibt in den
+  Ordner, den es bekommt.
 - E2E: `yarn web` starten, dann `maestro test .maestro/durchlauf.yaml`
   (siehe `.maestro/README.md`). Wer UI-Texte der Screens ändert, prüft den
   Flow – er asserted auf sichtbare Texte.

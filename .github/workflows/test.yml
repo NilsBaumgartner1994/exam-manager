@@ -1,4 +1,4 @@
-# Jest-Tests der Fachlogik und Typecheck: bei jedem Pull Request und bei jedem
+# Jest-Tests (Fachlogik und Kommandozeile) und Typecheck: bei jedem Pull Request und bei jedem
 # Push – auch auf `main`, damit der Status von main jederzeit sichtbar ist
 # (Banner in der README).
 name: Test
@@ -18,5 +18,5 @@ jobs:
           node-version-file: .nvmrc
           cache: yarn
       - run: yarn install --frozen-lockfile
-      - run: yarn workspace @exam-manager/core test
+      - run: yarn test
       - run: yarn typecheck

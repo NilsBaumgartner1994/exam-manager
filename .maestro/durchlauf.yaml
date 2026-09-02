@@ -92,6 +92,10 @@ url: http://localhost:8081
 # Welche Räume die Klausur benutzt, steht im Reiter „Einstellungen“ – aus dem
 # Bestand in Raeume/ ausgewählt; derselbe Raum darf mehrfach dabei sein.
 - assertVisible: 'Räume der Klausur'
+# Über der Liste steht, ob die Plätze reichen – die Räume der Beispieldaten
+# haben zusammen 345 Plätze (die Tische in ihren Rastern).
+- scrollUntilVisible:
+    element: 'höchstens 345 Plätze'
 - scrollUntilVisible:
     element: 'Zuteilung erstellen'
 - tapOn: 'Zuteilung erstellen'
@@ -175,10 +179,6 @@ url: http://localhost:8081
 - extendedWaitUntil:
     visible: 'Raumplan 66/E33 als PDF gespeichert.'
     timeout: 20000
-- tapOn:
-    id: 'raeume-menue-datei'
-- tapOn: 'Räume als CSV speichern'
-- assertVisible: 'Raumliste heruntergeladen'
 - tapOn:
     id: 'raeume-menue-datei'
 - tapOn: 'Raster als CSV speichern'

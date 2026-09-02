@@ -30,8 +30,8 @@ jobs:
       - name: Abhängigkeiten installieren
         run: yarn install --frozen-lockfile
 
-      - name: Tests (Fachlogik)
-        run: yarn workspace @exam-manager/core test
+      - name: Tests (Fachlogik und Kommandozeile)
+        run: yarn test
 
       - name: Typecheck
         run: yarn typecheck

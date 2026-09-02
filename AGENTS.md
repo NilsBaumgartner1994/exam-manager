@@ -303,6 +303,15 @@ Konventionen des Datensatzes:
   Raumnamen kollidieren. Gezeigt wird immer **ein** Plan (`RaumplanBuehne`);
   fünf Pläne nebeneinander, darunter ein Hörsaal mit 44 × 32 Feldern, sind
   weder zu überblicken noch flüssig zu zeichnen.
+- **Der Sitzplan als Tabelle: `sitzplanRasterCsv()`** – je Feld des Raums eine
+  Zelle, je Raumeinsatz eine Kopfzeile `Sitzplan;<Raumeinsatz>`. Es gibt ihn
+  zweimal, weil zwei Leute damit arbeiten: `nummer` (nur die Sitzplatznummer)
+  ist der Aushang, `person` (Nummer, Matrikelnummer, Name untereinander in
+  einer Zelle) der Plan für die Aufsicht. Er ist eine **Ausgabe**, kein
+  Eingabeformat – gelesen wird er nirgends zurück, aber er hat im Projekt eine
+  eigene Rolle (`sitzplanRaster`, erkannt an der Kopfzeile): Ohne sie fiele er
+  im Export-Ordner auf den Rückfall „Sitzplan-Liste“ und würde beim nächsten
+  Öffnen als Reihe leerer Personen eingelesen.
 - **Der Raumplan als PDF entsteht mit `sitzplaenePdf()`** – in Schritt 4 mit
   Belegung (alle Räume in einer Datei, je Einsatz eine Seite), in Schritt 5
   ohne (der gezeigte Raum als eigene Datei, benannt nach `raumDateiname`).

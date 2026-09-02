@@ -44,6 +44,8 @@ import {
   Sitzplatz,
   sitzplaetzeMitBelegung,
   sitzplaetzeToCsv,
+  SitzplanFeld,
+  sitzplanRasterCsv,
   sitzplatznummern,
   sitzplatzPdf,
   sitzplatzWerte,
@@ -631,6 +633,35 @@ export function RaumzuteilungScreen() {
     belegungAktualisieren(schemataRef.current, ergebnis.sitzplaetze, belegungRef.current, true);
   };
 
+  /**
+   * Der Sitzplan als Tabelle – je Feld des Raums eine Zelle.
+   *
+   * Zweimal, weil zwei Leute damit arbeiten: Am Aushang hängt der Plan mit den
+   * **Nummern** (mehr braucht dort niemand zu sehen), die Aufsicht geht mit dem
+   * Plan **mit Namen** durch die Reihen. Anders als das PDF lässt sich die
+   * Tabelle weiterverarbeiten – ausdrucken, einfärben, in eine eigene Vorlage
+   * kopieren.
+   */
+  const rasterCsvSpeichern = (feld: SitzplanFeld) => {
+    const dateiname = feld === 'nummer' ? 'sitzplan_nummern.csv' : 'sitzplan_namen.csv';
+    // Gedreht wird die Ansicht je **Raum**, das Raster gehört zum **Einsatz**:
+    // Beide Durchgänge sehen den Raum aus derselben Richtung.
+    const einsaetze = raeume
+      .map((raum) => ({
+        schema: raster.find((eintrag) => eintrag.raum === raumSchluessel(raum)),
+        drehungen: editor.drehungen[raum.raum] ?? 0,
+      }))
+      .filter((eintrag): eintrag is { schema: Raumschema; drehungen: number } => !!eintrag.schema);
+    const csv = sitzplanRasterCsv(einsaetze, belegung, angezeigteSitzplaetze ?? [], nummern, feld);
+    downloadCsv(dateiname, csv);
+    projekt.schreibe(dateiname, csv, 'sitzplanRaster');
+    setHinweis(
+      feld === 'nummer'
+        ? `Sitzplan als Raster gespeichert (${dateiname}) – je Feld die Sitzplatznummer.`
+        : `Sitzplan als Raster gespeichert (${dateiname}) – je Feld Nummer, Matrikelnummer und Name.`,
+    );
+  };
+
   const neuVerteilen = () => {
     if (!sitzplaetze) return;
     editor.merkeStand();
@@ -1082,6 +1113,22 @@ export function RaumzuteilungScreen() {
             setHinweis(`Raster gespeichert – je Raum eine Datei in Raeume/: ${namen.join(', ')}.`);
           },
           testID: 'raum-schema-speichern',
+        },
+        {
+          art: 'aktion',
+          titel: 'Sitzplan als Raster-CSV (Nummern)',
+          hinweis: 'sitzplan_nummern.csv – der Raumplan als Tabelle, je Feld die Sitzplatznummer',
+          deaktiviert: raster.length === 0,
+          onWaehlen: () => rasterCsvSpeichern('nummer'),
+          testID: 'raum-raster-nummern',
+        },
+        {
+          art: 'aktion',
+          titel: 'Sitzplan als Raster-CSV (mit Namen)',
+          hinweis: 'sitzplan_namen.csv – je Feld Sitzplatznummer, Matrikelnummer und Name',
+          deaktiviert: raster.length === 0,
+          onWaehlen: () => rasterCsvSpeichern('person'),
+          testID: 'raum-raster-namen',
         },
         {
           art: 'aktion',

@@ -101,6 +101,16 @@ url: http://localhost:8081
 - tapOn: 'Zuteilung erstellen'
 # Danach steht das Ergebnis im Reiter „Listen“.
 - assertVisible: '7 Sitzplätze in 5 Räumen vergeben'
+# Der Plan als Tabelle: einmal nur mit den Nummern (Aushang), einmal mit
+# Matrikelnummer und Name (Aufsicht).
+- tapOn:
+    id: 'raum-menue-datei'
+- tapOn: 'Sitzplan als Raster-CSV (Nummern)'
+- assertVisible: 'je Feld die Sitzplatznummer'
+- tapOn:
+    id: 'raum-menue-datei'
+- tapOn: 'Sitzplan als Raster-CSV (mit Namen)'
+- assertVisible: 'je Feld Nummer, Matrikelnummer und Name'
 - tapOn: 'Dozent'
 - tapOn: 'Tutor'
 - tapOn:

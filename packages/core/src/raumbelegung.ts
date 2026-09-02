@@ -17,7 +17,14 @@
  * neuen Tisches.
  */
 import { parseCsvObjects, toCsv } from './csv';
-import { Bereich, imBereich, Raumschema, tischzellen } from './raumschema';
+import {
+  anzeigeRaster,
+  Bereich,
+  imBereich,
+  Raumschema,
+  tischzellen,
+  ZELL_KUERZEL,
+} from './raumschema';
 import { raumSchluessel } from './raumzuteilung';
 import { Raum, Sitzplatz } from './types';
 
@@ -404,6 +411,83 @@ export function sitzplaetzeMitBelegung(
       sitzplatznummer: nummerJePerson.get(platz.matrikelnummer) ?? platz.sitzplatznummer,
     }))
     .sort((a, b) => a.sitzplatznummer - b.sitzplatznummer);
+}
+
+/**
+ * Was in den Feldern eines Sitzplan-Rasters steht:
+ *
+ * - `nummer` – nur die Sitzplatznummer. Das ist der Aushang: Wer sucht,
+ *   sucht seine Nummer, und wer den Plan sieht, erfährt nichts über andere.
+ * - `person` – Nummer, Matrikelnummer und Name untereinander. Das ist der
+ *   Plan für die Aufsicht, mit dem sie durch die Reihen geht.
+ */
+export type SitzplanFeld = 'nummer' | 'person';
+
+/** Erste Spalte der Kopfzeile eines Raumeinsatzes im Raster-CSV. */
+export const SITZPLAN_RASTER_KOPF = 'Sitzplan';
+
+/** Ein Raumeinsatz für das Raster-CSV: sein Raster und die Blickrichtung. */
+export interface SitzplanRaster {
+  /** Raster des Einsatzes – der Name ist der `raumSchluessel`. */
+  schema: Raumschema;
+  /** Drehung der Ansicht (× 90°), damit die Tabelle so steht wie der Plan. */
+  drehungen?: number;
+}
+
+/**
+ * Der Sitzplan als **Tabelle**: eine Zelle je Feld des Raums, so wie der Plan
+ * am Bildschirm steht.
+ *
+ * Das PDF ist zum Aufhängen, diese Datei zum Weiterarbeiten: In einer
+ * Tabellenkalkulation lässt sich der Plan drehen, einfärben, ausdrucken oder
+ * in eine eigene Vorlage kopieren, ohne dass jemand die App braucht. Deshalb
+ * gibt es sie zweimal – einmal mit den Nummern allein (`nummer`) und einmal
+ * mit den Personen dazu (`person`).
+ *
+ * Aufbau: je Raumeinsatz eine Zeile `Sitzplan;<Raumeinsatz>`, darunter sein
+ * Raster. Ein Feld, auf dem kein Tisch steht, trägt das Kürzel des
+ * Raumschemas (`W` Wand, `D` Tür, `P` Pult, `R` dauerhaft freier Tisch); leere
+ * Felder bleiben leer, damit der Raum in der Tabelle zu erkennen ist. Die
+ * Beschriftungen des Rasters stehen nicht darin: Sie liegen **über** den
+ * Feldern, und in einer Tabelle gibt es kein Darüber.
+ */
+export function sitzplanRasterCsv(
+  raster: SitzplanRaster[],
+  belegung: Platzbelegung[],
+  personen: Sitzplatz[],
+  nummern: Map<string, number>,
+  feld: SitzplanFeld,
+): string {
+  const jeMatrikel = new Map(personen.map((person) => [person.matrikelnummer, person]));
+  const zeilen: string[][] = [];
+  for (const einsatz of raster) {
+    const schluessel = einsatz.schema.raum;
+    const jePlatz = new Map(
+      belegung
+        .filter((platz) => platz.raum === schluessel)
+        .map((platz) => [platzSchluessel(schluessel, platz.zeile, platz.spalte), platz]),
+    );
+    zeilen.push([SITZPLAN_RASTER_KOPF, schluessel]);
+    for (const anzeigeZeile of anzeigeRaster(einsatz.schema, einsatz.drehungen ?? 0)) {
+      zeilen.push(
+        anzeigeZeile.map((zelle) => {
+          if (zelle.typ !== 'tisch') return zelle.typ === 'leer' ? '' : ZELL_KUERZEL[zelle.typ];
+          const platzKey = platzSchluessel(schluessel, zelle.zeile, zelle.spalte);
+          const nummer = nummern.get(platzKey);
+          const kopf = nummer === undefined ? '' : String(nummer);
+          if (feld === 'nummer') return kopf;
+          const platz = jePlatz.get(platzKey);
+          if (platz?.reserviert) return [kopf, 'freigehalten'].join('\n');
+          const person = platz?.matrikelnummer ? jeMatrikel.get(platz.matrikelnummer) : undefined;
+          if (!person) return kopf;
+          // Drei Zeilen in einem Feld – wie die drei Zeilen im Kasten des
+          // Plans. Die Tabellenkalkulation zeigt sie untereinander.
+          return [kopf, person.matrikelnummer, `${person.nachname}, ${person.vorname}`].join('\n');
+        }),
+      );
+    }
+  }
+  return toCsv(zeilen);
 }
 
 const BELEGUNG_HEADER = [

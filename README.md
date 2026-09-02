@@ -100,6 +100,7 @@ Alle CSV-Dateien: Trennzeichen `;`, UTF-8, Zeilenende `\n`.
 | Stud.IP-Export | `Status;Anrede;Titel;Vorname;Nachname;…;E-Mail;Anmeldedatum;Matrikelnummer;Studiengänge;Position` (alle Felder in `"`) |
 | Räume einer Klausur (`klausurraeume.csv`) | `Raum;ReservierteZeit`. Welche Räume **diese** Klausur benutzt – ein Raum darf mehrfach darin stehen, dann wird er mehrfach belegt (Gruppe 1 / Gruppe 2). **Keine Platzzahl:** Wie viele Plätze ein Raum hat, sind die Tische in seinem Raster. Den Bestand des Hauses bildet der Ordner `Raeume/` selbst – je Raum eine Raster-Datei, eine `raeume.csv` daneben gibt es nicht mehr (ältere Dateien mit einer Spalte `Plätze` werden weiter gelesen, die Spalte wird überlesen) |
 | Raumschema (je Raum eine Datei, `94_E01.csv`) | Raster statt Kopfzeile: `Raum;<Name>` beginnt einen Raum, jede weitere Zeile ist eine Reihe im Raum. Zellen: `T` Sitzplatz (Tisch für Studierende), `R` Reserve (Tisch, der in diesem Raum dauerhaft frei bleibt – ohne Sitzplatznummer), `P` Pult (Tisch ohne Sitzplatz), `D` Tür, `W` Wand, `.` frei. Freier Text über verbundenen Zellen steht in eigenen Zeilen: `Text;<Zeile>;<Spalte>;<Höhe>;<Breite>;<Text>` – er liegt über dem Raster, die Zellen darunter bleiben erhalten |
+| Sitzplan als Raster (`sitzplan_nummern.csv`, `sitzplan_namen.csv`) | Der Raumplan als Tabelle: je Raumeinsatz eine Zeile `Sitzplan;<Raum>`, darunter sein Raster – eine Zelle je Feld des Raums. In den Tischfeldern steht die Sitzplatznummer, in der zweiten Datei zusätzlich Matrikelnummer und Name (drei Zeilen in einer Zelle). Felder ohne Tisch tragen die Kürzel des Raumschemas (`W`, `D`, `P`, `R`), leere Felder bleiben leer |
 | Raumbelegung (`raumbelegung.csv`) | `Raum;Zeile;Spalte;Sitzplatznummer;Matrikelnummer;Nachname;Vorname;Reserviert;Vorgabe` (Sitzplatznummer, Nachname und Vorname stehen nur zur Lesbarkeit darin und werden beim Einlesen ignoriert) |
 
 Ein Raumschema bildet den Aufbau des Raumes direkt ab und lässt sich deshalb
@@ -455,6 +456,21 @@ Und die vier Schritte selbst:
    die Nummer des neuen Tisches. Raster und Belegung lassen sich als CSV
    speichern und wieder laden.
 
+   **Der Sitzplan als Tabelle** – im Menü **Datei** zweimal, weil zwei Leute
+   damit arbeiten:
+
+   - **Sitzplan als Raster-CSV (Nummern)** → `sitzplan_nummern.csv`: je Feld
+     des Raums eine Zelle, in den Tischen die Sitzplatznummer. Das ist der
+     Aushang – mehr braucht dort niemand zu sehen.
+   - **Sitzplan als Raster-CSV (mit Namen)** → `sitzplan_namen.csv`: in jedem
+     belegten Tisch stehen Sitzplatznummer, Matrikelnummer und Name
+     untereinander. Das ist der Plan für die Aufsicht.
+
+   Beide zeigen den Raum so, wie er am Bildschirm steht (samt Drehung), und
+   liegen im Projekt in `4_Raumzuteilung_Export/`. Anders als das PDF lässt
+   sich die Tabelle weiterverarbeiten – in einer Tabellenkalkulation
+   ausdrucken, einfärben oder in eine eigene Vorlage kopieren.
+
 5. **Räume & Raumpläne** – dieselben Raster, aber **ohne Teilnehmende**: Räume
    anlegen, ihre Grundrisse zeichnen und speichern. Ein Raum überlebt
    die einzelne Klausur – derselbe Hörsaal wird jedes Semester wieder
@@ -566,31 +582,132 @@ bereitstellen“).
 ### Kommandozeile
 
 Jeder Screen hat einen Befehl – dieselben Eingaben, dieselbe Fachlogik,
-dieselben Zahlen, nur ohne Browser. Fehlt etwas im Aufruf, kommt die Hilfe des
-Befehls statt einer Fehlermeldung; `yarn cli` listet alle Befehle,
-`yarn <befehl> --hilfe` erklärt einen.
+dieselben Zahlen, nur ohne Browser. `yarn cli` listet alle Befehle,
+`yarn <befehl> --hilfe` erklärt einen. **Fehlt etwas im Aufruf, kommt die
+Hilfe des Befehls** samt der Zeile, was fehlt – auf der Kommandozeile ist die
+Hilfe das, was in der App das Formular ist.
+
+Zwei Wege, an die Eingaben zu kommen: die **Pfade** in der Reihenfolge, in der
+der Screen sie aufzählt (oder als gleichnamiger Schalter), oder ein
+**Projektordner** über `--projekt` – dann holt sich der Befehl alles von dort
+und legt sein Ergebnis im passenden Ordner ab, genau wie die Screens. Relative
+Pfade meinen das Verzeichnis, in dem der Befehl getippt wurde.
+
+```bash
+yarn cli                       # Übersicht aller Befehle
+yarn 4_raumzuteilung --hilfe   # Hilfe eines Befehls
+```
+
+#### `yarn 1_vips` – VIPS-Punkte auswerten (Schritt 1)
+
+```bash
+yarn 1_vips [<Notenliste.csv>] [<Teilnehmendenexport.csv>] [Schalter]
+```
+
+| Schalter | Bedeutung |
+|---|---|
+| `--projekt <Ordner>` | Projektordner, aus dem fehlende Eingaben kommen |
+| `--min_points <Zahl>` | Punkte, ab denen ein Aufgabenblatt bestanden ist (Standard 30) |
+| `--min_assignments <Zahl>` | so viele Aufgabenblätter müssen bestanden sein (Standard 3) |
+| `--veranstaltung <Name>` | Name für den Dateinamen der Zulassungsliste (sonst aus dem Stud.IP-Dateinamen) |
+| `--out <Datei>` | Zulassungsliste hierhin schreiben (mit `--projekt`: nach `Zulassungen/`) |
 
 ```bash
 yarn 1_vips Notenliste.csv Teilnehmendenexport.csv --min_points 30 --min_assignments 3
-yarn 2_zulassung Zulassungen/ Teilnehmendenexport.csv --out pdfs/
-yarn 3_teilnehmende check.xlsx Zulassungen/ --out ./
-yarn 4_raumzuteilung allowedStudents.csv klausurraeume.csv --raeume Raeume/
-yarn 5_raeume Raeume/
+yarn 1_vips --projekt Beispielprojekt --min_points 30 --min_assignments 3
 ```
 
-Statt einzelner Pfade tut es auch der **Projektordner** – dann holt sich jeder
-Befehl seine Eingaben von dort und legt sein Ergebnis im passenden Ordner ab,
-genau wie die Screens:
+#### `yarn 2_zulassung` – Zulassung prüfen & PDFs erzeugen (Schritt 2)
 
 ```bash
-yarn 1_vips          --projekt Beispielprojekt --min_points 30 --min_assignments 3
-yarn 3_teilnehmende  --projekt Beispielprojekt
-yarn 4_raumzuteilung --projekt Beispielprojekt --modus balanced
+yarn 2_zulassung [<Zulassungen/>] [<Teilnehmendenexport.csv>] [Schalter]
 ```
 
-`4_raumzuteilung` verteilt nur, wenn die Plätze reichen: Sonst steht da, wie
-viele fehlen und welche Räume kein Raster haben – mit `--trotzdem` wird
-trotzdem verteilt, dann bleiben Personen ohne Platz.
+| Schalter | Bedeutung |
+|---|---|
+| `--projekt <Ordner>` | Projektordner, aus dem fehlende Eingaben kommen |
+| `--suche <Text>` | nur nachschlagen: Name oder Matrikelnummer im Bestand |
+| `--out <Ordner>` | Ordner für die PDFs (mit `--projekt`: `2_Zulassungs_PDFs_Export/`) |
+| `--vorlage <Datei>` | Markdown-Vorlage für den Text der Schreiben |
+
+```bash
+yarn 2_zulassung Zulassungen/ Teilnehmendenexport.csv --out pdfs/
+yarn 2_zulassung --projekt Beispielprojekt --suche Schrödinger
+```
+
+#### `yarn 3_teilnehmende` – Anmeldungen prüfen (Schritt 3)
+
+```bash
+yarn 3_teilnehmende [<check.xlsx>] [<Zulassungen/>] [Schalter]
+```
+
+| Schalter | Bedeutung |
+|---|---|
+| `--projekt <Ordner>` | Projektordner, aus dem fehlende Eingaben kommen |
+| `--out <Ordner>` | Ordner für `allowedStudents.csv` und `notAllowedStudents.csv` (mit `--projekt`: `3_Klausur_Teilnehmende_Export/`) |
+
+Die Anmeldungen dürfen als `.xlsx` (HIS-Export) oder als `.csv` kommen.
+
+```bash
+yarn 3_teilnehmende check.xlsx Zulassungen/ --out ./
+yarn 3_teilnehmende --projekt Beispielprojekt
+```
+
+#### `yarn 4_raumzuteilung` – Raumzuteilung & Sitzplan (Schritt 4)
+
+```bash
+yarn 4_raumzuteilung [<allowedStudents.csv>] [<klausurraeume.csv>] [Schalter]
+```
+
+| Schalter | Bedeutung |
+|---|---|
+| `--projekt <Ordner>` | Projektordner, aus dem fehlende Eingaben kommen |
+| `--raeume <Ordner>` | Ordner mit den Rastern, je Raum eine CSV |
+| `--modus <Wort>` | `balanced` (gleichmäßig) oder `sequential` (Raum für Raum), Standard `balanced` |
+| `--sitzverteilung <Wort>` | Plätze im Raum: `lesereihenfolge` oder `abstand`, Standard `lesereihenfolge` |
+| `--start <Zahl>` | erste Sitzplatznummer (Standard 1001) |
+| `--out <Datei>` | Sitzplan hierhin schreiben; die beiden Raster-CSVs landen daneben (mit `--projekt`: `4_Raumzuteilung_Export/`) |
+| `--trotzdem` | auch verteilen, wenn die Plätze nicht reichen |
+
+Vor dem Verteilen steht die Platzfrage: Teilnehmende, die **maximale** Zahl der
+Plätze und wie viele fehlen. Reicht es nicht, verteilt der Befehl nicht,
+sondern nennt die fehlenden Plätze und die Räume ohne Raster. Geschrieben
+werden drei Dateien – der Sitzplan als Liste
+(`studierendeZuRaumUndZeitZuordnung.csv`) und der Raumplan als Tabelle,
+einmal mit den Sitzplatznummern (`sitzplan_nummern.csv`) und einmal mit
+Matrikelnummer und Name (`sitzplan_namen.csv`).
+
+```bash
+yarn 4_raumzuteilung allowedStudents.csv klausurraeume.csv --raeume Raeume/
+yarn 4_raumzuteilung --projekt Beispielprojekt --modus sequential --sitzverteilung abstand
+```
+
+#### `yarn 5_raeume` – Räume & Raumpläne (Schritt 5)
+
+```bash
+yarn 5_raeume [<Raeume/>] [Schalter]
+```
+
+| Schalter | Bedeutung |
+|---|---|
+| `--projekt <Ordner>` | Projektordner, aus dem die Raster kommen |
+| `--neu <Name>` | einen neuen Raum anlegen: sein Raster entsteht als Vorschlag |
+| `--plaetze <Zahl>` | Plätze des Vorschlagsrasters für `--neu` (Standard 24) |
+| `--out <Ordner>` | Ordner für das neue Raster (Standard: der gelesene `Raeume/`-Ordner) |
+
+```bash
+yarn 5_raeume Raeume/
+yarn 5_raeume --projekt Beispielprojekt --neu 99/A01 --plaetze 30
+```
+
+Ein kompletter Durchlauf über einen Projektordner:
+
+```bash
+yarn 1_vips          --projekt MeineKlausur --min_points 30 --min_assignments 3
+yarn 2_zulassung     --projekt MeineKlausur
+yarn 3_teilnehmende  --projekt MeineKlausur
+yarn 4_raumzuteilung --projekt MeineKlausur
+```
 
 ### Projektaufbau (Yarn Workspaces)
 

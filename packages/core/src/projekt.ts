@@ -33,6 +33,8 @@ export type DateiRolle =
   | 'teilnehmer'
   /** Sitzplan aus Schritt 4. */
   | 'sitzplan'
+  /** Sitzplan als Raster: je Feld des Raums eine Zelle (Schritt 4). */
+  | 'sitzplanRaster'
   /** Erzeugte Zulassungs-PDFs aus Schritt 2 (je Matrikelnummer eines). */
   | 'zulassungsPdf'
   /** Markdown-Vorlage für die Schreiben an Studierende (Schritt 2 und 4). */
@@ -50,6 +52,7 @@ export const ROLLEN_TITEL: Record<DateiRolle, string> = {
   raumbelegung: 'Raumbelegung',
   teilnehmer: 'Klausur-Teilnehmende',
   sitzplan: 'Sitzplan',
+  sitzplanRaster: 'Sitzplan als Raster',
   zulassungsPdf: 'Zulassungs-PDF',
   pdfVorlage: 'PDF-Vorlage',
   unbekannt: 'nicht zugeordnet',
@@ -136,9 +139,9 @@ export const PROJEKT_SCHEMA: OrdnerRegel[] = [
   {
     ordner: '4_Raumzuteilung_Export',
     endungen: ['.csv'],
-    rollen: ['sitzplan', 'raumbelegung', 'klausurraeume'],
+    rollen: ['sitzplan', 'raumbelegung', 'klausurraeume', 'sitzplanRaster'],
     zweck:
-      'Räume dieser Klausur, Sitzplan und Raumbelegung (Schritt 4). Ein Raum darf in klausurraeume.csv mehrfach stehen – dann wird er mehrfach belegt.',
+      'Räume dieser Klausur, Sitzplan (als Liste und als Raster) und Raumbelegung (Schritt 4). Ein Raum darf in klausurraeume.csv mehrfach stehen – dann wird er mehrfach belegt.',
   },
 ];
 
@@ -222,6 +225,10 @@ function rolleAusKopf(kopf: string | undefined, kandidaten: DateiRolle[]): Datei
     if (passt('sitzplan') && kopfzeile.startsWith('anfang_nachname;sitzplatznummer')) {
       return 'sitzplan';
     }
+    // Der Sitzplan als Tabelle: je Raumeinsatz eine Zeile `Sitzplan;<Raum>`.
+    // Ohne diese Regel läse ihn der Rückfall als Sitzplan-**Liste** ein und
+    // machte aus einem Raumplan lauter leere Personen.
+    if (passt('sitzplanRaster') && kopfzeile.startsWith('sitzplan;')) return 'sitzplanRaster';
   }
   return kandidaten[0];
 }

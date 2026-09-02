@@ -31,6 +31,7 @@ import {
   setzePerson,
   setzeZelle,
   sitzplaetzeMitBelegung,
+  sitzplanRasterCsv,
   sitzplatznummern,
   spaltenName,
   standardRaumschema,
@@ -373,6 +374,66 @@ describe('Raumbelegung', () => {
     expect(gelesen).toHaveLength(2);
     expect(gelesen[0]).toMatchObject({ raum: '94/E03', zeile: 0, spalte: 1, matrikelnummer: '1000001', vorgabe: true });
     expect(gelesen[1]).toMatchObject({ reserviert: true, matrikelnummer: '' });
+  });
+});
+
+describe('Sitzplan als Raster-CSV', () => {
+  const schemata = parseRaumschemata(SCHEMA_CSV);
+  const nummern = sitzplatznummern(schemata, 1001);
+  const { belegung } = verteileImRaum(schemata[0], ['1000001', '1000003'], [
+    { raum: '94/E01', zeile: 1, spalte: 4, matrikelnummer: '', reserviert: true, vorgabe: false },
+  ]);
+  const personen = PERSONEN.map((person, i) => ({
+    anfangNachname: person.nachname[0],
+    sitzplatznummer: 1001 + i,
+    raum: '94/E01',
+    raumSchluessel: '94/E01',
+    reservierteZeit: '',
+    matrikelnummer: person.matrikelnummer,
+    anwesend: '',
+    nachname: person.nachname,
+    vorname: person.vorname,
+    zeitUndRaum: '',
+    email: person.email,
+  }));
+  const raster = [{ schema: schemata[0] }];
+
+  it('setzt die Sitzplatznummer in das Feld des Tisches', () => {
+    const zeilen = sitzplanRasterCsv(raster, belegung, personen, nummern, 'nummer')
+      .trim()
+      .split('\n');
+    // Je Raumeinsatz eine Kopfzeile, darunter das Raster des Raums.
+    expect(zeilen[0]).toBe('Sitzplan;94/E01');
+    expect(zeilen).toHaveLength(1 + schemata[0].zellen.length);
+    // Pult, Tür und Wand behalten ihr Kürzel, leere Felder bleiben leer.
+    expect(zeilen[1]).toBe('P;;;;');
+    expect(zeilen[2]).toBe(';1001;1002;;1003');
+    expect(zeilen[4]).toBe('D;;;;');
+  });
+
+  it('schreibt Nummer, Matrikelnummer und Name untereinander in ein Feld', () => {
+    const csv = sitzplanRasterCsv(raster, belegung, personen, nummern, 'person');
+    expect(csv).toContain('"1001\n1000001\nArchi, Archimedes"');
+    expect(csv).toContain('"1003\nfreigehalten"');
+    // Ein Tisch, an dem niemand sitzt, trägt weiterhin seine Nummer.
+    expect(csv).toContain('1006');
+  });
+
+  it('dreht die Tabelle mit der Ansicht', () => {
+    const gedreht = sitzplanRasterCsv(
+      [{ schema: schemata[0], drehungen: 1 }],
+      belegung,
+      personen,
+      nummern,
+      'nummer',
+    )
+      .trim()
+      .split('\n');
+    // Aus vier Zeilen mit fünf Spalten werden fünf Zeilen mit vier Spalten;
+    // die Nummern bleiben an ihren Tischen.
+    expect(gedreht).toHaveLength(1 + 5);
+    expect(gedreht[1]).toBe('D;;;P');
+    expect(gedreht[2]).toBe(';1004;1001;');
   });
 });
 

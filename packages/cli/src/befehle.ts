@@ -9,6 +9,7 @@
 import {
   anmeldungenToCsv,
   defaultZulassungsDateiname,
+  einsatzRaster,
   erstelleRaumzuteilung,
   kursAusDateiname,
   ladeZulassungsBestand,
@@ -27,18 +28,23 @@ import {
   raumschemaDateiname,
   raumschemataToCsv,
   raumSchluessel,
+  sitzplaetzeMitBelegung,
   sitzplaetzeToCsv,
+  sitzplanRasterCsv,
+  sitzplatznummern,
+  Sitzverteilung,
   standardRaumschema,
   sucheImBestand,
   teilnehmerMitZulassung,
   tischzellen,
   veranstaltungAlsKennung,
+  verteileAufRaumschemata,
   Verteilmodus,
   VORLAGE_ZULASSUNG,
   zulassungenToCsv,
   zulassungsPdf,
 } from '@exam-manager/core';
-import { basename, join } from 'path';
+import { basename, dirname, join } from 'path';
 import {
   Argumente,
   BefehlBeschreibung,
@@ -382,7 +388,9 @@ const raumzuteilung: Befehl = {
     beschreibung:
       'Verteilt die Teilnehmenden auf die Räume dieser Klausur und vergibt Sitzplatznummern.\n' +
       'Wie viele Plätze ein Raum hat, sind die Tische in seinem Raster – reichen sie nicht,\n' +
-      'sagt der Befehl, wie viele fehlen, und verteilt nicht.',
+      'sagt der Befehl, wie viele fehlen, und verteilt nicht.\n' +
+      'Geschrieben werden drei Dateien: der Sitzplan als Liste und der Raumplan als Tabelle,\n' +
+      'einmal nur mit den Sitzplatznummern und einmal mit Matrikelnummer und Name.',
     positionen: [
       { name: 'allowedStudents.csv', beschreibung: 'Teilnehmende aus Schritt 3' },
       { name: 'klausurraeume.csv', beschreibung: 'Räume dieser Klausur (Raum;ReservierteZeit)' },
@@ -398,15 +406,22 @@ const raumzuteilung: Befehl = {
       },
       { name: 'start', art: 'zahl', beschreibung: 'erste Sitzplatznummer', standard: 1001 },
       {
+        name: 'sitzverteilung',
+        art: 'text',
+        beschreibung: 'Plätze im Raum: lesereihenfolge oder abstand',
+        standard: 'lesereihenfolge',
+      },
+      {
         name: 'out',
         art: 'pfad',
-        beschreibung: 'Sitzplan hierhin schreiben (mit --projekt: 4_Raumzuteilung_Export/)',
+        beschreibung:
+          'Sitzplan hierhin schreiben; die Raster-CSVs landen daneben (mit --projekt: 4_Raumzuteilung_Export/)',
       },
       { name: 'trotzdem', art: 'ja', beschreibung: 'auch verteilen, wenn die Plätze nicht reichen' },
     ],
     beispiele: [
       'yarn 4_raumzuteilung allowedStudents.csv klausurraeume.csv --raeume Raeume/',
-      'yarn 4_raumzuteilung --projekt Beispielprojekt --modus sequential --out sitzplan.csv',
+      'yarn 4_raumzuteilung --projekt Beispielprojekt --modus sequential --sitzverteilung abstand',
     ],
   },
   async ausfuehren(args) {
@@ -472,11 +487,31 @@ const raumzuteilung: Befehl = {
     if (modus !== 'balanced' && modus !== 'sequential') {
       throw new FehlendeAngabe(`--modus kennt nur balanced und sequential, nicht „${modus}“.`);
     }
-    const { sitzplaetze, ohnePlatz } = erstelleRaumzuteilung(teilnehmer, raeume, {
+    const sitzverteilung = text(args, 'sitzverteilung') ?? 'lesereihenfolge';
+    if (sitzverteilung !== 'lesereihenfolge' && sitzverteilung !== 'abstand') {
+      throw new FehlendeAngabe(
+        `--sitzverteilung kennt nur lesereihenfolge und abstand, nicht „${sitzverteilung}“.`,
+      );
+    }
+    const ersteNummer = zahl(args, 'start', 1001);
+    const { sitzplaetze: verteilt, ohnePlatz } = erstelleRaumzuteilung(teilnehmer, raeume, {
       modus: modus as Verteilmodus,
       plaetze,
-      ersteSitzplatznummer: zahl(args, 'start', 1001),
+      ersteSitzplatznummer: ersteNummer,
     });
+
+    // Wer in welchem Raum sitzt, ist die eine Hälfte; an welchem Tisch, die
+    // andere. Beides zusammen ergibt den Plan, den auch der Screen zeigt –
+    // deshalb geht die Zuteilung hier noch durch die Raster.
+    const einsaetze = einsatzRaster(raeume, schemata);
+    const nummern = sitzplatznummern(einsaetze, ersteNummer);
+    const { belegung, ohnePlatz: ohneTisch } = verteileAufRaumschemata(
+      verteilt,
+      einsaetze,
+      [],
+      sitzverteilung as Sitzverteilung,
+    );
+    const sitzplaetze = sitzplaetzeMitBelegung(verteilt, belegung, nummern);
     console.log('');
     console.log(
       tabelle(
@@ -497,6 +532,11 @@ const raumzuteilung: Befehl = {
         `Kein Platz für: ${ohnePlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')}`,
       );
     }
+    if (ohneTisch.length > 0) {
+      console.log(
+        `Ohne Tisch im Sitzplan: ${ohneTisch.map((p) => `${p.vorname} ${p.nachname}`).join(', ')} – im Raster mehr Tische setzen.`,
+      );
+    }
 
     const ziel =
       text(args, 'out') ??
@@ -506,6 +546,18 @@ const raumzuteilung: Befehl = {
       return;
     }
     schreibeDatei(ziel, sitzplaetzeToCsv(sitzplaetze));
+    // Neben die Liste der Raumplan als Tabelle – einmal für den Aushang (nur
+    // Nummern) und einmal für die Aufsicht (mit Matrikelnummer und Name).
+    const tabellen = einsaetze.map((schema) => ({ schema }));
+    const daneben = (dateiname: string) => join(dirname(ziel), dateiname);
+    schreibeDatei(
+      daneben('sitzplan_nummern.csv'),
+      sitzplanRasterCsv(tabellen, belegung, sitzplaetze, nummern, 'nummer'),
+    );
+    schreibeDatei(
+      daneben('sitzplan_namen.csv'),
+      sitzplanRasterCsv(tabellen, belegung, sitzplaetze, nummern, 'person'),
+    );
   },
 };
 

@@ -100,6 +100,15 @@ describe('Projektordner: Dateien erkennen', () => {
     ).toBe('sitzplan');
   });
 
+  it('erkennt den Sitzplan als Raster an seiner Kopfzeile', () => {
+    // Der Plan als Tabelle beginnt je Raumeinsatz mit `Sitzplan;<Raum>`.
+    // Ohne diese Regel wäre er die Sitzplan-*Liste* – lauter leere Personen.
+    expect(erkenneRolle('4_Raumzuteilung_Export/sitzplan_nummern.csv', 'Sitzplan;94/E01')).toBe(
+      'sitzplanRaster',
+    );
+    expect(PROJEKT_ORDNER.sitzplanRaster).toBe('4_Raumzuteilung_Export');
+  });
+
   it('stört sich nicht am BOM der VIPS-Notenliste', () => {
     expect(
       erkenneRolle(

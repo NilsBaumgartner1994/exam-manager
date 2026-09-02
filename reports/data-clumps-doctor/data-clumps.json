@@ -1,15 +1,15 @@
 {
   "report_version": "^0.1.103",
-  "report_timestamp": "2026-09-02T16:22:12.240Z",
+  "report_timestamp": "2026-09-02T20:49:03.850Z",
   "target_language": "typescript",
   "report_summary": {
     "additional": {
       "invertedIndexSoftwareProjectStatistics": {
         "invertedFieldToClasses": {
-          "median": 1.5,
-          "maximum": 17,
-          "average": 1.5679611650485437,
-          "amountSavedValuesForKeys": 323,
+          "median": 1,
+          "maximum": 18,
+          "average": 1.6093023255813954,
+          "amountSavedValuesForKeys": 346,
           "amountKeys": 9
         },
         "invertedParameterToMethods": {
@@ -20,52 +20,52 @@
           "amountKeys": 6
         },
         "invertedParameterToClasses": {
-          "median": 1.5,
-          "maximum": 17,
-          "average": 1.5679611650485437,
-          "amountSavedValuesForKeys": 323,
+          "median": 1,
+          "maximum": 18,
+          "average": 1.6093023255813954,
+          "amountSavedValuesForKeys": 346,
           "amountKeys": 9
         }
       },
       "timer_information": {
-        "ast_generation_time_ms": 560,
-        "detection_time_ms": 14,
+        "ast_generation_time_ms": 494,
+        "detection_time_ms": 12,
         "machine_information": {
           "os": "Linux",
           "os_release": "6.17.0-1022-azure",
           "os_platform": "linux",
           "os_arch": "x64",
-          "os_uptime": 367.33,
-          "os_memory_free": 14957780992,
-          "os_memory_total": 16766414848,
+          "os_uptime": 147.42,
+          "os_memory_free": 15013519360,
+          "os_memory_total": 16765378560,
           "os_cpu_cores": 4,
-          "os_cpu_model": "AMD EPYC 9V74 80-Core Processor",
-          "os_cpu_speed": 0
+          "os_cpu_model": "Intel(R) Xeon(R) 6973P-C",
+          "os_cpu_speed": 4200
         }
       }
     },
-    "amount_classes_or_interfaces_with_data_clumps": 16,
-    "amount_files_with_data_clumps": 11,
+    "amount_classes_or_interfaces_with_data_clumps": 20,
+    "amount_files_with_data_clumps": 12,
     "amount_methods_with_data_clumps": 4,
-    "fields_to_fields_data_clump": 34,
-    "parameters_to_fields_data_clump": 3,
+    "fields_to_fields_data_clump": 38,
+    "parameters_to_fields_data_clump": 6,
     "parameters_to_parameters_data_clump": 8,
-    "amount_data_clumps": 45
+    "amount_data_clumps": 52
   },
   "project_info": {
     "project_url": "https://github.com/NilsBaumgartner1994/exam-manager",
     "project_name": "exam-manager",
-    "project_version": "78cfb4de950d9c42093375c5d7587a6f61cde743",
-    "project_commit_hash": "78cfb4de950d9c42093375c5d7587a6f61cde743",
+    "project_version": "f9cda19cad14444ff07b3947da47ffcd9dbd2355",
+    "project_commit_hash": "f9cda19cad14444ff07b3947da47ffcd9dbd2355",
     "project_tag": null,
-    "project_commit_date": "1788366083",
+    "project_commit_date": "1788382094",
     "additional": {
       "relative_path_to_source_folder_in_project": ""
     },
-    "number_of_files": 42,
-    "number_of_classes_or_interfaces": 105,
+    "number_of_files": 44,
+    "number_of_classes_or_interfaces": 109,
     "number_of_methods": 64,
-    "number_of_data_fields": 323,
+    "number_of_data_fields": 346,
     "number_of_method_parameters": 78
   },
   "detector": {
@@ -410,9 +410,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 61,
+              "startLine": 63,
               "startColumn": 3,
-              "endLine": 61,
+              "endLine": 63,
               "endColumn": 16
             }
           },
@@ -435,9 +435,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 62,
+              "startLine": 64,
               "startColumn": 3,
-              "endLine": 62,
+              "endLine": 64,
               "endColumn": 17
             }
           },
@@ -460,9 +460,106 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 63,
+              "startLine": 65,
               "startColumn": 3,
-              "endLine": 63,
+              "endLine": 65,
+              "endColumn": 18
+            }
+          },
+          "position": {
+            "startLine": 174,
+            "startColumn": 45,
+            "endLine": 174,
+            "endColumn": 59
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "parameters_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress-packages/core/src/sitzplanung.ts/interface/PlatzAdresse-raumzeilespalte": {
+      "type": "data_clump",
+      "key": "parameters_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress-packages/core/src/sitzplanung.ts/interface/PlatzAdresse-raumzeilespalte",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "from_class_or_interface_name": "RaumplanEditor",
+      "from_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor",
+      "from_method_name": "zellePress",
+      "from_method_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress",
+      "to_file_path": "packages/core/src/sitzplanung.ts",
+      "to_class_or_interface_name": "PlatzAdresse",
+      "to_class_or_interface_key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse",
+      "to_method_name": null,
+      "to_method_key": null,
+      "data_clump_type": "parameters_to_fields_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/raum": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/raum",
+          "name": "raum",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/raum",
+            "name": "raum",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 82,
+              "startColumn": 3,
+              "endLine": 82,
+              "endColumn": 16
+            }
+          },
+          "position": {
+            "startLine": 174,
+            "startColumn": 16,
+            "endLine": 174,
+            "endColumn": 28
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/zeile": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/zeile",
+          "name": "zeile",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/zeile",
+            "name": "zeile",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 83,
+              "startColumn": 3,
+              "endLine": 83,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 174,
+            "startColumn": 30,
+            "endLine": 174,
+            "endColumn": 43
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/spalte": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/zellePress/parameter/spalte",
+          "name": "spalte",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/spalte",
+            "name": "spalte",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 84,
+              "startColumn": 3,
+              "endLine": 84,
               "endColumn": 18
             }
           },
@@ -798,9 +895,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 61,
+              "startLine": 63,
               "startColumn": 3,
-              "endLine": 61,
+              "endLine": 63,
               "endColumn": 16
             }
           },
@@ -823,9 +920,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 62,
+              "startLine": 64,
               "startColumn": 3,
-              "endLine": 62,
+              "endLine": 64,
               "endColumn": 17
             }
           },
@@ -848,9 +945,106 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 63,
+              "startLine": 65,
               "startColumn": 3,
-              "endLine": 63,
+              "endLine": 65,
+              "endColumn": 18
+            }
+          },
+          "position": {
+            "startLine": 177,
+            "startColumn": 56,
+            "endLine": 177,
+            "endColumn": 70
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "parameters_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben-packages/core/src/sitzplanung.ts/interface/PlatzAdresse-raumzeilespalte": {
+      "type": "data_clump",
+      "key": "parameters_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben-packages/core/src/sitzplanung.ts/interface/PlatzAdresse-raumzeilespalte",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "from_class_or_interface_name": "RaumplanEditor",
+      "from_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor",
+      "from_method_name": "beschriftungSchreiben",
+      "from_method_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben",
+      "to_file_path": "packages/core/src/sitzplanung.ts",
+      "to_class_or_interface_name": "PlatzAdresse",
+      "to_class_or_interface_key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse",
+      "to_method_name": null,
+      "to_method_key": null,
+      "data_clump_type": "parameters_to_fields_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/raum": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/raum",
+          "name": "raum",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/raum",
+            "name": "raum",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 82,
+              "startColumn": 3,
+              "endLine": 82,
+              "endColumn": 16
+            }
+          },
+          "position": {
+            "startLine": 177,
+            "startColumn": 27,
+            "endLine": 177,
+            "endColumn": 39
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/zeile": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/zeile",
+          "name": "zeile",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/zeile",
+            "name": "zeile",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 83,
+              "startColumn": 3,
+              "endLine": 83,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 177,
+            "startColumn": 41,
+            "endLine": 177,
+            "endColumn": 54
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/spalte": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/beschriftungSchreiben/parameter/spalte",
+          "name": "spalte",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/spalte",
+            "name": "spalte",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 84,
+              "startColumn": 3,
+              "endLine": 84,
               "endColumn": 18
             }
           },
@@ -1089,9 +1283,9 @@
             "type": "string",
             "modifiers": [],
             "position": {
-              "startLine": 61,
+              "startLine": 63,
               "startColumn": 3,
-              "endLine": 61,
+              "endLine": 63,
               "endColumn": 16
             }
           },
@@ -1114,9 +1308,9 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 62,
+              "startLine": 64,
               "startColumn": 3,
-              "endLine": 62,
+              "endLine": 64,
               "endColumn": 17
             }
           },
@@ -1139,9 +1333,106 @@
             "type": "number",
             "modifiers": [],
             "position": {
-              "startLine": 63,
+              "startLine": 65,
               "startColumn": 3,
-              "endLine": 63,
+              "endLine": 65,
+              "endColumn": 18
+            }
+          },
+          "position": {
+            "startLine": 182,
+            "startColumn": 50,
+            "endLine": 182,
+            "endColumn": 64
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "parameters_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen-packages/core/src/sitzplanung.ts/interface/PlatzAdresse-raumzeilespalte": {
+      "type": "data_clump",
+      "key": "parameters_to_fields_data_clump-apps/web/src/components/RaumplanEditor.tsx-apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen-packages/core/src/sitzplanung.ts/interface/PlatzAdresse-raumzeilespalte",
+      "probability": 1,
+      "from_file_path": "apps/web/src/components/RaumplanEditor.tsx",
+      "from_class_or_interface_name": "RaumplanEditor",
+      "from_class_or_interface_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor",
+      "from_method_name": "textfeldAnlegen",
+      "from_method_key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen",
+      "to_file_path": "packages/core/src/sitzplanung.ts",
+      "to_class_or_interface_name": "PlatzAdresse",
+      "to_class_or_interface_key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse",
+      "to_method_name": null,
+      "to_method_key": null,
+      "data_clump_type": "parameters_to_fields_data_clump",
+      "data_clump_data": {
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/raum": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/raum",
+          "name": "raum",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/raum",
+            "name": "raum",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 82,
+              "startColumn": 3,
+              "endLine": 82,
+              "endColumn": 16
+            }
+          },
+          "position": {
+            "startLine": 182,
+            "startColumn": 21,
+            "endLine": 182,
+            "endColumn": 33
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/zeile": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/zeile",
+          "name": "zeile",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/zeile",
+            "name": "zeile",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 83,
+              "startColumn": 3,
+              "endLine": 83,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 182,
+            "startColumn": 35,
+            "endLine": 182,
+            "endColumn": 48
+          }
+        },
+        "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/spalte": {
+          "key": "apps/web/src/components/RaumplanEditor.tsx/interface/RaumplanEditor/method/textfeldAnlegen/parameter/spalte",
+          "name": "spalte",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/spalte",
+            "name": "spalte",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 84,
+              "startColumn": 3,
+              "endLine": 84,
               "endColumn": 18
             }
           },
@@ -2916,6 +3207,394 @@
         "cluster_type": 3
       }
     },
+    "fields_to_fields_data_clump-packages/core/src/raumbelegung.ts-packages/core/src/raumbelegung.ts/interface/Platzbelegung-packages/core/src/sitzplanung.ts/interface/PlatzAdresse-raumzeilespalte": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/raumbelegung.ts-packages/core/src/raumbelegung.ts/interface/Platzbelegung-packages/core/src/sitzplanung.ts/interface/PlatzAdresse-raumzeilespalte",
+      "probability": 1,
+      "from_file_path": "packages/core/src/raumbelegung.ts",
+      "from_class_or_interface_key": "packages/core/src/raumbelegung.ts/interface/Platzbelegung",
+      "from_class_or_interface_name": "Platzbelegung",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/sitzplanung.ts",
+      "to_class_or_interface_key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse",
+      "to_class_or_interface_name": "PlatzAdresse",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/raumbelegung.ts/interface/Platzbelegung/memberField/raum": {
+          "key": "packages/core/src/raumbelegung.ts/interface/Platzbelegung/memberField/raum",
+          "name": "raum",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/raum",
+            "name": "raum",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 82,
+              "startColumn": 3,
+              "endLine": 82,
+              "endColumn": 16
+            }
+          },
+          "position": {
+            "startLine": 63,
+            "startColumn": 3,
+            "endLine": 63,
+            "endColumn": 16
+          }
+        },
+        "packages/core/src/raumbelegung.ts/interface/Platzbelegung/memberField/zeile": {
+          "key": "packages/core/src/raumbelegung.ts/interface/Platzbelegung/memberField/zeile",
+          "name": "zeile",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/zeile",
+            "name": "zeile",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 83,
+              "startColumn": 3,
+              "endLine": 83,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 64,
+            "startColumn": 3,
+            "endLine": 64,
+            "endColumn": 17
+          }
+        },
+        "packages/core/src/raumbelegung.ts/interface/Platzbelegung/memberField/spalte": {
+          "key": "packages/core/src/raumbelegung.ts/interface/Platzbelegung/memberField/spalte",
+          "name": "spalte",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/spalte",
+            "name": "spalte",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 84,
+              "startColumn": 3,
+              "endLine": 84,
+              "endColumn": 18
+            }
+          },
+          "position": {
+            "startLine": 65,
+            "startColumn": 3,
+            "endLine": 65,
+            "endColumn": 18
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/sitzplanung.ts-packages/core/src/sitzplanung.ts/interface/EinsatzStand-packages/core/src/sitzplanung.ts/interface/Wahlraum-schluesselplaetzebelegt": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/sitzplanung.ts-packages/core/src/sitzplanung.ts/interface/EinsatzStand-packages/core/src/sitzplanung.ts/interface/Wahlraum-schluesselplaetzebelegt",
+      "probability": 1,
+      "from_file_path": "packages/core/src/sitzplanung.ts",
+      "from_class_or_interface_key": "packages/core/src/sitzplanung.ts/interface/EinsatzStand",
+      "from_class_or_interface_name": "EinsatzStand",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/sitzplanung.ts",
+      "to_class_or_interface_key": "packages/core/src/sitzplanung.ts/interface/Wahlraum",
+      "to_class_or_interface_name": "Wahlraum",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/sitzplanung.ts/interface/EinsatzStand/memberField/schluessel": {
+          "key": "packages/core/src/sitzplanung.ts/interface/EinsatzStand/memberField/schluessel",
+          "name": "schluessel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/Wahlraum/memberField/schluessel",
+            "name": "schluessel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 116,
+              "startColumn": 3,
+              "endLine": 116,
+              "endColumn": 22
+            }
+          },
+          "position": {
+            "startLine": 90,
+            "startColumn": 3,
+            "endLine": 90,
+            "endColumn": 22
+          }
+        },
+        "packages/core/src/sitzplanung.ts/interface/EinsatzStand/memberField/plaetze": {
+          "key": "packages/core/src/sitzplanung.ts/interface/EinsatzStand/memberField/plaetze",
+          "name": "plaetze",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/Wahlraum/memberField/plaetze",
+            "name": "plaetze",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 126,
+              "startColumn": 3,
+              "endLine": 126,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 95,
+            "startColumn": 3,
+            "endLine": 95,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/sitzplanung.ts/interface/EinsatzStand/memberField/belegt": {
+          "key": "packages/core/src/sitzplanung.ts/interface/EinsatzStand/memberField/belegt",
+          "name": "belegt",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/Wahlraum/memberField/belegt",
+            "name": "belegt",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 128,
+              "startColumn": 3,
+              "endLine": 128,
+              "endColumn": 18
+            }
+          },
+          "position": {
+            "startLine": 99,
+            "startColumn": 3,
+            "endLine": 99,
+            "endColumn": 18
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 5,
+        "cluster_type": 2
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/sitzplanung.ts-packages/core/src/sitzplanung.ts/interface/PlatzAdresse-packages/core/src/raumbelegung.ts/interface/Platzbelegung-raumzeilespalte": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/sitzplanung.ts-packages/core/src/sitzplanung.ts/interface/PlatzAdresse-packages/core/src/raumbelegung.ts/interface/Platzbelegung-raumzeilespalte",
+      "probability": 1,
+      "from_file_path": "packages/core/src/sitzplanung.ts",
+      "from_class_or_interface_key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse",
+      "from_class_or_interface_name": "PlatzAdresse",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/raumbelegung.ts",
+      "to_class_or_interface_key": "packages/core/src/raumbelegung.ts/interface/Platzbelegung",
+      "to_class_or_interface_name": "Platzbelegung",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/raum": {
+          "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/raum",
+          "name": "raum",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/raumbelegung.ts/interface/Platzbelegung/memberField/raum",
+            "name": "raum",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 63,
+              "startColumn": 3,
+              "endLine": 63,
+              "endColumn": 16
+            }
+          },
+          "position": {
+            "startLine": 82,
+            "startColumn": 3,
+            "endLine": 82,
+            "endColumn": 16
+          }
+        },
+        "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/zeile": {
+          "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/zeile",
+          "name": "zeile",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/raumbelegung.ts/interface/Platzbelegung/memberField/zeile",
+            "name": "zeile",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 64,
+              "startColumn": 3,
+              "endLine": 64,
+              "endColumn": 17
+            }
+          },
+          "position": {
+            "startLine": 83,
+            "startColumn": 3,
+            "endLine": 83,
+            "endColumn": 17
+          }
+        },
+        "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/spalte": {
+          "key": "packages/core/src/sitzplanung.ts/interface/PlatzAdresse/memberField/spalte",
+          "name": "spalte",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/raumbelegung.ts/interface/Platzbelegung/memberField/spalte",
+            "name": "spalte",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 65,
+              "startColumn": 3,
+              "endLine": 65,
+              "endColumn": 18
+            }
+          },
+          "position": {
+            "startLine": 84,
+            "startColumn": 3,
+            "endLine": 84,
+            "endColumn": 18
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 1,
+        "cluster_type": 3
+      }
+    },
+    "fields_to_fields_data_clump-packages/core/src/sitzplanung.ts-packages/core/src/sitzplanung.ts/interface/Wahlraum-packages/core/src/sitzplanung.ts/interface/EinsatzStand-schluesselplaetzebelegt": {
+      "type": "data_clump",
+      "key": "fields_to_fields_data_clump-packages/core/src/sitzplanung.ts-packages/core/src/sitzplanung.ts/interface/Wahlraum-packages/core/src/sitzplanung.ts/interface/EinsatzStand-schluesselplaetzebelegt",
+      "probability": 1,
+      "from_file_path": "packages/core/src/sitzplanung.ts",
+      "from_class_or_interface_key": "packages/core/src/sitzplanung.ts/interface/Wahlraum",
+      "from_class_or_interface_name": "Wahlraum",
+      "from_method_name": null,
+      "from_method_key": null,
+      "to_file_path": "packages/core/src/sitzplanung.ts",
+      "to_class_or_interface_key": "packages/core/src/sitzplanung.ts/interface/EinsatzStand",
+      "to_class_or_interface_name": "EinsatzStand",
+      "to_method_key": null,
+      "to_method_name": null,
+      "data_clump_type": "fields_to_fields_data_clump",
+      "data_clump_data": {
+        "packages/core/src/sitzplanung.ts/interface/Wahlraum/memberField/schluessel": {
+          "key": "packages/core/src/sitzplanung.ts/interface/Wahlraum/memberField/schluessel",
+          "name": "schluessel",
+          "type": "string",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/EinsatzStand/memberField/schluessel",
+            "name": "schluessel",
+            "type": "string",
+            "modifiers": [],
+            "position": {
+              "startLine": 90,
+              "startColumn": 3,
+              "endLine": 90,
+              "endColumn": 22
+            }
+          },
+          "position": {
+            "startLine": 116,
+            "startColumn": 3,
+            "endLine": 116,
+            "endColumn": 22
+          }
+        },
+        "packages/core/src/sitzplanung.ts/interface/Wahlraum/memberField/plaetze": {
+          "key": "packages/core/src/sitzplanung.ts/interface/Wahlraum/memberField/plaetze",
+          "name": "plaetze",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/EinsatzStand/memberField/plaetze",
+            "name": "plaetze",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 95,
+              "startColumn": 3,
+              "endLine": 95,
+              "endColumn": 19
+            }
+          },
+          "position": {
+            "startLine": 126,
+            "startColumn": 3,
+            "endLine": 126,
+            "endColumn": 19
+          }
+        },
+        "packages/core/src/sitzplanung.ts/interface/Wahlraum/memberField/belegt": {
+          "key": "packages/core/src/sitzplanung.ts/interface/Wahlraum/memberField/belegt",
+          "name": "belegt",
+          "type": "number",
+          "probability": 1,
+          "modifiers": [],
+          "to_variable": {
+            "key": "packages/core/src/sitzplanung.ts/interface/EinsatzStand/memberField/belegt",
+            "name": "belegt",
+            "type": "number",
+            "modifiers": [],
+            "position": {
+              "startLine": 99,
+              "startColumn": 3,
+              "endLine": 99,
+              "endColumn": 18
+            }
+          },
+          "position": {
+            "startLine": 128,
+            "startColumn": 3,
+            "endLine": 128,
+            "endColumn": 18
+          }
+        }
+      },
+      "data_clump_type_additional": {
+        "cluster_id": 5,
+        "cluster_type": 2
+      }
+    },
     "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Anmeldung-packages/core/src/types.ts/interface/NotenlistenEintrag-nachnamevornamematrikelnummer": {
       "type": "data_clump",
       "key": "fields_to_fields_data_clump-packages/core/src/types.ts-packages/core/src/types.ts/interface/Anmeldung-packages/core/src/types.ts/interface/NotenlistenEintrag-nachnamevornamematrikelnummer",
@@ -3009,7 +3688,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -3106,7 +3785,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -3203,7 +3882,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -3300,7 +3979,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -3397,7 +4076,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -3494,7 +4173,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -3591,7 +4270,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -3688,7 +4367,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -3785,7 +4464,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -3882,7 +4561,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -4004,7 +4683,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -4126,7 +4805,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -4223,7 +4902,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -4320,7 +4999,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -4442,7 +5121,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -4564,7 +5243,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -4661,7 +5340,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -4758,7 +5437,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -4880,7 +5559,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     },
@@ -5002,7 +5681,7 @@
         }
       },
       "data_clump_type_additional": {
-        "cluster_id": 5,
+        "cluster_id": 6,
         "cluster_type": 3
       }
     }

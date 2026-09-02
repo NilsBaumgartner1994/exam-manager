@@ -8,6 +8,7 @@
  */
 import {
   anmeldungenToCsv,
+  bestandeneBlaetter,
   defaultZulassungsDateiname,
   einsatzRaster,
   erstelleRaumzuteilung,
@@ -27,6 +28,7 @@ import {
   pruefeZulassungen,
   raumschemaDateiname,
   raumschemataToCsv,
+  reservezellen,
   raumSchluessel,
   sitzplaetzeMitBelegung,
   sitzplaetzeToCsv,
@@ -53,6 +55,7 @@ import {
   text,
   zahl,
 } from './argumente';
+import { melde } from './ausgabe';
 import { lieseDatei, lieseQuelle, lieseQuellen, projektAus, schreibeDatei } from './eingaben';
 import { Projekt } from './projektordner';
 
@@ -140,11 +143,22 @@ const vips: Befehl = {
       minPunkteProBlatt: zahl(args, 'min_points', 30),
       minBlaetterBestehen: zahl(args, 'min_assignments', 3),
     };
-    const zulassungen = neueZulassungen(
-      parseNotenliste(noten.text),
-      parseStudipExport(studip.text),
-      kriterien,
-    );
+    const notenliste = parseNotenliste(noten.text);
+    const zulassungen = neueZulassungen(notenliste, parseStudipExport(studip.text), kriterien);
+
+    melde(`${notenliste.aufgabenblaetter.length} Aufgabenblätter, ${notenliste.eintraege.length} Einträge in der Notenliste`);
+    for (const [i, blatt] of notenliste.aufgabenblaetter.entries()) {
+      melde(`  ${blatt} – höchstens ${notenliste.maximalpunkte[i]} Punkte`);
+    }
+    // Wer knapp gescheitert ist, sieht man sonst nirgends: In der Ergebnistabelle
+    // stehen nur die, die es geschafft haben.
+    for (const eintrag of notenliste.eintraege) {
+      const bestanden = bestandeneBlaetter(eintrag, kriterien);
+      melde(
+        `  ${eintrag.nachname}, ${eintrag.vorname} (${eintrag.matrikelnummer}): ${bestanden} von ${notenliste.aufgabenblaetter.length} bestanden` +
+          (bestanden >= kriterien.minBlaetterBestehen ? '' : ' – reicht nicht'),
+      );
+    }
 
     console.log(`Notenliste:   ${Projekt.kurz(noten.pfad)}`);
     console.log(`Stud.IP:      ${Projekt.kurz(studip.pfad)}`);
@@ -220,6 +234,9 @@ const zulassung: Befehl = {
       listen.map((quelle) => ({ datei: basename(quelle.pfad), text: quelle.text })),
     );
     console.log(`Bestand:      ${funde.length} Einträge aus ${listen.length} Datei(en)`);
+    for (const liste of listen) {
+      melde(`${basename(liste.pfad)}: ${funde.filter((f) => f.datei === basename(liste.pfad)).length} Einträge`);
+    }
 
     const suche = text(args, 'suche');
     if (suche !== undefined) {
@@ -250,11 +267,19 @@ const zulassung: Befehl = {
       projekt,
       args,
     });
+    const teilnehmende = parseStudipExport(studip.text);
     const zulassungen = teilnehmerMitZulassung(
-      parseStudipExport(studip.text),
+      teilnehmende,
       ladeZulassungsBestand(listen.map((quelle) => quelle.text)),
     );
     console.log(`Stud.IP:      ${Projekt.kurz(studip.pfad)}`);
+    const ohneMatrikel = teilnehmende.filter((person) => person.matrikelnummer === '');
+    melde(`${teilnehmende.length} Teilnehmende im Export, davon ${ohneMatrikel.length} ohne Matrikelnummer (Lehrende, Tutor:innen)`);
+    const mitZulassung = new Set(zulassungen.map((person) => person.matrikelnummer));
+    for (const person of teilnehmende) {
+      if (person.matrikelnummer === '' || mitZulassung.has(person.matrikelnummer)) continue;
+      melde(`  ohne Zulassung: ${person.nachname}, ${person.vorname} (${person.matrikelnummer})`);
+    }
     console.log('');
     console.log(
       tabelle(
@@ -338,7 +363,9 @@ const teilnehmende: Befehl = {
     }
     // Der Export kommt als Excel; die Python-Kette wandelt ihn vorher in CSV,
     // deshalb wird beides gelesen.
-    const anmeldungen = anmeldungenPfad.toLowerCase().endsWith('.csv')
+    const alsCsv = anmeldungenPfad.toLowerCase().endsWith('.csv');
+    melde(`Anmeldungen aus ${Projekt.kurz(anmeldungenPfad)} (${alsCsv ? 'CSV' : 'Excel'})`);
+    const anmeldungen = alsCsv
       ? parseAnmeldungen(lieseDatei(anmeldungenPfad))
       : parseHisRows(await lieseExcel(anmeldungenPfad));
     const listen = lieseQuellen({
@@ -357,6 +384,9 @@ const teilnehmende: Befehl = {
     console.log(`Bestand:      ${listen.length} Zulassungsliste(n)`);
     console.log('');
     console.log(`${zugelassen.length} von ${anmeldungen.length} Angemeldeten sind zugelassen.`);
+    for (const person of zugelassen) {
+      melde(`zugelassen: ${person.nachname}, ${person.vorname} (${person.matrikelnummer})`);
+    }
     if (nichtZugelassen.length > 0) {
       console.log('');
       console.log(
@@ -456,6 +486,12 @@ const raumzuteilung: Befehl = {
     console.log(`Teilnehmende: ${Projekt.kurz(liste.pfad)} (${teilnehmer.length})`);
     console.log(`Räume:        ${Projekt.kurz(raumliste.pfad)} (${raeume.length} Raumeinsätze)`);
     console.log(`Raster:       ${schemata.length} Datei(en)`);
+    for (const schema of schemata) {
+      melde(
+        `Raster ${schema.raum}: ${tischzellen(schema).length} Tische, ${reservezellen(schema).length} dauerhaft frei`,
+      );
+    }
+    melde(`Verteilung über die Räume: ${text(args, 'modus') ?? 'balanced'}`);
     console.log('');
     console.log(
       tabelle(
@@ -512,6 +548,13 @@ const raumzuteilung: Befehl = {
       sitzverteilung as Sitzverteilung,
     );
     const sitzplaetze = sitzplaetzeMitBelegung(verteilt, belegung, nummern);
+    melde(`Plätze im Raum: ${sitzverteilung}, erste Sitzplatznummer ${ersteNummer}`);
+    for (const einsatz of einsaetze) {
+      const belegt = belegung.filter(
+        (platz) => platz.raum === einsatz.raum && platz.matrikelnummer !== '',
+      ).length;
+      melde(`${einsatz.raum}: ${belegt} von ${tischzellen(einsatz).length} Plätzen belegt`);
+    }
     console.log('');
     console.log(
       tabelle(
@@ -599,6 +642,11 @@ const raeume: Befehl = {
       args,
     });
     const schemata = parseRaumschemaDateien(quellen.map((quelle) => quelle.text));
+    for (const schema of schemata) {
+      melde(
+        `${schema.raum}: ${tischzellen(schema).length} Tische, ${reservezellen(schema).length} dauerhaft frei, ${schema.beschriftungen.length} ${schema.beschriftungen.length === 1 ? 'Beschriftung' : 'Beschriftungen'}`,
+      );
+    }
     console.log(
       tabelle(
         ['Raum', 'Plätze', 'Raster'],

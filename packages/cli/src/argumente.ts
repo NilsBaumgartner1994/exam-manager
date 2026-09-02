@@ -119,6 +119,25 @@ export function pflichtText(args: Argumente, name: string): string {
 }
 
 /**
+ * Schalter, die jeder Befehl kennt. Sie stehen nicht in den einzelnen
+ * Beschreibungen: Einer davon würde sonst irgendwann vergessen, und in der
+ * Hilfe fehlte er genau dort, wo jemand ihn sucht.
+ */
+export const ALLGEMEINE_SCHALTER: Schalter[] = [
+  {
+    name: 'verbose',
+    art: 'ja',
+    beschreibung: 'ausführlich: gelesene Dateien, übersprungene Dateien, Zwischenzahlen',
+  },
+  { name: 'hilfe', art: 'ja', beschreibung: 'diese Hilfe anzeigen (auch --help)' },
+];
+
+/** Wurde `--verbose` (oder `--ausfuehrlich`) angegeben? */
+export function istVerbose(args: Argumente): boolean {
+  return gesetzt(args, 'verbose') || gesetzt(args, 'ausfuehrlich');
+}
+
+/**
  * Der Hilfetext eines Befehls: Aufruf, Pfade, Schalter, Beispiele.
  *
  * Er ist die Antwort auf jede unvollständige Eingabe – deshalb steht dort
@@ -138,7 +157,7 @@ export function hilfeText(befehl: BefehlBeschreibung): string {
     zeilen.push('');
   }
   zeilen.push('Schalter:');
-  for (const s of befehl.schalter) {
+  for (const s of [...befehl.schalter, ...ALLGEMEINE_SCHALTER]) {
     const anzeige = s.art === 'ja' ? `--${s.name}` : `--${s.name} <${s.art}>`;
     const standard = s.standard === undefined ? '' : ` (Standard: ${s.standard})`;
     const pflicht = s.pflicht ? ' [nötig]' : '';
@@ -160,7 +179,8 @@ export function uebersicht(befehle: BefehlBeschreibung[]): string {
     'Exam Manager auf der Kommandozeile – dieselben Schritte wie in der Web-App.',
     '',
     'Aufruf:  yarn <befehl> [Pfade] [Schalter]',
-    '         yarn <befehl> --hilfe   zeigt die Hilfe eines Befehls',
+    '         yarn <befehl> --hilfe     zeigt die Hilfe eines Befehls',
+    '         yarn <befehl> --verbose   sagt dazu, was er gerade liest und rechnet',
     '',
     'Befehle:',
   ];

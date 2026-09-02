@@ -74,6 +74,14 @@ Konventionen des Datensatzes:
   darunter den Satz, was fehlt – auf der Kommandozeile ist die Hilfe das, was
   in der App das Formular ist. Relative Pfade meinen das Verzeichnis, in dem
   getippt wurde (`INIT_CWD`), nicht das Wurzelverzeichnis des Workspaces.
+  Zwei Sorten Ausgabe (`src/ausgabe.ts`): Das **Ergebnis** geht immer hinaus,
+  der **Weg dorthin** nur mit `--verbose` (`melde()`, mit `·` am
+  Zeilenanfang). `--verbose` und `--hilfe` gelten für jeden Befehl und stehen
+  deshalb nicht in den einzelnen Beschreibungen, sondern als
+  `ALLGEMEINE_SCHALTER` im Hilfetext – einer davon würde sonst irgendwann
+  vergessen. Wer einen Schritt baut, hängt seine Zwischenzahlen an `melde()`,
+  statt sie wegzulassen: Sie sind die Antwort auf „warum steht die Person
+  nicht in der Liste?“.
 - `apps/web` – Expo-Web-App (React Native Web; eigener Hash-Router in
   `src/Router.tsx`). Screens in `src/screens/`, wiederverwendbare Bausteine in
   `src/components/` (FilePickerButton, DataTable, LabeledInput, StatusText …)

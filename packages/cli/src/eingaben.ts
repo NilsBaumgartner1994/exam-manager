@@ -11,6 +11,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { dirname, join } from 'path';
 import { DateiRolle, dateiMuster, erkenneRolle, projektPfad, ROLLEN_TITEL } from '@exam-manager/core';
 import { Argumente, FehlendeAngabe, text } from './argumente';
+import { melde } from './ausgabe';
 import { Projekt } from './projektordner';
 
 /** Der Projektordner aus `--projekt`, falls einer angegeben wurde. */
@@ -20,7 +21,12 @@ export function projektAus(args: Argumente): Projekt | undefined {
   if (!existsSync(ordner) || !statSync(ordner).isDirectory()) {
     throw new FehlendeAngabe(`Kein Ordner: ${ordner}`);
   }
-  return new Projekt(ordner);
+  const projekt = new Projekt(ordner);
+  melde(`Projektordner ${Projekt.kurz(ordner)}: ${projekt.dateien.length} Dateien`);
+  for (const datei of projekt.dateien) {
+    melde(`  ${datei.pfad} – ${ROLLEN_TITEL[datei.rolle]}`);
+  }
+  return projekt;
 }
 
 export interface Quelle {
@@ -43,9 +49,19 @@ interface Gesucht {
 /** Eine Textdatei einlesen – aus Pfad, Schalter oder Projektordner. */
 export function lieseQuelle({ pfad, schalter, rolle, projekt, args }: Gesucht): Quelle {
   const gewaehlt = pfad ?? text(args, schalter);
-  if (gewaehlt !== undefined) return { pfad: gewaehlt, text: lieseDatei(gewaehlt) };
+  if (gewaehlt !== undefined) {
+    melde(`${ROLLEN_TITEL[rolle]}: ${Projekt.kurz(gewaehlt)} (aus dem Aufruf)`);
+    return { pfad: gewaehlt, text: lieseDatei(gewaehlt) };
+  }
   const ausProjekt = projekt?.eine(rolle);
-  if (ausProjekt) return { pfad: ausProjekt.datei, text: readFileSync(ausProjekt.datei, 'utf-8') };
+  if (ausProjekt) {
+    melde(`${ROLLEN_TITEL[rolle]}: ${ausProjekt.pfad} (aus dem Projektordner)`);
+    // Bei mehreren Kandidaten zählt die erste alphabetisch – wie in der App.
+    for (const weitere of projekt?.alle(rolle).slice(1) ?? []) {
+      melde(`  bleibt liegen: ${weitere.pfad}`);
+    }
+    return { pfad: ausProjekt.datei, text: readFileSync(ausProjekt.datei, 'utf-8') };
+  }
   throw new FehlendeAngabe(
     `Es fehlt: ${ROLLEN_TITEL[rolle]} – als Pfad, mit --${schalter} oder im Projektordner unter ${dateiMuster(rolle)}.`,
   );
@@ -60,20 +76,26 @@ export function lieseQuellen({ pfad, schalter, rolle, projekt, args }: Gesucht):
       // Aus einem Ordner wird genommen, was dort auch die App nähme: Der
       // Name und die Kopfzeile entscheiden (`erkenneRolle`). Sonst läse eine
       // alte `raeume.csv` als Raster einen Raum namens „Plätze“ ein.
+      melde(`${ROLLEN_TITEL[rolle]}: Ordner ${Projekt.kurz(gewaehlt)} (aus dem Aufruf)`);
       return readdirSync(gewaehlt)
         .sort()
         .map((name) => ({ name, datei: join(gewaehlt, name) }))
         .filter(({ name, datei }) => {
           if (!name.toLowerCase().endsWith('.csv') || statSync(datei).isDirectory()) return false;
           const kopf = readFileSync(datei, 'utf-8').split('\n')[0];
-          return erkenneRolle(projektPfad(rolle, name), kopf) === rolle;
+          const passt = erkenneRolle(projektPfad(rolle, name), kopf) === rolle;
+          melde(`  ${passt ? 'gelesen' : 'übersprungen (passt nicht zu dieser Rolle)'}: ${name}`);
+          return passt;
         })
         .map(({ datei }) => ({ pfad: datei, text: lieseDatei(datei) }));
     }
+    melde(`${ROLLEN_TITEL[rolle]}: ${Projekt.kurz(gewaehlt)} (aus dem Aufruf)`);
     return [{ pfad: gewaehlt, text: lieseDatei(gewaehlt) }];
   }
   const ausProjekt = projekt?.alle(rolle) ?? [];
   if (ausProjekt.length > 0) {
+    melde(`${ROLLEN_TITEL[rolle]}: ${ausProjekt.length} Datei(en) aus dem Projektordner`);
+    for (const datei of ausProjekt) melde(`  gelesen: ${datei.pfad}`);
     return ausProjekt.map((datei) => ({
       pfad: datei.datei,
       text: readFileSync(datei.datei, 'utf-8'),

@@ -594,9 +594,19 @@ und legt sein Ergebnis im passenden Ordner ab, genau wie die Screens. Relative
 Pfade meinen das Verzeichnis, in dem der Befehl getippt wurde.
 
 ```bash
-yarn cli                       # Übersicht aller Befehle
-yarn 4_raumzuteilung --hilfe   # Hilfe eines Befehls
+yarn cli                        # Übersicht aller Befehle
+yarn 4_raumzuteilung --hilfe    # Hilfe eines Befehls
+yarn 4_raumzuteilung --verbose  # dazu sagen, was gerade gelesen und gerechnet wird
 ```
+
+**`--verbose` kennt jeder Befehl** (`--ausfuehrlich` tut dasselbe). Die
+normale Ausgabe ist das Ergebnis; ausführlich kommt der Weg dorthin dazu, mit
+`·` am Zeilenanfang: welche Datei woher genommen wurde und welche im Ordner
+liegen blieb, wie der Projektordner gelesen wurde, und die Zwischenzahlen des
+Schritts – bei `1_vips` etwa, wer wie viele Aufgabenblätter bestanden hat
+(auch die Gescheiterten), bei `4_raumzuteilung`, wie viele Plätze je Raum
+belegt sind. Das ist die Antwort auf „warum steht die Person nicht in der
+Liste?“, ohne die Dateien selbst durchzusehen.
 
 #### `yarn 1_vips` – VIPS-Punkte auswerten (Schritt 1)
 

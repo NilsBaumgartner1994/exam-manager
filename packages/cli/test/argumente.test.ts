@@ -64,6 +64,16 @@ describe('Hilfe', () => {
     }
   });
 
+  it('nennt bei jedem Befehl die allgemeinen Schalter', () => {
+    // `--verbose` und `--hilfe` gelten überall – sie stehen deshalb nicht in
+    // den einzelnen Beschreibungen, sondern kommen im Hilfetext dazu.
+    for (const befehl of BEFEHLE) {
+      const hilfe = hilfeText(befehl.beschreibung);
+      expect(hilfe).toContain('--verbose');
+      expect(hilfe).toContain('--hilfe');
+    }
+  });
+
   it('führt in der Übersicht jeden Befehl auf', () => {
     const text = uebersicht(BEFEHLE.map((befehl) => befehl.beschreibung));
     for (const befehl of BEFEHLE) expect(text).toContain(befehl.beschreibung.name);

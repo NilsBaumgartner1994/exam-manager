@@ -13,7 +13,8 @@
  */
 import { existsSync, statSync } from 'fs';
 import { BEFEHLE } from './befehle';
-import { FehlendeAngabe, hilfeText, lieseArgumente, uebersicht } from './argumente';
+import { FehlendeAngabe, hilfeText, istVerbose, lieseArgumente, uebersicht } from './argumente';
+import { melde, setzeAusfuehrlich } from './ausgabe';
 
 /**
  * Relative Pfade meinen das Verzeichnis, in dem der Befehl getippt wurde.
@@ -51,6 +52,12 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
+  // Erst den Schalter setzen, dann arbeiten: Sonst bliebe der erste
+  // Zwischenschritt stumm – und das ist meist der, der erklärt, warum eine
+  // Datei genommen wurde.
+  setzeAusfuehrlich(istVerbose(args));
+  melde(`${befehl.beschreibung.titel} – Arbeitsverzeichnis ${process.cwd()}`);
+
   try {
     await befehl.ausfuehren(args);
     return 0;
@@ -65,6 +72,8 @@ async function main(argv: string[]): Promise<number> {
       return 1;
     }
     console.error(fehler instanceof Error ? fehler.message : String(fehler));
+    // Woran es lag, steht im Stack – aber nur, wenn danach gefragt wurde.
+    if (fehler instanceof Error && fehler.stack) melde(fehler.stack);
     return 1;
   }
 }

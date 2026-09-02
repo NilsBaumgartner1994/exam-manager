@@ -114,11 +114,15 @@ export function ProjektProvider({ children }: { children: ReactNode }) {
   const [stand, setStand] = useState<ProjektStand>(() => {
     const gespeichert = ladeStand();
     if (!gespeichert) return { ordner: null, dateien: [] };
+    // Die Rolle wird neu bestimmt, nicht übernommen: Sie ist eine Ableitung
+    // aus dem Schema, und das Schema kann sich zwischen zwei Besuchen geändert
+    // haben (eine Rolle fällt weg, ein Ordner nimmt etwas anderes auf). Ein
+    // gespeicherter Stand brächte sonst eine Rolle mit, die es nicht mehr gibt.
     return {
       ordner: gespeichert.ordner,
       dateien: gespeichert.dateien.map((datei) => ({
         ...datei,
-        rolle: datei.rolle as DateiRolle,
+        rolle: erkenneRolle(datei.pfad, datei.text?.split('\n')[0]),
       })),
     };
   });

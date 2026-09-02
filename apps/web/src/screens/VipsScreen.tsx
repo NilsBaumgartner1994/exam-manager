@@ -5,6 +5,7 @@ import {
   neueZulassungen,
   parseNotenliste,
   parseStudipExport,
+  veranstaltungAlsKennung,
   Zulassung,
   zulassungenToCsv,
 } from '@exam-manager/core';
@@ -51,7 +52,13 @@ export function VipsScreen() {
   // Kriterien.
   const [minPunkte, setMinPunkte] = useState<number | null>(30);
   const [minBlaetter, setMinBlaetter] = useState<number | null>(3);
-  const [veranstaltung, setVeranstaltung] = useState('Beispielveranstaltung');
+  // Der Name der Veranstaltung ist vorbelegt mit dem Kurs des Projekts (wie
+  // auf der Startseite), in der Schreibweise für Dateinamen – Leerzeichen als
+  // `_`. Sobald etwas getippt wurde, gilt nur noch das Getippte.
+  const [veranstaltungEingabe, setVeranstaltungEingabe] = useState<string | null>(null);
+  const veranstaltung =
+    veranstaltungEingabe ??
+    (projekt.kurs !== null ? veranstaltungAlsKennung(projekt.kurs) : 'Beispielveranstaltung');
 
   // Ergebnis & Download.
   const [ergebnis, setErgebnis] = useState<Zulassung[] | null>(null);
@@ -143,7 +150,7 @@ export function VipsScreen() {
           <LabeledTextInput
             label="Name der Veranstaltung"
             value={veranstaltung}
-            onChangeText={setVeranstaltung}
+            onChangeText={setVeranstaltungEingabe}
             testID="vips-veranstaltung"
           />
         </View>

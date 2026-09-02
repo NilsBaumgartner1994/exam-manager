@@ -174,7 +174,10 @@ Konventionen des Datensatzes:
   des Teilnehmendenexports; `kursAusDateiname` (Core, `studip.ts`) übersetzt
   ihn zurück (`Teilnehmendenexport_Software_Engineering.csv` → „Software
   Engineering“), `projekt.kurs` hält ihn für die App bereit. Passt nichts,
-  bleibt er `null` – lieber kein Kurs als ein geratener.
+  bleibt er `null` – lieber kein Kurs als ein geratener. Schritt 1 belegt
+  damit den „Name der Veranstaltung“ vor, in der Schreibweise für Dateinamen
+  (`veranstaltungAlsKennung`: Leerzeichen → `_`), solange dort nichts getippt
+  wurde.
 - Der Download-Knopf steht als `ProjektDownload` in `src/components/` und
   gehört auf **jeden** Screen; ein neuer Screen bekommt ihn mit (in den
   Arbeitsflächen der Schritte 4 und 5 als Menüeintrag,

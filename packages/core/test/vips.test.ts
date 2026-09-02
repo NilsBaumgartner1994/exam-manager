@@ -5,6 +5,7 @@ import {
   neueZulassungen,
   parseNotenliste,
   parseStudipExport,
+  veranstaltungAlsKennung,
   zulassungenToCsv,
 } from '../src';
 
@@ -49,6 +50,11 @@ describe('VIPS-Auswertung (Screen 1)', () => {
   it('schlägt einen Default-Dateinamen vor', () => {
     expect(defaultZulassungsDateiname('Beispiel Veranstaltung', 2026))
       .toBe('Beispiel_Veranstaltung_2026_zulassungen.csv');
+  });
+
+  it('schreibt den Kursnamen mit Unterstrichen statt Leerzeichen', () => {
+    expect(veranstaltungAlsKennung('Software  Engineering ')).toBe('Software_Engineering');
+    expect(veranstaltungAlsKennung('')).toBe('');
   });
 });
 

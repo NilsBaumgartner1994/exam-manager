@@ -87,8 +87,17 @@ export function zulassungenToCsv(zulassungen: Zulassung[]): string {
   ]);
 }
 
+/**
+ * Name der Veranstaltung in der Schreibweise für Dateinamen: Leerzeichen
+ * werden zu `_` (`Software Engineering` → `Software_Engineering`) – so wie
+ * Stud.IP den Kurs in den Namen des Exports schreibt. Leer bleibt leer.
+ */
+export function veranstaltungAlsKennung(veranstaltung: string): string {
+  return veranstaltung.trim().replace(/\s+/g, '_');
+}
+
 /** Default-Dateiname für den Download: `<veranstaltung>_<jahr>_zulassungen.csv` */
 export function defaultZulassungsDateiname(veranstaltung: string, jahr: number): string {
-  const slug = veranstaltung.trim().replace(/\s+/g, '_') || 'veranstaltung';
+  const slug = veranstaltungAlsKennung(veranstaltung) || 'veranstaltung';
   return `${slug}_${jahr}_zulassungen.csv`;
 }

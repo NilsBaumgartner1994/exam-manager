@@ -27,7 +27,6 @@ import { colors, spacing } from '../theme';
 import { AppButton } from './AppButton';
 import { BlattModal } from './BlattModal';
 import { LabeledTextInput } from './LabeledInput';
-import type { RaumZeile } from './RaumListe';
 import type { MenuEintrag } from './Menueband';
 import { useModalEbene } from './ModalHost';
 import {
@@ -125,14 +124,13 @@ export interface RaumplanAnbindung {
  * Tischblock, wandern die Personen darin mit; einzeln zurückgesetzt stünde
  * hinterher das eine ohne das andere.
  *
- * Aus demselben Grund liegt die **Raumliste** dabei, wo ein Screen sie führt
- * (Schritt 5): Wer einen Raum löscht oder umbenennt, ändert Liste und Raster
- * in einem Zug – käme nur das Raster zurück, stünde es hinterher ohne Raum.
+ * Der Bestand des Hauses (Schritt 5) steckt vollständig in den Rastern: Ein
+ * Raum **ist** sein Raster, samt seiner Plätze – eine Raumliste daneben, die
+ * mit zurückgesetzt werden müsste, gibt es nicht.
  */
 export interface PlanZustand {
   schemata: Raumschema[];
   belegung?: Platzbelegung[];
-  raeume?: RaumZeile[];
 }
 
 export interface RaumplanEditor {

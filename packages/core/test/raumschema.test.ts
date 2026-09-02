@@ -11,6 +11,7 @@ import {
   verschiebeBereich,
   belegungToCsv,
   erstelleRaumzuteilung,
+  plaetzeJeRaum,
   kopiereRaumschema,
   leeresRaumschema,
   mitGroesse,
@@ -347,10 +348,13 @@ describe('Raumbelegung', () => {
 
   it('überträgt die Tischnummern auf die Sitzplätze', () => {
     const raeume = [
-      { raum: '94/E01', plaetze: 6, reservierteZeit: 'Gruppe 1' },
-      { raum: '94/E03', plaetze: 2, reservierteZeit: 'Gruppe 2' },
+      { raum: '94/E01', reservierteZeit: 'Gruppe 1' },
+      { raum: '94/E03', reservierteZeit: 'Gruppe 2' },
     ];
-    const { sitzplaetze } = erstelleRaumzuteilung(PERSONEN, raeume, { modus: 'sequential' });
+    const { sitzplaetze } = erstelleRaumzuteilung(PERSONEN, raeume, {
+      modus: 'sequential',
+      plaetze: plaetzeJeRaum(schemata),
+    });
     const { belegung, ohnePlatz } = verteileAufRaumschemata(sitzplaetze, schemata);
     expect(ohnePlatz).toHaveLength(0);
     const mitPlatz = sitzplaetzeMitBelegung(sitzplaetze, belegung, alleNummern);

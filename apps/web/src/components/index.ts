@@ -20,6 +20,7 @@ export {
 export { RaumBestandListe, type RaumBestandEintrag } from './RaumBestandListe';
 export {
   LEERE_RAUM_ZEILE,
+  PlatzBedarf,
   RaumListe,
   raumZuZeile,
   zeileZuRaum,
@@ -43,6 +44,7 @@ export {
 export { ScreenContainer } from './ScreenContainer';
 export { Section } from './Section';
 export { StatusText } from './StatusText';
+export { StudipEinsicht, type EinsichtArt } from './StudipEinsicht';
 export { Tile } from './Tile';
 export { VorlagenModal } from './VorlagenModal';
 export { ohneBrowserGeste, useZiehGeste } from './ZiehGeste';

@@ -1,36 +1,32 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { mitDurchgaengen, Raum } from '@exam-manager/core';
+import { mitDurchgaengen, Platzbedarf, plaetzeDesRaums, Raum } from '@exam-manager/core';
 import { useResponsiveLayout } from '../responsive';
 import { colors, radius, spacing } from '../theme';
 import { AppButton } from './AppButton';
+import { StatusText } from './StatusText';
 
 /**
  * Eine Zeile der Raumliste beim Bearbeiten.
  *
- * Die Plätze stehen als Text darin, nicht als Zahl: Sonst ließe sich das Feld
- * nicht leeren und nicht Ziffer für Ziffer tippen (aus „10“ würde beim Löschen
- * der 0 sofort wieder eine 10).
+ * Die Plätze stehen **nicht** darin: Wie viele es sind, sagen die Tische im
+ * Raster des Raums (`plaetzeJeRaum`). Eine Zahl daneben ginge beim ersten
+ * Umbau des Raums auseinander – und niemand könnte sagen, welche der beiden
+ * stimmt.
  */
 export interface RaumZeile {
   raum: string;
-  plaetzeText: string;
   reservierteZeit: string;
 }
 
 export function raumZuZeile(raum: Raum): RaumZeile {
-  return { raum: raum.raum, plaetzeText: String(raum.plaetze), reservierteZeit: raum.reservierteZeit };
+  return { raum: raum.raum, reservierteZeit: raum.reservierteZeit };
 }
 
 export function zeileZuRaum(zeile: RaumZeile): Raum {
-  const plaetze = Number(zeile.plaetzeText.trim().replace(',', '.'));
-  return {
-    raum: zeile.raum.trim(),
-    plaetze: Number.isFinite(plaetze) ? plaetze : 0,
-    reservierteZeit: zeile.reservierteZeit.trim(),
-  };
+  return { raum: zeile.raum.trim(), reservierteZeit: zeile.reservierteZeit.trim() };
 }
 
-export const LEERE_RAUM_ZEILE: RaumZeile = { raum: '', plaetzeText: '', reservierteZeit: '' };
+export const LEERE_RAUM_ZEILE: RaumZeile = { raum: '', reservierteZeit: '' };
 
 /**
  * Die Zeilen als Räume – mit durchgezählten Durchgängen. Derselbe Raum darf
@@ -54,14 +50,24 @@ function mehrfach(zeilen: RaumZeile[], index: number): boolean {
   return zeilen.filter((zeile) => zeile.raum.trim() === name).length > 1;
 }
 
+/** Wie viele Plätze dieser Raum hat – als Text neben seiner Zeile. */
+function plaetzeText(zeile: RaumZeile, plaetze: Map<string, number>): string {
+  const name = zeile.raum.trim();
+  if (name === '') return 'Raum noch ohne Namen';
+  if (!plaetze.has(name)) return 'kein Raster – 0 Plätze';
+  return `${plaetzeDesRaums({ raum: name }, plaetze)} Plätze im Raster`;
+}
+
 /** Eine Eingabezeile des Raum-Editors. */
 function RaumEditorZeile({
   zeile,
+  plaetze,
   onChange,
   onRemove,
   testID,
 }: {
   zeile: RaumZeile;
+  plaetze: Map<string, number>;
   onChange: (zeile: RaumZeile) => void;
   onRemove: () => void;
   testID?: string;
@@ -69,6 +75,7 @@ function RaumEditorZeile({
   const { isCompact } = useResponsiveLayout();
   // Gestapelt wäre flexBasis die Höhe – dort bekommen die Felder volle Breite.
   const voll = styles.raumInputVoll;
+  const ohneRaster = zeile.raum.trim() !== '' && !plaetze.has(zeile.raum.trim());
   return (
     <View style={[styles.raumZeile, isCompact && styles.raumZeileGestapelt]} testID={testID}>
       <TextInput
@@ -78,14 +85,13 @@ function RaumEditorZeile({
         placeholder="Raum-Name"
         placeholderTextColor={colors.textMuted}
       />
-      <TextInput
-        style={[styles.raumInput, isCompact ? voll : styles.raumInputPlaetze]}
-        value={zeile.plaetzeText}
-        inputMode="numeric"
-        onChangeText={(plaetzeText) => onChange({ ...zeile, plaetzeText })}
-        placeholder="Plätze"
-        placeholderTextColor={colors.textMuted}
-      />
+      {/* Die Platzzahl ist kein Feld, sondern eine Auskunft: Sie steht im
+          Raster des Raums und wird in Schritt 5 geändert. */}
+      <Text
+        style={[styles.plaetze, isCompact ? voll : styles.plaetzeSpalte, ohneRaster && styles.plaetzeFehlt]}
+      >
+        {plaetzeText(zeile, plaetze)}
+      </Text>
       <TextInput
         style={[styles.raumInput, isCompact ? voll : styles.raumInputZeit]}
         value={zeile.reservierteZeit}
@@ -98,8 +104,31 @@ function RaumEditorZeile({
   );
 }
 
+/**
+ * Reichen die Räume für die Teilnehmenden? Die Zeile steht über der Liste –
+ * dort werden Räume hinzugefügt, und dort soll zu sehen sein, ob es genug
+ * sind. Ohne sie fiele erst nach dem Verteilen auf, dass Leute übrig bleiben.
+ */
+export function PlatzBedarf({ bedarf, testID }: { bedarf: Platzbedarf; testID?: string }) {
+  const ohneRaster =
+    bedarf.ohneRaster.length > 0
+      ? ` Ohne Raster und damit ohne Plätze: ${bedarf.ohneRaster.join(', ')} – Raster in Schritt 5 anlegen.`
+      : '';
+  return (
+    <StatusText kind={bedarf.reicht ? 'success' : 'error'} testID={testID}>
+      {`${bedarf.teilnehmende} Teilnehmende · höchstens ${bedarf.plaetze} Plätze in den gewählten Räumen · ` +
+        (bedarf.reicht
+          ? `${bedarf.frei} Plätze frei.`
+          : `${bedarf.fehlende} Plätze zu wenig – weitere Räume hinzufügen.`) +
+        ohneRaster}
+    </StatusText>
+  );
+}
+
 interface Props {
   zeilen: RaumZeile[];
+  /** Plätze je Raum, aus den Rastern (`plaetzeJeRaum`). */
+  plaetze: Map<string, number>;
   onChange: (zeilen: RaumZeile[]) => void;
   /** Beschriftung des Knopfes zum Anlegen – je nach Screen anders formuliert. */
   hinzufuegenTitel?: string;
@@ -115,12 +144,14 @@ interface Props {
 
 /**
  * Die Räume **einer Klausur** (`klausurraeume.csv`) als Formular: je Zeile
- * Name, Plätze und die reservierte Zeit, derselbe Raum darf mehrfach
- * vorkommen. Den Bestand des Hauses zeigt Schritt 5 dagegen als
+ * Name und reservierte Zeit, derselbe Raum darf mehrfach vorkommen. Wie viele
+ * Plätze ein Raum hat, steht daneben – die Zahl kommt aus seinem Raster und
+ * wird hier nicht getippt. Den Bestand des Hauses zeigt Schritt 5 dagegen als
  * `RaumBestandListe` – dort hängt an jedem Raum sein Raster.
  */
 export function RaumListe({
   zeilen,
+  plaetze,
   onChange,
   hinzufuegenTitel = 'Raum hinzufügen',
   mitDurchgang,
@@ -137,6 +168,7 @@ export function RaumListe({
           ) : null}
           <RaumEditorZeile
             zeile={zeile}
+            plaetze={plaetze}
             onChange={(neu) => onChange(zeilen.map((alt, j) => (j === i ? neu : alt)))}
             onRemove={() => onChange(zeilen.filter((_, j) => j !== i))}
             testID={`${testIDPrefix}-zeile-${i}`}
@@ -172,10 +204,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     backgroundColor: colors.surface,
   },
+  plaetze: { fontSize: 13, color: colors.textMuted },
+  plaetzeFehlt: { color: colors.danger },
   // Keine festen Breiten: flexBasis ist nur die Umbruchgrenze, die Felder
   // teilen sich die tatsächliche Breite über flexGrow.
   raumInputName: { flexGrow: 2, flexShrink: 1, flexBasis: 120, minWidth: 0 },
-  raumInputPlaetze: { flexGrow: 1, flexShrink: 1, flexBasis: 80, minWidth: 0 },
+  plaetzeSpalte: { flexGrow: 1, flexShrink: 1, flexBasis: 110, minWidth: 0 },
   raumInputZeit: { flexGrow: 3, flexShrink: 1, flexBasis: 180, minWidth: 0 },
   raumInputVoll: { width: '100%' },
 });

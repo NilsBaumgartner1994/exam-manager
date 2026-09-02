@@ -8,7 +8,8 @@
  * sichtbar ignorieren als die falsche Datei stillschweigend auswerten.
  *
  * Die Kopfzeile entscheidet nur noch dort, wo ein Ordner mehrere Rollen
- * aufnimmt (`Raeume/` hält Raumliste und Raumschema).
+ * aufnimmt (`4_Raumzuteilung_Export/` hält Sitzplan, Belegung und die Räume
+ * dieser Klausur).
  */
 
 import { VORLAGE_SITZPLATZ, VORLAGE_ZULASSUNG } from './pdfVorlage';
@@ -22,8 +23,6 @@ export type DateiRolle =
   | 'zulassungsbestand'
   /** Anmeldungen des Prüfungsamts (HIS-Export, Excel). */
   | 'hisExport'
-  /** Raumliste `Raum;Plätze;ReservierteZeit` – der Bestand des Hauses. */
-  | 'raeume'
   /** Räume, die **diese** Klausur benutzt (ein Raum darf mehrfach vorkommen). */
   | 'klausurraeume'
   /** Raster eines Raums (Tische, Tür, Wand, Pult) – je Raum eine Datei. */
@@ -46,7 +45,6 @@ export const ROLLEN_TITEL: Record<DateiRolle, string> = {
   studipExport: 'Stud.IP-Teilnehmendenexport',
   zulassungsbestand: 'Zulassungsliste',
   hisExport: 'Klausuranmeldungen (HIS-Export)',
-  raeume: 'Raumliste',
   klausurraeume: 'Räume dieser Klausur',
   raumschema: 'Raumschema',
   raumbelegung: 'Raumbelegung',
@@ -110,9 +108,9 @@ export const PROJEKT_SCHEMA: OrdnerRegel[] = [
   {
     ordner: 'Raeume',
     endungen: ['.csv'],
-    rollen: ['raeume', 'raumschema'],
+    rollen: ['raumschema'],
     zweck:
-      'Bestand des Hauses: Raumliste (raeume.csv) und je Raum eine Raster-Datei (94_E01.csv) – ohne Studierende, jedes Jahr wiederverwendbar.',
+      'Bestand des Hauses: je Raum eine Raster-Datei (94_E01.csv) – der Ordner ist die Raumliste, und wie viele Plätze ein Raum hat, sind die Tische in seinem Raster.',
   },
   {
     ordner: 'Vorlagen',
@@ -194,21 +192,31 @@ export function regelFuerPfad(pfad: string): OrdnerRegel | undefined {
 }
 
 /**
+ * Kopfzeile einer Raumliste (`Raum;ReservierteZeit`, früher zusätzlich mit
+ * `Plätze`) – im Unterschied zu einem Raster, dessen erste Zeile `Raum;<Name>`
+ * lautet.
+ */
+function istRaumlisteKopf(kopfzeile: string): boolean {
+  return (
+    kopfzeile.startsWith('raum;reserviertezeit') ||
+    kopfzeile.startsWith('raum;plätze') ||
+    kopfzeile.startsWith('raum;plaetze')
+  );
+}
+
+/**
  * Rolle unter mehreren Kandidaten an der Kopfzeile festmachen. Greift nur in
  * Ordnern, die mehr als eine Rolle aufnehmen.
  */
 function rolleAusKopf(kopf: string | undefined, kandidaten: DateiRolle[]): DateiRolle {
-  const kopfzeile = (kopf ?? '').replace(/^﻿/, '').trim().toLowerCase();
+  const kopfzeile = kopfzeileVon(kopf);
   const passt = (rolle: DateiRolle) => kandidaten.includes(rolle);
 
   if (kopfzeile !== '') {
     if (passt('raumbelegung') && kopfzeile.startsWith('raum;zeile;spalte')) return 'raumbelegung';
-    // Dieselbe Kopfzeile, zwei Bedeutungen: In `Raeume/` steht der Bestand des
-    // Hauses, im Export-Ordner die Räume dieser einen Klausur.
-    if (kopfzeile.startsWith('raum;plätze') || kopfzeile.startsWith('raum;plaetze')) {
-      if (passt('klausurraeume')) return 'klausurraeume';
-      if (passt('raeume')) return 'raeume';
-    }
+    // Die Räume dieser Klausur: `Raum;ReservierteZeit`. Ältere Dateien tragen
+    // noch eine Spalte `Plätze` – sie werden gelesen, die Spalte überlesen.
+    if (passt('klausurraeume') && istRaumlisteKopf(kopfzeile)) return 'klausurraeume';
     // Raumschema beginnt mit `Raum;<Name>` – Name statt Spaltenüberschriften.
     if (passt('raumschema') && kopfzeile.startsWith('raum;')) return 'raumschema';
     if (passt('sitzplan') && kopfzeile.startsWith('anfang_nachname;sitzplatznummer')) {
@@ -234,7 +242,20 @@ export function erkenneRolle(pfad: string, kopf?: string): DateiRolle {
   if (!regel.endungen.some((endung) => name.endsWith(endung))) return 'unbekannt';
   if (regel.nameEnthaelt && !name.includes(regel.nameEnthaelt)) return 'unbekannt';
 
-  return regel.rollen.length === 1 ? regel.rollen[0] : rolleAusKopf(kopf, regel.rollen);
+  const rolle = regel.rollen.length === 1 ? regel.rollen[0] : rolleAusKopf(kopf, regel.rollen);
+  // Eine alte `Raeume/raeume.csv` ist keine Rasterdatei: Sie zählte auf,
+  // welche Räume es gibt und wie viele Plätze sie haben. Beides sagt heute der
+  // Ordner selbst – je Raum eine Raster-Datei, und die Plätze sind die Tische
+  // darin. Als Raster gelesen ergäbe sie einen Raum namens „Plätze“, deshalb
+  // bleibt sie sichtbar liegen statt stillschweigend falsch ausgewertet zu
+  // werden.
+  if (rolle === 'raumschema' && istRaumlisteKopf(kopfzeileVon(kopf))) return 'unbekannt';
+  return rolle;
+}
+
+/** Kopfzeile ohne BOM und Rand, klein geschrieben ('' = keine Angabe). */
+function kopfzeileVon(kopf: string | undefined): string {
+  return (kopf ?? '').replace(/^\ufeff/, '').trim().toLowerCase();
 }
 
 /** Gehört eine Datei dieser Rolle in den Projektordner? */
@@ -301,7 +322,6 @@ export function projektVorlage(): Map<string, string> {
     'Zulassungen/veranstaltung_jahr_zulassungen.csv',
     'Nachname;Vorname;Matrikelnummer;E-Mail\n',
   );
-  vorlage.set('Raeume/raeume.csv', 'Raum;Plätze;ReservierteZeit\n');
   // Die Anfangstexte liegen als Dateien im Ordner: So ist auch ohne die App
   // zu sehen, was in den Schreiben steht und wo es geändert wird.
   vorlage.set(VORLAGE_DATEI_ZULASSUNG, VORLAGE_ZULASSUNG);

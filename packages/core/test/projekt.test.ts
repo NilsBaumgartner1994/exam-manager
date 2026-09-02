@@ -39,7 +39,7 @@ describe('Projektordner: Dateien erkennen', () => {
         kopf(lies(pfad.studipExport)),
       ),
     ).toBe('studipExport');
-    expect(erkenneRolle('Raeume/raeume.csv', kopf(lies(pfad.raeume)))).toBe('raeume');
+    expect(erkenneRolle('Raeume/94_E01.csv', 'Raum;94/E01')).toBe('raumschema');
     expect(erkenneRolle('0_Input_Klausuranmeldungen/check.xlsx')).toBe('hisExport');
     expect(erkenneRolle('Zulassungen/pv2025_zulassungen.csv')).toBe('zulassungsbestand');
     expect(erkenneRolle('2_Zulassungs_PDFs_Export/1000001.pdf')).toBe('zulassungsPdf');
@@ -70,18 +70,24 @@ describe('Projektordner: Dateien erkennen', () => {
     expect(erkenneRolle('2_Zulassungs_PDFs_Export/liste.csv')).toBe('unbekannt');
   });
 
-  it('unterscheidet Raumliste und Raumschema in Raeume/ an der Kopfzeile', () => {
-    expect(erkenneRolle('Raeume/x.csv', 'Raum;Plätze;ReservierteZeit')).toBe('raeume');
+  it('lässt eine alte Raumliste in Raeume/ liegen, statt sie als Raster zu lesen', () => {
+    // In `Raeume/` liegt je Raum ein Raster; wie viele Plätze er hat, sind die
+    // Tische darin. Eine frühere `raeume.csv` zählte Räume und Plätze auf –
+    // als Raster gelesen ergäbe sie einen Raum namens „Plätze“.
+    expect(erkenneRolle('Raeume/raeume.csv', 'Raum;Plätze;ReservierteZeit')).toBe('unbekannt');
+    expect(erkenneRolle('Raeume/raeume.csv', 'Raum;ReservierteZeit')).toBe('unbekannt');
     expect(erkenneRolle('Raeume/x.csv', 'Raum;94/E01')).toBe('raumschema');
   });
 
   it('erkennt die Räume dieser Klausur im Export-Ordner', () => {
-    // Dieselbe Kopfzeile, zwei Bedeutungen: In `Raeume/` steht der Bestand des
-    // Hauses, im Export-Ordner die Räume dieser einen Klausur.
+    expect(erkenneRolle('4_Raumzuteilung_Export/klausurraeume.csv', 'Raum;ReservierteZeit')).toBe(
+      'klausurraeume',
+    );
+    // Eine ältere Datei trug noch eine Spalte `Plätze` – sie wird weiter
+    // erkannt, die Spalte selbst überliest `parseRaeume`.
     expect(erkenneRolle('4_Raumzuteilung_Export/klausurraeume.csv', 'Raum;Plätze;ReservierteZeit')).toBe(
       'klausurraeume',
     );
-    expect(erkenneRolle('Raeume/raeume.csv', 'Raum;Plätze;ReservierteZeit')).toBe('raeume');
     expect(PROJEKT_ORDNER.klausurraeume).toBe('4_Raumzuteilung_Export');
   });
 
@@ -110,7 +116,6 @@ describe('Projektordner: Schema', () => {
     expect(PROJEKT_ORDNER.studipExport).toBe('0_Input_Kurs_Teilnehmer_Studip_Liste');
     expect(PROJEKT_ORDNER.hisExport).toBe('0_Input_Klausuranmeldungen');
     expect(PROJEKT_ORDNER.zulassungsbestand).toBe('Zulassungen');
-    expect(PROJEKT_ORDNER.raeume).toBe('Raeume');
     expect(PROJEKT_ORDNER.raumschema).toBe('Raeume');
     expect(PROJEKT_ORDNER.zulassungsPdf).toBe('2_Zulassungs_PDFs_Export');
     expect(PROJEKT_ORDNER.teilnehmer).toBe('3_Klausur_Teilnehmende_Export');
@@ -167,7 +172,7 @@ describe('Beispielprojekt/', () => {
     expect([...rollen.values()]).not.toContain('unbekannt');
     // Die drei Eingaben, die ein Durchlauf braucht, liegen bereit.
     const gefunden = new Set(rollen.values());
-    for (const rolle of ['hisExport', 'studipExport', 'notenliste', 'zulassungsbestand', 'raeume', 'raumschema'] as const) {
+    for (const rolle of ['hisExport', 'studipExport', 'notenliste', 'zulassungsbestand', 'raumschema'] as const) {
       expect(gefunden).toContain(rolle);
     }
   });

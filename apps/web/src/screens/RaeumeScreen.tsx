@@ -3,11 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import {
   erstelleZip,
   kopiereRaumschema,
-  parseRaeume,
   PLAN_ANZEIGE_STANDARD,
   parseRaumschemaDateien,
-  raeumeToCsv,
-  Raum,
   raumDateiname,
   Raumschema,
   raumschemaDateien,
@@ -30,21 +27,18 @@ import {
   rasterText,
   RaumBestandListe,
   RaumplanBuehne,
-  raumZuZeile,
   Reiterinhalt,
   Section,
   StatusText,
   useProjektDownloadEintrag,
   useRaumplanEditor,
   werkzeugTitel,
-  zeileZuRaum,
   type MenuEintrag,
   type MenuGruppe,
-  type RaumZeile,
 } from '../components';
 import { downloadCsv, downloadFile, downloadZip, readFileAsText } from '../files';
 import { useProjekt } from '../projekt';
-import { BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMATA } from '../sampleData';
+import { BEISPIEL_RAUMSCHEMATA } from '../sampleData';
 import { colors, spacing } from '../theme';
 
 /**
@@ -189,7 +183,6 @@ function RaumVorgangBlatt({
  * man bearbeitet ohnehin einen nach dem anderen. Gespeichert werden alle.
  */
 export function RaeumeScreen() {
-  const [zeilen, setZeilen] = useState<RaumZeile[]>([]);
   const [schemata, setSchemata] = useState<Raumschema[]>([]);
   const [fehler, setFehler] = useState<string | null>(null);
   const [hinweis, setHinweis] = useState<string | null>(null);
@@ -210,55 +203,25 @@ export function RaeumeScreen() {
     schemataRef.current = neu;
     setSchemata(neu);
   };
-  /** Dasselbe für die Raumliste: Sie geht bei jedem Vorgang mit ins Rückgängig. */
-  const zeilenRef = useRef<RaumZeile[]>([]);
-  const uebernehmeZeilen = (neu: RaumZeile[]) => {
-    zeilenRef.current = neu;
-    setZeilen(neu);
-  };
 
-  const raeume = zeilen.map(zeileZuRaum);
   const projekt = useProjekt();
 
   // Eingaben aus dem Projektordner, solange nichts eigenes geladen wurde.
   useEffect(() => {
-    if (zeilen.length > 0 || schemata.length > 0) return;
-    const raumDatei = projekt.datei('raeume');
-    // Je Raum eine Datei: Gelesen werden alle, nicht nur die erste.
+    if (schemata.length > 0) return;
+    // Je Raum eine Datei: Gelesen werden alle, nicht nur die erste. Mehr gibt
+    // es zum Bestand nicht – der Ordner ist die Raumliste.
     const schemaTexte = projekt
       .dateienMit('raumschema')
       .map((datei) => datei.text ?? '')
       .filter((text) => text !== '');
-    if (!raumDatei?.text && schemaTexte.length === 0) return;
+    if (schemaTexte.length === 0) return;
     try {
-      if (raumDatei?.text) uebernehmeZeilen(parseRaeume(raumDatei.text).map(raumZuZeile));
-      if (schemaTexte.length > 0) uebernehmeSchemata(parseRaumschemaDateien(schemaTexte));
+      uebernehmeSchemata(parseRaumschemaDateien(schemaTexte));
     } catch (e) {
       setFehler(`Projektdateien konnten nicht gelesen werden: ${String(e)}`);
     }
-  }, [projekt, zeilen, schemata]);
-
-  /**
-   * Ein Raster ohne Zeile bekommt eine. Der Bestand ist beides zusammen:
-   * Läge in `Raeume/` ein Raster, zu dem die Raumliste nichts sagt, stünde der
-   * Raum nirgends – nicht in `raeume.csv`, und in Schritt 4 wäre er nur über
-   * sein Raster zu finden. Die Plätze kommen aus dem Raster (die Tische
-   * darin); die reservierte Zeit bleibt leer, sie gehört zur Klausur.
-   */
-  useEffect(() => {
-    const ohneZeile = schemata.filter(
-      (schema) => !zeilen.some((zeile) => zeile.raum.trim() === schema.raum),
-    );
-    if (ohneZeile.length === 0) return;
-    uebernehmeZeilen([
-      ...zeilenRef.current,
-      ...ohneZeile.map((schema) => ({
-        raum: schema.raum,
-        plaetzeText: String(tischzellen(schema).length),
-        reservierteZeit: '',
-      })),
-    ]);
-  }, [schemata, zeilen]);
+  }, [projekt, schemata]);
 
   /**
    * Änderungen wandern gleich in den Projektstand – und damit in den
@@ -267,7 +230,7 @@ export function RaeumeScreen() {
    * Gebündelt (400 ms), sonst schriebe ein Malzug bei jeder Zelle alle Räume
    * neu; die Knöpfe bleiben für den Download.
    */
-  const { ersetze: projektErsetze, schreibe: projektSchreibe } = projekt;
+  const { ersetze: projektErsetze } = projekt;
   /** Erst schreiben, wenn hier je etwas lag – sonst leerte der erste Besuch den Ordner. */
   const schonGeschrieben = useRef(false);
   useEffect(() => {
@@ -278,27 +241,15 @@ export function RaeumeScreen() {
     }, 400);
     return () => clearTimeout(gleich);
   }, [schemata, projektErsetze]);
-  const listeGeschrieben = useRef(false);
-  useEffect(() => {
-    if (zeilen.length === 0 && !listeGeschrieben.current) return;
-    const gleich = setTimeout(() => {
-      projektSchreibe('raeume.csv', raeumeToCsv(zeilen.map(zeileZuRaum)), 'raeume');
-      listeGeschrieben.current = true;
-    }, 400);
-    return () => clearTimeout(gleich);
-  }, [zeilen, projektSchreibe]);
 
   const editor = useRaumplanEditor({
     schemata: schemataRef,
     aendere: (raum, wandel) =>
       uebernehmeSchemata(schemataRef.current.map((s) => (s.raum === raum ? wandel(s) : s))),
-    // Raster **und** Raumliste: Ein Raum wird hier angelegt, umbenannt oder
-    // gelöscht – käme nur das Raster zurück, stünde es hinterher ohne Raum.
-    zustand: () => ({ schemata: schemataRef.current, raeume: zeilenRef.current }),
-    setzeZustand: (stand) => {
-      uebernehmeSchemata(stand.schemata);
-      if (stand.raeume) uebernehmeZeilen(stand.raeume);
-    },
+    // Ein Raum ist sein Raster: Anlegen, Umbenennen und Löschen fassen genau
+    // das an – ein Schritt zurück holt es als Ganzes wieder.
+    zustand: () => ({ schemata: schemataRef.current }),
+    setzeZustand: (stand) => uebernehmeSchemata(stand.schemata),
   });
 
   /**
@@ -315,43 +266,20 @@ export function RaeumeScreen() {
     editor.setzeAuswahl(null);
   };
 
-  /** Räume der Liste, für die es noch kein Raster gibt. */
-  const ohneRaster = useMemo(
-    () =>
-      raeume
-        .filter((raum) => raum.raum !== '')
-        .filter((raum) => !schemata.some((schema) => schema.raum === raum.raum)),
-    [raeume, schemata],
-  );
-
-  /** Das Raster eines Raums – `undefined`, solange es keines gibt. */
-  const schemaZu = (name: string) => schemata.find((schema) => schema.raum === name);
-
   /**
-   * Der Bestand für die Liste: jede Zeile mit ihrem Raster. Die Zeile sagt
-   * Plätze und reservierte Zeit, das Raster den Grundriss – beides liegt in
-   * `Raeume/` und gehört zusammen.
+   * Der Bestand für die Liste: je Raum sein Raster, und daraus die Zahl seiner
+   * Sitzplätze. Eine zweite Liste daneben gibt es nicht – der Ordner
+   * `Raeume/` ist die Liste.
    */
-  const bestand = zeilen.map((zeile) => {
-    const schema = schemaZu(zeile.raum.trim());
-    return { zeile, sitzplaetze: schema ? tischzellen(schema).length : null };
-  });
+  const bestand = useMemo(
+    () => schemata.map((schema) => ({ raum: schema.raum, sitzplaetze: tischzellen(schema).length })),
+    [schemata],
+  );
 
   const beispielLaden = () => {
     setFehler(null);
-    uebernehmeZeilen(parseRaeume(BEISPIEL_RAEUME).map(raumZuZeile));
     uebernehmeSchemata(parseRaumschemaDateien(Object.values(BEISPIEL_RAUMSCHEMATA)));
     setHinweis('Beispieldaten geladen.');
-  };
-
-  const raeumeLaden = async (files: File[]) => {
-    setFehler(null);
-    try {
-      uebernehmeZeilen(parseRaeume(await readFileAsText(files[0])).map(raumZuZeile));
-      setHinweis('Raumliste geladen.');
-    } catch (e) {
-      setFehler(`Räume-CSV konnte nicht gelesen werden: ${String(e)}`);
-    }
   };
 
   /** Raster laden – je Raum eine Datei, deshalb ruhig mehrere auf einmal. */
@@ -368,60 +296,19 @@ export function RaeumeScreen() {
   };
 
   /**
-   * Für Räume ohne Raster einen Vorschlag anlegen: Tische in Zweierblöcken mit
-   * Gang, Pult vorne, Tür hinten. Von Hand zeichnen muss man nur, was davon
-   * abweicht.
-   */
-  const rasterAnlegen = () => {
-    setFehler(null);
-    editor.merkeStand();
-    uebernehmeSchemata([
-      ...schemataRef.current,
-      ...ohneRaster.map((raum) => standardRaumschema(raum.raum, raum.plaetze)),
-    ]);
-    // Was gerade entstanden ist, will man auch sehen.
-    if (ohneRaster.length > 0) reiterWechseln(ohneRaster[0].raum);
-    setHinweis(`Raster angelegt für: ${ohneRaster.map((raum) => raum.raum).join(', ')}.`);
-  };
-
-  const rasterEntfernen = (raum: string) => {
-    setHinweis(null);
-    editor.merkeStand();
-    uebernehmeSchemata(schemataRef.current.filter((schema) => schema.raum !== raum));
-    reiterWechseln(REITER_RAEUME);
-  };
-
-  /** Die Platzzahl der Liste aus dem Raster übernehmen (Tische zählen). */
-  const plaetzeUebernehmen = (schema: Raumschema) => {
-    const tische = tischzellen(schema).length;
-    uebernehmeZeilen(
-      zeilen.map((zeile) =>
-        zeile.raum.trim() === schema.raum ? { ...zeile, plaetzeText: String(tische) } : zeile,
-      ),
-    );
-    setHinweis(`${schema.raum}: ${tische} Plätze aus dem Raster übernommen.`);
-  };
-
-  /**
-   * Gibt es diesen Raum schon? Liste **und** Raster zählen: Beides zusammen
-   * ist der Bestand, und die Raster liegen je Raum in einer Datei
+   * Gibt es diesen Raum schon? Die Raster liegen je Raum in einer Datei
    * (`94_E01.csv`), die sich sonst gegenseitig überschriebe.
    */
-  const raumVergeben = (name: string) =>
-    zeilen.some((zeile) => zeile.raum.trim() === name) ||
-    schemata.some((schema) => schema.raum === name);
+  const raumVergeben = (name: string) => schemata.some((schema) => schema.raum === name);
 
   /**
-   * Ein neuer Raum – mit Raster, nicht nur als Zeile in der Liste: Wer „Neuer
-   * Raum“ wählt, will ihn danach zeichnen und nicht erst noch „Fehlende Raster
-   * anlegen“ suchen. Der Vorschlag kommt aus `standardRaumschema`.
+   * Ein neuer Raum – das heißt: ein Raster. Die Plätze im Blatt sind nur der
+   * Vorschlag, mit dem `standardRaumschema` zeichnet (Tische in
+   * Zweierblöcken mit Gang, Pult vorne, Tür hinten); die Plätze des Raums
+   * sind danach die Tische, die wirklich im Plan stehen.
    */
   const raumAnlegen = (name: string, plaetze: number) => {
     editor.merkeStand();
-    uebernehmeZeilen([
-      ...zeilenRef.current,
-      { raum: name, plaetzeText: String(plaetze), reservierteZeit: '' },
-    ]);
     uebernehmeSchemata([...schemataRef.current, standardRaumschema(name, plaetze)]);
     reiterWechseln(name);
     setHinweis(`Raum ${name} angelegt – Vorschlagsraster mit ${plaetze} Plätzen.`);
@@ -434,30 +321,20 @@ export function RaeumeScreen() {
    */
   const raumDuplizieren = (alt: string, neu: string) => {
     editor.merkeStand();
-    const quelle = zeilenRef.current.find((zeile) => zeile.raum.trim() === alt);
-    uebernehmeZeilen([
-      ...zeilenRef.current,
-      quelle ? { ...quelle, raum: neu } : { raum: neu, plaetzeText: '', reservierteZeit: '' },
-    ]);
     const schema = schemataRef.current.find((eintrag) => eintrag.raum === alt);
-    if (schema) {
-      uebernehmeSchemata([...schemataRef.current, kopiereRaumschema(schema, neu)]);
-      reiterWechseln(neu);
-    }
-    setHinweis(`${neu} ist eine Kopie von ${alt}${schema ? ' samt Raster' : ' (ohne Raster)'}.`);
+    if (!schema) return;
+    uebernehmeSchemata([...schemataRef.current, kopiereRaumschema(schema, neu)]);
+    reiterWechseln(neu);
+    setHinweis(`${neu} ist eine Kopie von ${alt} samt Raster.`);
   };
 
   /**
-   * Umbenennen heißt: Liste **und** Raster. Nur die Zeile zu ändern ließe das
-   * Raster unter dem alten Namen im Ordner liegen – der Raum stünde ohne
-   * Grundriss da, und in `Raeume/` läge eine Datei zu einem Raum, den es nicht
-   * mehr gibt.
+   * Umbenennen heißt: Das Raster wandert mit. Es liegt unter dem Namen des
+   * Raums in `Raeume/` – bliebe die Datei stehen, gäbe es den Raum zweimal:
+   * einmal unter dem alten und einmal unter dem neuen Namen.
    */
   const raumUmbenennen = (alt: string, neu: string) => {
     editor.merkeStand();
-    uebernehmeZeilen(
-      zeilenRef.current.map((zeile) => (zeile.raum.trim() === alt ? { ...zeile, raum: neu } : zeile)),
-    );
     uebernehmeSchemata(
       schemataRef.current.map((schema) =>
         schema.raum === alt ? kopiereRaumschema(schema, neu) : schema,
@@ -468,45 +345,12 @@ export function RaeumeScreen() {
     setHinweis(`${alt} heißt jetzt ${neu}.`);
   };
 
-  /** Raum und Raster zusammen aus dem Bestand nehmen – ein Rückgängig holt beides zurück. */
+  /** Den Raum samt Raster aus dem Bestand nehmen – ein Rückgängig holt ihn zurück. */
   const raumLoeschen = (raum: string) => {
     editor.merkeStand();
-    uebernehmeZeilen(zeilenRef.current.filter((zeile) => zeile.raum.trim() !== raum));
     uebernehmeSchemata(schemataRef.current.filter((schema) => schema.raum !== raum));
     reiterWechseln(REITER_RAEUME);
     setHinweis(`Raum ${raum} gelöscht – Rückgängig holt ihn samt Raster zurück.`);
-  };
-
-  /**
-   * Plätze oder reservierte Zeit einer Zeile ändern. Der **Name** wird hier
-   * nicht getippt: Er ist zugleich der Dateiname des Rasters in `Raeume/`,
-   * deshalb läuft er über „Umbenennen …“ – ein halb getippter Name hätte
-   * sonst je Tastendruck eine Raster-Datei angelegt.
-   */
-  const zeileGeaendert = (index: number, neu: RaumZeile) => {
-    uebernehmeZeilen(zeilenRef.current.map((alt, i) => (i === index ? neu : alt)));
-  };
-
-  /**
-   * Eine Zeile ohne Raumnamen aus der Liste nehmen. Räume mit Namen gehen den
-   * Weg über das Blatt („Raum löschen …“) – mit ihnen verschwindet das Raster.
-   */
-  const zeileEntfernen = (index: number) => {
-    editor.merkeStand();
-    uebernehmeZeilen(zeilenRef.current.filter((_, i) => i !== index));
-  };
-
-  /**
-   * Für einen einzelnen Raum der Liste das Vorschlagsraster anlegen – der Weg
-   * aus der Liste heraus, wenn nur bei einem Raum eines fehlt. „Fehlende
-   * Raster anlegen“ tut dasselbe für alle auf einmal.
-   */
-  const rasterFuerRaum = (raum: Raum) => {
-    setFehler(null);
-    editor.merkeStand();
-    uebernehmeSchemata([...schemataRef.current, standardRaumschema(raum.raum, raum.plaetze)]);
-    reiterWechseln(raum.raum);
-    setHinweis(`Raster für ${raum.raum} angelegt – Vorschlag mit ${raum.plaetze} Plätzen.`);
   };
 
   /**
@@ -539,13 +383,6 @@ export function RaeumeScreen() {
     }
   };
 
-  const raeumeSpeichern = () => {
-    const csv = raeumeToCsv(raeume);
-    downloadCsv('raeume.csv', csv);
-    projekt.schreibe('raeume.csv', csv, 'raeume');
-    setHinweis('Raumliste heruntergeladen – im Projekt liegt sie ohnehin schon.');
-  };
-
   /**
    * Die Raster speichern – je Raum eine Datei, benannt nach dem Raum. Im
    * Projekt ersetzen sie den bisherigen Bestand: Wer ein Raster entfernt hat,
@@ -568,16 +405,8 @@ export function RaeumeScreen() {
     setHinweis(`Raster heruntergeladen (${namen.join(', ')}) – im Projekt liegen sie ohnehin schon.`);
   };
 
-  /** Plätze laut Liste je Raum – zum Abgleich mit den Tischen im Raster. */
-  const plaetzeJeRaum = new Map<string, number>(raeume.map((raum) => [raum.raum, raum.plaetze]));
-
-  /** Stimmt die Platzzahl der Liste mit den Tischen im Raster überein? */
-  const plaetzeVergleich = (schema: Raumschema): string => {
-    const laut = plaetzeJeRaum.get(schema.raum);
-    if (laut === undefined) return 'nicht in der Raumliste';
-    const tische = tischzellen(schema).length;
-    return laut === tische ? `${laut} Plätze` : `Liste: ${laut} Plätze – weicht ab`;
-  };
+  /** Wie viele Plätze der offene Raum hat: die Tische in seinem Raster. */
+  const plaetzeText = (schema: Raumschema): string => `${tischzellen(schema).length} Plätze`;
 
   const projektEintrag = useProjektDownloadEintrag(setFehler, 'raeume-projekt-download');
 
@@ -598,13 +427,6 @@ export function RaeumeScreen() {
         { art: 'trenner', titel: 'Speichern' },
         {
           art: 'aktion',
-          titel: 'Räume als CSV speichern',
-          hinweis: 'die Raumliste als Raeume/raeume.csv',
-          onWaehlen: raeumeSpeichern,
-          testID: 'raeume-speichern',
-        },
-        {
-          art: 'aktion',
           titel: 'Raster als CSV speichern',
           hinweis: 'je Raum eine Datei in Raeume/',
           deaktiviert: schemata.length === 0,
@@ -622,13 +444,6 @@ export function RaeumeScreen() {
           testID: 'raeume-plan-pdf',
         },
         { art: 'trenner', titel: 'Laden' },
-        {
-          art: 'datei',
-          titel: 'Räume-CSV laden',
-          accept: '.csv',
-          onDateien: raeumeLaden,
-          testID: 'raeume-csv-laden',
-        },
         {
           art: 'datei',
           titel: 'Raumschema-CSVs laden',
@@ -672,7 +487,7 @@ export function RaeumeScreen() {
         {
           art: 'aktion',
           titel: 'Raumliste',
-          hinweis: 'Bestand des Hauses bearbeiten',
+          hinweis: 'Bestand des Hauses',
           gewaehlt: !aktivesSchema,
           onWaehlen: () => reiterWechseln(REITER_RAEUME),
           testID: 'raeume-reiter-liste',
@@ -692,18 +507,10 @@ export function RaeumeScreen() {
         {
           art: 'aktion',
           titel: 'Neuer Raum …',
-          hinweis: 'Name und Plätze – mit Vorschlagsraster',
+          hinweis: 'Name und Plätze des Vorschlagsrasters',
           onWaehlen: () => setzeVorgang({ art: 'neu' }),
           testID: 'raeume-neu',
         },
-        ohneRaster.length > 0 &&
-          ({
-            art: 'aktion',
-            titel: 'Fehlende Raster anlegen',
-            hinweis: ohneRaster.map((raum) => raum.raum).join(', '),
-            onWaehlen: rasterAnlegen,
-            testID: 'raeume-raster-anlegen-menue',
-          } as MenuEintrag),
         aktivesSchema && ({ art: 'trenner', titel: aktivesSchema.raum } as MenuEintrag),
         aktivesSchema &&
           ({
@@ -717,32 +524,15 @@ export function RaeumeScreen() {
           ({
             art: 'aktion',
             titel: 'Raum umbenennen …',
-            hinweis: 'Liste und Raster wandern mit',
+            hinweis: 'das Raster wandert mit',
             onWaehlen: () => setzeVorgang({ art: 'umbenennen', raum: aktivesSchema.raum }),
             testID: 'raeume-umbenennen',
           } as MenuEintrag),
         aktivesSchema &&
           ({
             art: 'aktion',
-            titel: 'Plätze übernehmen',
-            hinweis: 'die Tische des Rasters in die Raumliste',
-            deaktiviert: !plaetzeJeRaum.has(aktivesSchema.raum),
-            onWaehlen: () => plaetzeUebernehmen(aktivesSchema),
-            testID: `raeume-plaetze-${aktivesSchema.raum}`,
-          } as MenuEintrag),
-        aktivesSchema &&
-          ({
-            art: 'aktion',
-            titel: 'Raster entfernen',
-            hinweis: 'der Raum bleibt in der Liste, nur der Grundriss geht',
-            onWaehlen: () => rasterEntfernen(aktivesSchema.raum),
-            testID: `raeume-raster-entfernen-${aktivesSchema.raum}`,
-          } as MenuEintrag),
-        aktivesSchema &&
-          ({
-            art: 'aktion',
             titel: 'Raum löschen …',
-            hinweis: 'Raum und Raster aus dem Bestand',
+            hinweis: 'der Raum samt Raster aus dem Bestand',
             onWaehlen: () => setzeVorgang({ art: 'loeschen', raum: aktivesSchema.raum }),
             testID: 'raeume-loeschen',
           } as MenuEintrag),
@@ -759,8 +549,8 @@ export function RaeumeScreen() {
     fehler,
     fehler ? null : hinweis,
     aktivesSchema
-      ? `${plaetzeVergleich(aktivesSchema)} · ${rasterText(editor, aktivesSchema)} · ${PALETTEN_HINWEIS_ZEILE}`
-      : `${schemata.length} Raster · ${raeume.filter((raum) => raum.raum !== '').length} Räume in der Liste`,
+      ? `${plaetzeText(aktivesSchema)} · ${rasterText(editor, aktivesSchema)} · ${PALETTEN_HINWEIS_ZEILE}`
+      : `${schemata.length} Räume im Bestand · ${bestand.reduce((summe, raum) => summe + raum.sitzplaetze, 0)} Plätze`,
   ]
     .filter((teil): teil is string => !!teil)
     .join(' · ');
@@ -793,34 +583,20 @@ export function RaeumeScreen() {
             <Reiterinhalt testID="raeume-liste">
               <Section title="Räume">
                 <Text style={styles.hinweis}>
-                  Bestand des Hauses – gilt für jede Klausur. Liegt in{' '}
-                  <Text style={styles.pfad}>Raeume/</Text>: die Liste als{' '}
-                  <Text style={styles.pfad}>raeume.csv</Text>, dazu je Raum eine Raster-Datei
-                  (<Text style={styles.pfad}>94_E01.csv</Text>). Hier steht jeder Raum, zu dem es
-                  eines von beidem gibt – auch einer, der bisher nur als Raster vorliegt. Wer
-                  welchen Raum benutzt: Schritt 4.
+                  Bestand des Hauses – gilt für jede Klausur. Er liegt in{' '}
+                  <Text style={styles.pfad}>Raeume/</Text>, je Raum eine Raster-Datei
+                  (<Text style={styles.pfad}>94_E01.csv</Text>): Der Ordner ist die Raumliste.
+                  Wie viele Plätze ein Raum hat, wird nirgends gespeichert – es sind die Tische
+                  in seinem Raster, und wer hier einen setzt oder entfernt, ändert damit die
+                  Platzzahl. Wer welchen Raum benutzt: Schritt 4.
                 </Text>
                 <RaumBestandListe
                   eintraege={bestand}
-                  onZeile={zeileGeaendert}
-                  onPlan={(index) => reiterWechseln(zeilen[index].raum.trim())}
-                  onRasterAnlegen={(index) => rasterFuerRaum(raeume[index])}
-                  onPlaetzeAusRaster={(index) => {
-                    const schema = schemaZu(zeilen[index].raum.trim());
-                    if (schema) plaetzeUebernehmen(schema);
-                  }}
-                  onUmbenennen={(index) =>
-                    setzeVorgang({ art: 'umbenennen', raum: zeilen[index].raum.trim() })
-                  }
-                  onDuplizieren={(index) =>
-                    setzeVorgang({ art: 'duplizieren', raum: zeilen[index].raum.trim() })
-                  }
+                  onPlan={reiterWechseln}
+                  onUmbenennen={(raum) => setzeVorgang({ art: 'umbenennen', raum })}
+                  onDuplizieren={(raum) => setzeVorgang({ art: 'duplizieren', raum })}
                   // Löschen fragt nach: Mit dem Raum geht sein Raster.
-                  onEntfernen={(index) => {
-                    const name = zeilen[index].raum.trim();
-                    if (name === '') return zeileEntfernen(index);
-                    setzeVorgang({ art: 'loeschen', raum: name });
-                  }}
+                  onEntfernen={(raum) => setzeVorgang({ art: 'loeschen', raum })}
                 />
                 <AppButton
                   title="Neuer Raum …"
@@ -830,27 +606,12 @@ export function RaeumeScreen() {
                 {bestand.length === 0 ? null : (
                   <Text style={styles.hinweis}>
                     „Plan bearbeiten“ öffnet den Grundriss, „Duplizieren …“ legt den Raum samt
-                    Raster unter neuem Namen daneben, „Entfernen“ nimmt beides aus dem Bestand. Der
+                    Raster unter neuem Namen daneben, „Entfernen“ nimmt ihn aus dem Bestand. Der
                     Name läuft über „Umbenennen …“, damit das Raster mitwandert – es liegt unter
-                    diesem Namen in <Text style={styles.pfad}>Raeume/</Text>. Plätze und
-                    reservierte Zeit stehen zum Ändern da; weicht die Platzzahl von den Tischen im
-                    Raster ab, sagt es die Zeile.
+                    diesem Namen in <Text style={styles.pfad}>Raeume/</Text>.
                   </Text>
                 )}
-                <ProjektQuelle rolle="raeume" testID="raeume-quelle-raeume" />
                 <ProjektQuelle rolle="raumschema" alle testID="raeume-quelle-schema" />
-                {ohneRaster.length > 0 ? (
-                  <>
-                    <StatusText kind="info" testID="raeume-ohne-raster">
-                      {`Noch ohne Raster: ${ohneRaster.map((raum) => raum.raum).join(', ')}`}
-                    </StatusText>
-                    <AppButton
-                      title="Fehlende Raster anlegen"
-                      onPress={rasterAnlegen}
-                      testID="raeume-raster-anlegen"
-                    />
-                  </>
-                ) : null}
                 {schemata.length === 0 ? (
                   <StatusText kind="info">
                     Noch kein Raster geladen – „Neuer Raum …“ legt einen mit Vorschlagsraster an,

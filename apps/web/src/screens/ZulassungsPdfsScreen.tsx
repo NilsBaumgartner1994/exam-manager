@@ -30,6 +30,7 @@ import {
   ScreenContainer,
   Section,
   StatusText,
+  StudipEinsicht,
   VorlagenModal,
 } from '../components';
 import { downloadZip, readFileAsText } from '../files';
@@ -336,12 +337,16 @@ export function ZulassungsPdfsScreen() {
             onPress={() => downloadZip(dateiname, ergebnis.zip)}
             testID="zulassungspdfs-download"
           />
-          <Text style={styles.hinweis}>
-            Die PDFs sind für den unsichtbaren Stud.IP-Ordner der „Klausureinsicht“ gedacht –
-            eine Datei je Matrikelnummer.
-          </Text>
         </Section>
       ) : null}
+
+      <Section title="In Stud.IP bereitstellen">
+        <Text style={styles.hinweis}>
+          So kommen die Schreiben zu den Studierenden, ohne dass jemand die Liste der anderen
+          sieht – jede Person sieht nur ihr eigenes PDF:
+        </Text>
+        <StudipEinsicht art="zulassung" testID="zulassungspdfs-studip" />
+      </Section>
 
       <Section title="Projekt">
         <ProjektDownload

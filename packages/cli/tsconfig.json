@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "lib": ["ES2020"],
+    "types": ["node", "jest"],
+    "rootDir": ".",
+    "isolatedModules": true,
+    "esModuleInterop": true
+  },
+  "include": ["src", "test"],
+  "ts-node": { "transpileOnly": true }
+}

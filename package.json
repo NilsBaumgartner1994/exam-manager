@@ -9,7 +9,17 @@
   "scripts": {
     "web": "yarn workspace @exam-manager/web start:web",
     "export:web": "yarn workspace @exam-manager/web export:web",
-    "test": "yarn workspace @exam-manager/core test",
-    "typecheck": "yarn workspace @exam-manager/core typecheck && yarn workspace @exam-manager/web typecheck"
+    "cli": "yarn workspace @exam-manager/cli cli",
+    "1_vips": "yarn cli 1_vips",
+    "2_zulassung": "yarn cli 2_zulassung",
+    "3_teilnehmende": "yarn cli 3_teilnehmende",
+    "4_raumzuteilung": "yarn cli 4_raumzuteilung",
+    "5_raeume": "yarn cli 5_raeume",
+    "test": "yarn workspace @exam-manager/core test && yarn workspace @exam-manager/cli test",
+    "typecheck": "yarn workspace @exam-manager/core typecheck && yarn workspace @exam-manager/cli typecheck && yarn workspace @exam-manager/web typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "ts-node": "^10.9.2"
   }
 }

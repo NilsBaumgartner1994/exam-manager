@@ -1,0 +1,24 @@
+{
+  "name": "@exam-manager/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Die Schritte des Exam Managers auf der Kommandozeile",
+  "main": "src/cli.ts",
+  "scripts": {
+    "cli": "ts-node --project tsconfig.json src/cli.ts",
+    "test": "jest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@exam-manager/core": "0.1.0",
+    "read-excel-file": "^5.8.6"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.2",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "~6.0.3"
+  }
+}

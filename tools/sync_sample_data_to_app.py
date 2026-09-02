@@ -58,7 +58,7 @@ export const BEISPIEL_ZULASSUNGS_BESTAND: Record<string, string> = {json.dumps(b
 export const BEISPIEL_HIS_EXPORT_XLSX_BASE64: string =
   {json.dumps(b64("Zulassungen/check.xlsx"))};
 
-/** Raumliste (`raeume.csv`). */
+/** Räume einer Klausur mit ihren reservierten Zeiten (`klausurraeume.csv`). */
 export const BEISPIEL_RAEUME: string = {json.dumps(text("Zuslassungliste_Erstellen/4_MailRaumZuordnung/2_raum_zuteilung_erstellen/raeume.csv"))};
 
 /** Raumraster: Dateiname → CSV, je Raum eine Datei (Ordner `Raeume/`). */

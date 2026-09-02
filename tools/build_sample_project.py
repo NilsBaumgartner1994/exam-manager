@@ -39,11 +39,12 @@ DATEIEN = [
      "Zulassungen/swe++24_zulassungen.csv"),
     (ROOT / "Zulassungen" / "pv2025_zulassungen.csv",
      "Zulassungen/pv2025_zulassungen.csv"),
-    (RAUM / "raeume.csv", "Raeume/raeume.csv"),
 ]
 
 # Die Raster liegen je Raum in einer eigenen Datei (siehe raumschema.ts) und
-# behalten ihren Namen: Raeume/01_E01.csv, Raeume/94_E01.csv, ...
+# behalten ihren Namen: Raeume/01_E01.csv, Raeume/94_E01.csv, ... Eine
+# Raumliste daneben gibt es nicht: Der Ordner ist die Liste, und wie viele
+# Plätze ein Raum hat, sind die Tische in seinem Raster.
 RAUMSCHEMATA = sorted((RAUM / "raumschema").glob("*.csv"))
 
 # Die Anfangstexte der Schreiben an Studierende stehen im Core; von dort werden
@@ -110,7 +111,7 @@ als „nicht zugeordnet“ an und rührt es nicht an.
 | 0_Input_Kurs_Teilnehmer_Studip_Liste/ | *.csv | Teilnehmendenexport der Veranstaltung aus Stud.IP |
 | 0_Input_Vips_Notenliste/ | *.csv | Notenliste aus VIPS mit den Punkten der Aufgabenblätter |
 | Zulassungen/ | *zulassungen*.csv | je Jahr eine Liste der Zugelassenen |
-| Raeume/ | *.csv | Raumliste und je Raum ein leeres Raster, jedes Jahr wiederverwendbar |
+| Raeume/ | *.csv | je Raum ein leeres Raster, jedes Jahr wiederverwendbar – die Plätze sind die Tische darin |
 | Vorlagen/ | *vorlage*.md | Text der Schreiben an Studierende (Markdown mit Platzhaltern) |
 | 2_Zulassungs_PDFs_Export/ | *.pdf | erzeugte Zulassungs-PDFs (Schritt 2) |
 | 3_Klausur_Teilnehmende_Export/ | *.csv | Angemeldete mit und ohne Zulassung (Schritt 3, optional) |

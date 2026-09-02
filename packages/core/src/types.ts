@@ -50,11 +50,15 @@ export interface Anmeldung {
  * Hörsaal kommt dabei oft mehrfach vor – Gruppe 1 vormittags, Gruppe 2
  * nachmittags. Jeder dieser Einsätze hat seine eigene Belegung und eigene
  * Sitzplatznummern, aber dasselbe Raster.
+ *
+ * **Wie viele Plätze der Raum hat, steht hier nicht** – die Zahl sind die
+ * Tische seines Rasters (`plaetzeJeRaum`). Zwei Orte für dieselbe Zahl laufen
+ * auseinander: Wer im Plan einen Tisch entfernt, hätte sonst eine Raumliste,
+ * die weiter die alte Zahl behauptet.
  */
 export interface Raum {
   /** Name des Raums – zeigt auf sein Raster in `Raeume/`. */
   raum: string;
-  plaetze: number;
   reservierteZeit: string;
   /**
    * Wievielter Einsatz dieses Raums in der Klausur (1 = der erste). Steht

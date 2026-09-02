@@ -5,17 +5,22 @@
  */
 import { parseCsvObjects, toCsv } from './csv';
 import { normalizeName } from './namen';
+import { Raumschema, tischzellen } from './raumschema';
 import { Raum, Sitzplatz, Zulassung } from './types';
 
 export type Verteilmodus = 'balanced' | 'sequential';
 
 /**
- * Raumliste (`Raum;Plätze;ReservierteZeit`) einlesen.
+ * Raumliste einer Klausur (`Raum;ReservierteZeit`) einlesen.
  *
  * Ein Raum darf mehrfach vorkommen – dann wird er in dieser Klausur mehrfach
  * benutzt (Gruppe 1 vormittags, Gruppe 2 nachmittags). Der wievielte Einsatz
  * das ist, steht nicht in der Datei, sondern ergibt sich aus der Reihenfolge:
  * Die Zeilen werden beim Einlesen durchgezählt.
+ *
+ * Eine ältere Datei mit einer Spalte `Plätze` bleibt lesbar – die Spalte wird
+ * **überlesen**: Wie viele Plätze ein Raum hat, sagen die Tische seines
+ * Rasters (`plaetzeJeRaum`), nicht eine Zahl in einer Liste daneben.
  */
 export function parseRaeume(csvText: string): Raum[] {
   const bisher = new Map<string, number>();
@@ -25,11 +30,79 @@ export function parseRaeume(csvText: string): Raum[] {
     bisher.set(raum, durchgang);
     return {
       raum,
-      plaetze: Number(row['Plätze'] ?? row['Plaetze'] ?? 0),
       reservierteZeit: row['ReservierteZeit'] ?? '',
       durchgang,
     };
   });
+}
+
+/**
+ * Wie viele Plätze jeder Raum hat: die Tische seines Rasters.
+ *
+ * Das ist die **einzige** Quelle der Platzzahl. Sie wird nirgends gespeichert
+ * – ein Raum ist sein Raster, und wer darin einen Tisch setzt oder entfernt,
+ * ändert damit auch die Zahl der Plätze. Eine zweite, mitgeschriebene Zahl
+ * wäre nach dem ersten Umbau falsch.
+ */
+export function plaetzeJeRaum(schemata: Raumschema[]): Map<string, number> {
+  return new Map(schemata.map((schema) => [schema.raum, tischzellen(schema).length]));
+}
+
+/** Plätze eines Raums – 0, solange es zu ihm kein Raster gibt. */
+export function plaetzeDesRaums(raum: Pick<Raum, 'raum'>, plaetze: Map<string, number>): number {
+  return plaetze.get(raum.raum) ?? 0;
+}
+
+/**
+ * Wie viele Plätze eine Klausur zusammen hat: die Summe über alle
+ * Raum**einsätze**. Derselbe Raum zweimal heißt zweimal seine Plätze – die
+ * beiden Durchgänge sitzen nacheinander darin.
+ */
+export function plaetzeGesamt(raeume: Raum[], plaetze: Map<string, number>): number {
+  return raeume.reduce((summe, raum) => summe + plaetzeDesRaums(raum, plaetze), 0);
+}
+
+/**
+ * Reichen die Räume für die Teilnehmenden?
+ *
+ * Die Frage steht vor jeder Zuteilung: Erst wenn genug Plätze da sind, lohnt
+ * sich das Verteilen. Deshalb ist sie eine eigene Auskunft und nicht bloß ein
+ * Nebenprodukt von `erstelleRaumzuteilung` – die Antwort „für 12 Leute fehlen
+ * 4 Plätze“ kommt sonst erst, wenn schon verteilt wurde.
+ */
+export interface Platzbedarf {
+  /** Wie viele Personen einen Platz brauchen. */
+  teilnehmende: number;
+  /** Die maximale Zahl der Plätze in allen Raumeinsätzen zusammen. */
+  plaetze: number;
+  /** Plätze, die nach der Zuteilung frei blieben (0, wenn es zu wenige sind). */
+  frei: number;
+  /** Plätze, die fehlen (0, wenn es reicht). */
+  fehlende: number;
+  /** Räume der Liste, zu denen es (noch) kein Raster gibt – sie haben 0 Plätze. */
+  ohneRaster: string[];
+  reicht: boolean;
+}
+
+export function pruefePlatzbedarf(
+  teilnehmende: number,
+  raeume: Raum[],
+  plaetze: Map<string, number>,
+): Platzbedarf {
+  const gesamt = plaetzeGesamt(raeume, plaetze);
+  const ohneRaster = [
+    ...new Set(
+      raeume.filter((raum) => raum.raum !== '' && !plaetze.has(raum.raum)).map((raum) => raum.raum),
+    ),
+  ];
+  return {
+    teilnehmende,
+    plaetze: gesamt,
+    frei: Math.max(0, gesamt - teilnehmende),
+    fehlende: Math.max(0, teilnehmende - gesamt),
+    ohneRaster,
+    reicht: gesamt >= teilnehmende,
+  };
 }
 
 /**
@@ -55,15 +128,24 @@ export function mitDurchgaengen(raeume: Omit<Raum, 'durchgang'>[]): Raum[] {
   });
 }
 
+/**
+ * Die Räume einer Klausur als CSV (`Raum;ReservierteZeit`). Ohne Platzzahl:
+ * Die steht im Raster des Raums (siehe `plaetzeJeRaum`).
+ */
 export function raeumeToCsv(raeume: Raum[]): string {
   return toCsv([
-    ['Raum', 'Plätze', 'ReservierteZeit'],
-    ...raeume.map((r) => [r.raum, r.plaetze, r.reservierteZeit]),
+    ['Raum', 'ReservierteZeit'],
+    ...raeume.map((r) => [r.raum, r.reservierteZeit]),
   ]);
 }
 
 export interface RaumzuteilungsOptionen {
   modus: Verteilmodus;
+  /**
+   * Plätze je Raum, aus den Rastern (`plaetzeJeRaum`). Ein Raum ohne Raster
+   * hat keine Plätze – wer dort landen würde, steht hinterher in `ohnePlatz`.
+   */
+  plaetze: Map<string, number>;
   /** Erste vergebene Sitzplatznummer (Default 1001). */
   ersteSitzplatznummer?: number;
   /**
@@ -91,7 +173,11 @@ export function erstelleRaumzuteilung(
   raeume: Raum[],
   optionen: RaumzuteilungsOptionen,
 ): Raumzuteilung {
-  const belegung = raeume.map((raum) => ({ raum, belegt: 0 }));
+  const belegung = raeume.map((raum) => ({
+    raum,
+    belegt: 0,
+    plaetze: plaetzeDesRaums(raum, optionen.plaetze),
+  }));
   const zuteilung: { person: Zulassung; raum: Raum }[] = [];
   const ohnePlatz: Zulassung[] = [];
   let raumIndex = 0;
@@ -112,13 +198,13 @@ export function erstelleRaumzuteilung(
 
   for (const person of teilnehmer) {
     if (festgesetzt.has(person.matrikelnummer)) continue;
-    let ziel: { raum: Raum; belegt: number } | undefined;
+    let ziel: { raum: Raum; belegt: number; plaetze: number } | undefined;
     if (optionen.modus === 'balanced') {
       ziel = [...belegung]
-        .filter((b) => b.belegt < b.raum.plaetze)
-        .sort((a, b) => a.belegt / a.raum.plaetze - b.belegt / b.raum.plaetze)[0];
+        .filter((b) => b.belegt < b.plaetze)
+        .sort((a, b) => a.belegt / a.plaetze - b.belegt / b.plaetze)[0];
     } else {
-      while (raumIndex < belegung.length && belegung[raumIndex].belegt >= belegung[raumIndex].raum.plaetze) {
+      while (raumIndex < belegung.length && belegung[raumIndex].belegt >= belegung[raumIndex].plaetze) {
         raumIndex++;
       }
       ziel = belegung[raumIndex];

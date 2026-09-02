@@ -8,6 +8,9 @@ import {
   parseRaumschemaDateien,
   parseRaumschemata,
   parseSitzplaetze,
+  plaetzeGesamt,
+  plaetzeJeRaum,
+  pruefePlatzbedarf,
   raumSchluessel,
   sitzplaetzeToCsv,
   sitzplatznummern,
@@ -28,27 +31,51 @@ const TEILNEHMER: Zulassung[] = [
 
 describe('Raumzuteilung (Screen 4)', () => {
   const raeume = parseRaeume(lies(pfad.raeume));
+  const schemata = parseRaumschemaDateien(liesRaumschemata());
+  /** Die Plätze kommen aus den Rastern – gespeichert wird die Zahl nirgends. */
+  const plaetze = plaetzeJeRaum(schemata);
 
   it('liest die Raumliste', () => {
     expect(raeume.map((r) => r.raum)).toEqual(['01/E01', '66/E33', '94/E01', '94/E03', '94/E06']);
-    expect(raeume[0]).toMatchObject({ raum: '01/E01', plaetze: 193 });
+    expect(raeume[0]).toMatchObject({ raum: '01/E01', reservierteZeit: expect.any(String) });
+    // Auch eine alte Liste mit einer Spalte `Plätze` bleibt lesbar – die
+    // Spalte wird überlesen, die Platzzahl steht im Raster.
+    expect(Object.keys(raeume[0])).not.toContain('plaetze');
   });
 
-  it('hält Platzzahl und Raumschema des Beispieldatensatzes zusammen', () => {
-    // Die Plätze eines Raums sind genau die Tische in seinem Raster – sonst
-    // meldet die App Teilnehmende „ohne Tisch im Sitzplan“. Die Raster liegen
-    // je Raum in einer eigenen Datei; zusammen ergeben sie alle Räume.
-    const schemata = parseRaumschemaDateien(liesRaumschemata());
+  it('nimmt die Plätze eines Raums aus den Tischen seines Rasters', () => {
+    // Es gibt keine zweite Stelle, an der eine Platzzahl steht: Wer im Plan
+    // einen Tisch entfernt, ändert damit die Plätze des Raums.
     expect(schemata.map((s) => s.raum)).toEqual(raeume.map((r) => r.raum));
     for (const raum of raeume) {
       const schema = schemata.find((s) => s.raum === raum.raum);
       expect(schema).toBeDefined();
-      expect(tischzellen(schema!)).toHaveLength(raum.plaetze);
+      expect(plaetze.get(raum.raum)).toBe(tischzellen(schema!).length);
     }
+    expect(plaetze.get('01/E01')).toBe(193);
+    expect(plaetzeGesamt(raeume, plaetze)).toBe(
+      schemata.reduce((summe, schema) => summe + tischzellen(schema).length, 0),
+    );
+  });
+
+  it('sagt vor der Zuteilung, ob die Räume für die Teilnehmenden reichen', () => {
+    const genug = pruefePlatzbedarf(TEILNEHMER.length, raeume, plaetze);
+    expect(genug).toMatchObject({ reicht: true, fehlende: 0, ohneRaster: [] });
+    expect(genug.frei).toBe(genug.plaetze - TEILNEHMER.length);
+
+    // Ein Raum ohne Raster hat keine Plätze – das ist der Hinweis, den
+    // Schritt 4 anzeigt, statt stillschweigend eine Zahl anzunehmen.
+    const eng = pruefePlatzbedarf(300, [raeume[2], { raum: 'Neu', reservierteZeit: '' }], plaetze);
+    expect(eng.reicht).toBe(false);
+    expect(eng.fehlende).toBe(300 - (plaetze.get('94/E01') ?? 0));
+    expect(eng.ohneRaster).toEqual(['Neu']);
   });
 
   it('verteilt alle 7 Teilnehmenden und vergibt Sitzplätze ab 1001', () => {
-    const { sitzplaetze, ohnePlatz } = erstelleRaumzuteilung(TEILNEHMER, raeume, { modus: 'balanced' });
+    const { sitzplaetze, ohnePlatz } = erstelleRaumzuteilung(TEILNEHMER, raeume, {
+      modus: 'balanced',
+      plaetze,
+    });
     expect(ohnePlatz).toHaveLength(0);
     expect(sitzplaetze).toHaveLength(7);
     expect(sitzplaetze.map((s) => s.sitzplatznummer)).toEqual([1001, 1002, 1003, 1004, 1005, 1006, 1007]);
@@ -61,16 +88,29 @@ describe('Raumzuteilung (Screen 4)', () => {
   it('respektiert eine andere Start-Sitzplatznummer', () => {
     const { sitzplaetze } = erstelleRaumzuteilung(TEILNEHMER, raeume, {
       modus: 'sequential',
+      plaetze,
       ersteSitzplatznummer: 1,
     });
     expect(sitzplaetze[0].sitzplatznummer).toBe(1);
   });
 
   it('meldet Teilnehmende ohne Platz, wenn die Räume voll sind', () => {
-    const klein = [{ ...raeume[0], plaetze: 2 }];
-    const { sitzplaetze, ohnePlatz } = erstelleRaumzuteilung(TEILNEHMER, klein, { modus: 'balanced' });
+    // Zwei Tische im Raster heißen zwei Plätze – mehr passen nicht hinein.
+    const klein = [raeume[0]];
+    const { sitzplaetze, ohnePlatz } = erstelleRaumzuteilung(TEILNEHMER, klein, {
+      modus: 'balanced',
+      plaetze: new Map([[raeume[0].raum, 2]]),
+    });
     expect(sitzplaetze).toHaveLength(2);
     expect(ohnePlatz).toHaveLength(5);
+  });
+
+  it('lässt einen Raum ohne Raster leer, statt ihn zu raten', () => {
+    const { sitzplaetze, ohnePlatz } = erstelleRaumzuteilung(TEILNEHMER, [
+      { raum: 'Ohne Raster', reservierteZeit: '' },
+    ], { modus: 'balanced', plaetze: new Map() });
+    expect(sitzplaetze).toHaveLength(0);
+    expect(ohnePlatz).toHaveLength(TEILNEHMER.length);
   });
 
   it('erzeugt eindeutige Namenspräfixe für den Aushang', () => {
@@ -81,7 +121,10 @@ describe('Raumzuteilung (Screen 4)', () => {
   });
 
   it('schreibt und liest das CSV-Format des Python-Originals', () => {
-    const { sitzplaetze } = erstelleRaumzuteilung(TEILNEHMER, raeume, { modus: 'balanced' });
+    const { sitzplaetze } = erstelleRaumzuteilung(TEILNEHMER, raeume, {
+      modus: 'balanced',
+      plaetze,
+    });
     const wieder = parseSitzplaetze(sitzplaetzeToCsv(sitzplaetze));
     expect(wieder).toEqual(sitzplaetze);
   });
@@ -95,10 +138,17 @@ describe('Raumzuteilung (Screen 4)', () => {
 
 describe('Derselbe Raum mehrfach (zwei Durchgänge)', () => {
   const ZWEI_DURCHGAENGE = parseRaeume(
-    'Raum;Plätze;ReservierteZeit\n' +
-      '94/E01;2;01.02.2026 Gruppe 1\n' +
-      '94/E01;2;01.02.2026 Gruppe 2\n',
+    'Raum;ReservierteZeit\n' +
+      '94/E01;01.02.2026 Gruppe 1\n' +
+      '94/E01;01.02.2026 Gruppe 2\n',
   );
+  /** Ein Raster mit zwei Tischen – jeder Durchgang hat also zwei Plätze. */
+  const ZWEI_PLAETZE = new Map([['94/E01', 2]]);
+
+  it('liest auch eine alte Liste mit Spalte „Plätze“ und überliest sie', () => {
+    const alt = parseRaeume('Raum;Plätze;ReservierteZeit\n94/E01;99;Gruppe 1\n');
+    expect(alt).toEqual([{ raum: '94/E01', reservierteZeit: 'Gruppe 1', durchgang: 1 }]);
+  });
 
   it('zählt beim Einlesen die Durchgänge durch', () => {
     expect(ZWEI_DURCHGAENGE.map((r) => r.durchgang)).toEqual([1, 2]);
@@ -107,9 +157,9 @@ describe('Derselbe Raum mehrfach (zwei Durchgänge)', () => {
 
   it('zählt auch eine von Hand zusammengestellte Liste durch', () => {
     const liste = mitDurchgaengen([
-      { raum: '94/E01', plaetze: 2, reservierteZeit: 'Gruppe 1' },
-      { raum: '94/E03', plaetze: 2, reservierteZeit: 'Gruppe 1' },
-      { raum: '94/E01', plaetze: 2, reservierteZeit: 'Gruppe 2' },
+      { raum: '94/E01', reservierteZeit: 'Gruppe 1' },
+      { raum: '94/E03', reservierteZeit: 'Gruppe 1' },
+      { raum: '94/E01', reservierteZeit: 'Gruppe 2' },
     ]);
     expect(liste.map((r) => r.durchgang)).toEqual([1, 1, 2]);
   });
@@ -117,6 +167,7 @@ describe('Derselbe Raum mehrfach (zwei Durchgänge)', () => {
   it('behandelt jeden Durchgang als eigenen Raum mit eigenen Plätzen', () => {
     const { sitzplaetze, ohnePlatz } = erstelleRaumzuteilung(TEILNEHMER.slice(0, 4), ZWEI_DURCHGAENGE, {
       modus: 'sequential',
+      plaetze: ZWEI_PLAETZE,
     });
     expect(ohnePlatz).toHaveLength(0);
     // Beide Durchgänge heißen im Aushang gleich – auseinander hält sie der
@@ -135,6 +186,7 @@ describe('Derselbe Raum mehrfach (zwei Durchgänge)', () => {
 
     const { sitzplaetze } = erstelleRaumzuteilung(TEILNEHMER.slice(0, 4), ZWEI_DURCHGAENGE, {
       modus: 'sequential',
+      plaetze: plaetzeJeRaum([schema]),
     });
     const { belegung, ohnePlatz } = verteileAufRaumschemata(sitzplaetze, raster);
     expect(ohnePlatz).toHaveLength(0);

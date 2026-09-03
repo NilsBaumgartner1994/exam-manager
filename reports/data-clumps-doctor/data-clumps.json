@@ -1,6 +1,6 @@
 {
   "report_version": "^0.1.103",
-  "report_timestamp": "2026-09-03T07:32:36.719Z",
+  "report_timestamp": "2026-09-03T08:19:53.841Z",
   "target_language": "typescript",
   "report_summary": {
     "additional": {
@@ -28,15 +28,15 @@
         }
       },
       "timer_information": {
-        "ast_generation_time_ms": 738,
+        "ast_generation_time_ms": 726,
         "detection_time_ms": 16,
         "machine_information": {
           "os": "Linux",
           "os_release": "6.17.0-1022-azure",
           "os_platform": "linux",
           "os_arch": "x64",
-          "os_uptime": 69.89,
-          "os_memory_free": 14903267328,
+          "os_uptime": 66.55,
+          "os_memory_free": 14810492928,
           "os_memory_total": 16766414848,
           "os_cpu_cores": 4,
           "os_cpu_model": "AMD EPYC 9V74 80-Core Processor",
@@ -55,10 +55,10 @@
   "project_info": {
     "project_url": "https://github.com/NilsBaumgartner1994/exam-manager",
     "project_name": "exam-manager",
-    "project_version": "b9e40d177972b6fbd38c4aea69a2b5cdb936a45d",
-    "project_commit_hash": "b9e40d177972b6fbd38c4aea69a2b5cdb936a45d",
+    "project_version": "b3ff2c971354f36fa0689a84f10d29080c655ccd",
+    "project_commit_hash": "b3ff2c971354f36fa0689a84f10d29080c655ccd",
     "project_tag": null,
-    "project_commit_date": "1788420693",
+    "project_commit_date": "1788423557",
     "additional": {
       "relative_path_to_source_folder_in_project": ""
     },

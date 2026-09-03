@@ -69,6 +69,13 @@ export interface MenuGruppe {
   titel: string;
   /** Was gerade gilt – steht klein hinter dem Titel („Räume · 94/E01“). */
   wert?: string;
+  /**
+   * Ein Menü, das auf ein Problem hinweist – rot hinterlegt („⚠ 2 ohne
+   * Platz“). Es steht im Band und nicht in einer Meldung, die man wegscrollt:
+   * Wer einen besetzten Platz freihält, soll die Folge sehen, bis sie behoben
+   * ist, und im Menü gleich den Weg dorthin finden.
+   */
+  warnung?: boolean;
   /** `null`/`false` wird übergangen, damit Einträge bedingt sein dürfen. */
   eintraege: (MenuEintrag | null | false)[];
   testID?: string;
@@ -212,12 +219,19 @@ function Menuezeile({ menus, testID }: { menus: MenuGruppe[]; testID?: string })
           }}
           style={({ pressed }) => [
             styles.name,
+            menu.warnung && styles.nameWarnung,
             offen === menu.titel && styles.nameOffen,
             pressed && styles.gedrueckt,
           ]}
           testID={menu.testID}
         >
-          <Text style={[styles.nameText, offen === menu.titel && styles.nameTextOffen]}>
+          <Text
+            style={[
+              styles.nameText,
+              menu.warnung && styles.nameTextWarnung,
+              offen === menu.titel && styles.nameTextOffen,
+            ]}
+          >
             {menu.titel}
           </Text>
           {menu.wert ? (
@@ -307,11 +321,17 @@ function Schublade({ menus, testID }: { menus: MenuGruppe[]; testID?: string }) 
                     key={eintrag.titel}
                     accessibilityRole="button"
                     onPress={() => setzeEbene(eintrag.titel)}
-                    style={({ pressed }) => [styles.eintrag, pressed && styles.gedrueckt]}
+                    style={({ pressed }) => [
+                      styles.eintrag,
+                      eintrag.warnung && styles.nameWarnung,
+                      pressed && styles.gedrueckt,
+                    ]}
                     testID={eintrag.testID}
                   >
                     <View style={styles.eintragText}>
-                      <Text style={styles.eintragTitel}>{eintrag.titel}</Text>
+                      <Text style={[styles.eintragTitel, eintrag.warnung && styles.nameTextWarnung]}>
+                        {eintrag.titel}
+                      </Text>
                       {eintrag.wert ? (
                         <Text style={styles.eintragHinweis}>{eintrag.wert}</Text>
                       ) : null}
@@ -507,6 +527,9 @@ const styles = StyleSheet.create({
     maxWidth: '60%',
   },
   nameOffen: { backgroundColor: colors.primary },
+  /** Ein Menü, das auf ein Problem hinweist – rot, aber lesbar. */
+  nameWarnung: { backgroundColor: colors.dangerBg },
+  nameTextWarnung: { color: colors.danger, fontWeight: '700' },
   gedrueckt: { opacity: 0.7 },
   nameText: { fontSize: 14, fontWeight: '600', color: colors.text },
   nameTextOffen: { color: colors.primaryText },

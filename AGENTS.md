@@ -283,8 +283,9 @@ Konventionen des Datensatzes:
   rechnen. Ein Vollbild-Modus wäre danach überflüssig: Der Screen **ist** das
   Vollbild.
 - **Das Menüband ist eine Menüleiste, keine Knopfreihe** (`Menueband.tsx`,
-  `Menueleiste`): eine Zeile mit „Datei“, „PDF“, „Werkzeuge“, „Anzeigen“,
-  „Räume“ – jedes klappt auf, wie in Word oder Excel. Über dreißig Knöpfe in
+  `Menueleiste`): eine Zeile mit „Datei“, „Verteilung“, „Raum“, „Ansicht“,
+  „Werkzeuge“, „Einstellungen“ (Schritt 5: „Datei“, „PDF“, „Werkzeuge“,
+  „Anzeigen“, „Räume“) – jedes klappt auf, wie in Word oder Excel. Über dreißig Knöpfe in
   vier Zeilen nahmen dem Plan den halben Bildschirm. Ein Screen beschreibt
   seine Menüs als **Daten** (`MenuGruppe`/`MenuEintrag`: `aktion`, `schalter`,
   `datei`, `ziehbar`, `trenner`), nicht als Bausteine – daraus wird am Rechner
@@ -302,17 +303,27 @@ Konventionen des Datensatzes:
     eine Zelle ziehen. Währenddessen nimmt das Menü keine Zeiger mehr an
     (`pointerEvents`), damit `document.elementFromPoint` die Zelle darunter
     findet – wer daran etwas ändert, probiert genau das aus.
-  - Was gerade gilt, steht als `wert` hinter dem Namen („Räume 94/E01“,
-    „Werkzeuge Sitzplatz“) und auf dem Handy neben dem Burger: In einer
+  - Was gerade gilt, steht als `wert` hinter dem Namen („Raum 94/E01“,
+    „Ansicht Raumplan“) und auf dem Handy neben dem Burger: In einer
     Knopfreihe war es die hervorgehobene Kachel, im zugeklappten Menü sähe man
     es sonst nicht.
-- **Ein Plan zur Zeit, umgeschaltet im Menü „Räume“.** Schritt 5 hat dort die
-  Raumliste plus einen Eintrag je Raum, Schritt 4 „Einstellungen“, „Listen“
-  und je einen pro Raum**einsatz** (Schlüssel = `raumSchluessel`). Die beiden
-  festen Einträge tragen ein `#` im Schlüssel, damit sie nie mit einem
-  Raumnamen kollidieren. Gezeigt wird immer **ein** Plan (`RaumplanBuehne`);
-  fünf Pläne nebeneinander, darunter ein Hörsaal mit 44 × 32 Feldern, sind
-  weder zu überblicken noch flüssig zu zeichnen.
+  - **Ein Menü darf rot sein** (`warnung`): Schritt 4 hängt „⚠ n ohne Platz“
+    ins Band, sobald jemand keinen Platz hat. Ein Hinweis im Formular wäre
+    weggescrollt, sobald man im Plan arbeitet – im Band steht er, bis er
+    behoben ist, und enthält gleich den Weg dorthin („Neu verteilen“).
+- **Ein Plan zur Zeit.** Schritt 5 schaltet im Menü „Räume“ um, Schritt 4 im
+  Menü „Raum“ (je Raum**einsatz** ein Eintrag, Schlüssel = `raumSchluessel`);
+  ob überhaupt ein Plan zu sehen ist, entscheidet in Schritt 4 das Menü
+  „Ansicht“. Gezeigt wird immer **ein** Plan (`RaumplanBuehne`); fünf Pläne
+  nebeneinander, darunter ein Hörsaal mit 44 × 32 Feldern, sind weder zu
+  überblicken noch flüssig zu zeichnen.
+- **Unter dem Mauszeiger wird die Zelle hervorgehoben** (`ueberfahren` in
+  `Raumplan.tsx`): Bei 44 Spalten sind die Kästen wenige Pixel groß, und ohne
+  Markierung trifft man den gemeinten Tisch kaum. Gerechnet wird sie wie beim
+  Ziehen aus den Koordinaten (ein `pointermove` am Raster), nicht über
+  Hover-Ereignisse je Zelle: Das wären anderthalbtausend Handler, und bei
+  gedrückter Taste kämen sie ohnehin nicht an. Am Finger gibt es kein
+  Überfahren – dort bleibt die Markierung aus.
 - **Der Sitzplan als Tabelle: `sitzplanRasterCsv()`** – je Feld des Raums eine
   Zelle, je Raumeinsatz eine Kopfzeile `Sitzplan;<Raumeinsatz>`. Es gibt ihn
   zweimal, weil zwei Leute damit arbeiten: `nummer` (nur die Sitzplatznummer)
@@ -395,6 +406,44 @@ Konventionen des Datensatzes:
 
 ## Sitzplan im Raum (Screen 4)
 
+- **Zwei Bilder, nicht ein langes Formular:** Schritt 4 hat eine
+  `phase` – `vorbereitung` (Teilnehmende und Räume als Formular, Menüband nur
+  „Datei“) und `verteilung` (die Arbeitsfläche mit Plan und Listen). „Verteilen
+  und weiter“ rechnet die Verteilung und wechselt hinüber, „Zurück zur
+  Auswahl“ im Menü „Verteilung“ wieder zurück. Vorher stand alles auf einer
+  scrollenden Seite und war keins von beidem.
+- **Der Screen ändert das Raster nicht.** Tische setzen, Wände ziehen,
+  beschriften – das ist Schritt 5. In Schritt 4 gibt es deshalb keine Palette;
+  „Werkzeuge“ sagt nur, was ein Tippen auf einen Platz tut (Blatt öffnen,
+  freihalten, freihalten aufheben) und hält Drehen und Verlauf bereit. Wer
+  beim Verteilen aus Versehen den Saal umbaut, merkt es erst im Aushang.
+- **Die Belegung ist die Quelle, der Sitzplan die Ableitung**
+  (`sitzplaetzeAusBelegung`): Der Screen führt keine zweite Liste mit, die
+  nachgezogen werden müsste – wer jemanden umsetzt, ändert damit Aushang,
+  Listen und CSV. `ohneSitzplatz` sagt, wer übrig ist.
+- **Sitzplatznummern bekommen nur belegte Plätze** (`Nummerierung`,
+  Vorgabe `belegte`): Am Aushang soll keine Nummer stehen, die niemandem
+  gehört. Wer einen Saal durchnummerieren will, stellt im Menü
+  „Einstellungen“ auf `alle`. Weil die Nummern an der Belegung hängen,
+  entstehen sie **nach** dem Verteilen (`platzNummern`) – wer jemanden
+  umsetzt, verschiebt damit die Nummern dahinter.
+- **Was die Verteilung ändert, rechnet sofort neu:** Die Einträge unter
+  „Einstellungen“ (nacheinander/gleichmäßig, Abstand/Reihe) rufen `verteilen()`
+  mit dem gerade gewählten Wert, statt auf einen Knopf zu warten. Der Plan
+  **ist** die Vorschau.
+- **Ein freigehaltener Platz verdrängt, ohne nachzusetzen:** Wer dort saß,
+  fällt heraus und steht als „⚠ n ohne Platz“ rot im Menüband; von dort führt
+  „Neu verteilen“ zurück. Stillschweigend nachzusetzen hieße, dass eine
+  Sperrung den halben Plan verschiebt, ohne dass jemand es sieht.
+- **Auswahl und Belegung wandern von selbst in den Projektstand** (gebündelt,
+  400 ms – wie die Raster in Schritt 5): Teilnehmerliste, `klausurraeume.csv`
+  und `raumbelegung.csv` stehen nach einem Wechsel des Screens wieder da.
+  Geladene Raster schreibt der Screen nach `Raeume/`; sonst hätten die Räume
+  nach der Rückkehr keine Plätze mehr.
+- **Eine Vorgabe sieht man:** Der Kasten bekommt einen roten Rand
+  (`vorgabeZelle`) und „fest“ darunter. Ein Platz, der sich dem nächsten
+  Verteilen entzieht, darf nicht wie jeder andere aussehen.
+
 - `packages/core/src/raumschema.ts` hält das Raster eines Raums (Tische, Tür,
   Wand, Pult) und die Drehung der Ansicht, `raumbelegung.ts` die Frage, wer an
   welchem Tisch sitzt (Reserveplätze, Vorgaben, Umsetzen).
@@ -426,8 +475,10 @@ Konventionen des Datensatzes:
   Namenskürzel, Matrikelnummer, Sitzplatznummer, Pult-Text). Dasselbe Objekt
   geht in `Raumplan` und in `sitzplanPdf` – gedruckt wird, was man sieht. Am
   Aushang wird `sitzplatznummer` erzwungen: Danach sucht man dort.
-- **Ein Tippen auf einen Platz öffnet ein Blatt** (`BlattModal`), kein Modus
-  entscheidet vorher, was passiert. Das Blatt ist so hoch wie sein Inhalt,
+- **Ein Tippen auf einen Platz öffnet ein Blatt** (`BlattModal`) – das ist das
+  voreingestellte Werkzeug; die beiden anderen („freihalten“, „freihalten
+  aufheben“) sperren und entsperren mit einem Tippen je Platz, wenn mehrere
+  Plätze nacheinander drankommen. Das Blatt ist so hoch wie sein Inhalt,
   höchstens vier Fünftel des Bildschirms – ein Blatt mit drei Zeilen darin
   verdeckte sonst den Plan, um den es gerade geht. Darin steht, wer sitzt, und dort wird
   gesetzt, geräumt, festgehalten und freigehalten. Wer von Hand setzt, setzt
@@ -436,7 +487,8 @@ Konventionen des Datensatzes:
   und lässt sie liegen.
 - Zwei Regeln, an denen sich alles andere ausrichtet:
   1. **Die Sitzplatznummer gehört zum Tisch**, nicht zur Person – vergeben in
-     Lesereihenfolge des gespeicherten Rasters, über alle Räume fortlaufend.
+     Lesereihenfolge des gespeicherten Rasters, über alle Räume fortlaufend
+     (voreingestellt nur für die belegten Tische, siehe `Nummerierung`).
      Wer umgesetzt wird, bekommt die Nummer des neuen Tisches.
   2. **Gedreht wird nur die Ansicht.** `anzeigeRaster()` liefert Zellen, die
      ihre gespeicherte Position mitführen; Nummern und Belegung bleiben von
@@ -468,14 +520,12 @@ Konventionen des Datensatzes:
   neuen Platz dem Raum, in dem prozentual am meisten frei ist. Die englischen
   Wörter der ersten Fassung (`sequential`, `balanced`) liest `raumfuellungAus`
   weiter.
-- **Die Vorschau ist die Verteilung** (`SitzplanVorschau` unter den
-  Einstellungen in Schritt 4): Der Screen rechnet `planeSitzplan` bei jeder
-  Änderung neu und zeigt das Ergebnis als Plan je Raumeinsatz; der Knopf
-  darunter übernimmt genau dieses Ergebnis, ohne es noch einmal zu rechnen.
-  Wer eine Option ändert, soll sehen, was sie tut, statt zu verteilen,
-  nachzusehen und zurückzugehen. Weil `planeSitzplan` aus der bestehenden
-  Belegung nur Reserven und Vorgaben mitnimmt und sonst von vorne verteilt,
-  ist es wiederholbar: zweimal gerufen kommt zweimal dasselbe heraus.
+- **Der Plan ist die Vorschau:** Schritt 4 ruft `planeSitzplan` bei jeder
+  Umstellung neu und schreibt das Ergebnis in die Belegung – wer eine Option
+  ändert, sieht im Raumplan sofort, was sie tut. Weil `planeSitzplan` aus der
+  bestehenden Belegung nur freigehaltene Plätze und Vorgaben mitnimmt und
+  sonst von vorne verteilt, ist es wiederholbar: zweimal gerufen kommt zweimal
+  dasselbe heraus.
 - **PDFs entstehen im Core, nicht im Druckdialog:** `sitzplaenePdf()` zeichnet
   das Raster der Räume (je Raumeinsatz eine neue Seite), `tabellenPdf()` setzt
   Listen (je Abschnitt eine Seite). So fällt eine Sitzplan-PDF heraus und

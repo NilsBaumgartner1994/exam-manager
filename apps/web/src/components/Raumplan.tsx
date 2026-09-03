@@ -421,6 +421,12 @@ export function Raumplan({
   const flaecheRef = useRef<View>(null);
   const [zug, setZug] = useState<Zug | null>(null);
   /**
+   * Die Zelle unter dem Mauszeiger. Ohne diese Markierung trifft man in einem
+   * Hörsaal mit 44 Spalten kaum den gemeinten Tisch – die Kästen sind dort
+   * wenige Pixel groß. Am Finger gibt es kein Überfahren: Dort bleibt sie leer.
+   */
+  const [ueberfahren, setzeUeberfahren] = useState<{ zeile: number; spalte: number } | null>(null);
+  /**
    * Der laufende Zug zusätzlich im Ref: Die Ereignisse kommen schneller, als
    * React neu rendert, und das Ende eines Zuges meldet sowohl das Raster als
    * auch das Fenster (losgelassen wird oft außerhalb). Wer den Zug beendet,
@@ -836,6 +842,36 @@ export function Raumplan({
     };
   }, [beweglich]);
 
+  /**
+   * Welche Zelle unter dem Mauszeiger liegt – sie wird hervorgehoben. Gerechnet
+   * wird sie aus den Koordinaten wie beim Ziehen, nicht über Hover-Ereignisse
+   * der Zellen: Bei 44 × 32 Feldern wären das anderthalbtausend Handler, und
+   * bei gedrückter Taste kämen sie ohnehin nicht an. Am Finger gibt es kein
+   * Überfahren – dort bleibt die Markierung aus.
+   */
+  const punktZuZelle = useRef(zelleBeiPunkt);
+  punktZuZelle.current = zelleBeiPunkt;
+  useEffect(() => {
+    const knoten = gitterRef.current as unknown as HTMLElement | null;
+    if (!knoten) return;
+    const bewegt = (ereignis: globalThis.PointerEvent) => {
+      if (ereignis.pointerType === 'touch') return;
+      const zelle = punktZuZelle.current(ereignis.clientX, ereignis.clientY);
+      setzeUeberfahren((vorher) =>
+        vorher?.zeile === zelle?.zeile && vorher?.spalte === zelle?.spalte ? vorher : zelle,
+      );
+    };
+    const raus = () => setzeUeberfahren(null);
+    knoten.addEventListener('pointermove', bewegt);
+    knoten.addEventListener('pointerleave', raus);
+    knoten.addEventListener('pointercancel', raus);
+    return () => {
+      knoten.removeEventListener('pointermove', bewegt);
+      knoten.removeEventListener('pointerleave', raus);
+      knoten.removeEventListener('pointercancel', raus);
+    };
+  }, []);
+
   /** Zellen unter einem verbundenen Textfeld – sie liegen hinter dem Feld. */
   const verdeckt = useMemo(() => {
     const schluessel = new Set<string>();
@@ -918,6 +954,7 @@ export function Raumplan({
                         zielZelle.zeile === zelle.zeile &&
                         zielZelle.spalte === zelle.spalte)
                     }
+                    ueberfahren={ueberfahren?.zeile === z && ueberfahren?.spalte === s}
                     griff={
                       !!bearbeiten &&
                       !!auswahlAnzeige &&
@@ -1119,6 +1156,7 @@ const Zelle = memo(function Zelle({
   anzeige,
   markiert,
   vorschau,
+  ueberfahren,
   griff,
   gitter,
   verdeckt,
@@ -1139,6 +1177,8 @@ const Zelle = memo(function Zelle({
   anzeige: PlanAnzeige;
   markiert: boolean;
   vorschau: boolean;
+  /** Liegt gerade unter dem Mauszeiger. */
+  ueberfahren: boolean;
   griff: boolean;
   gitter: boolean;
   /** Liegt unter einem Textfeld: Der Platz bleibt, seine Beschriftung weicht. */
@@ -1238,6 +1278,11 @@ const Zelle = memo(function Zelle({
         istAusgewaehlt && styles.personAusgewaehlt,
         markiert && styles.markiert,
         vorschau && styles.vorschau,
+        ueberfahren && styles.ueberfahren,
+        // Ein fest gesetzter Platz ist auf einen Blick zu erkennen: Er soll
+        // sich vom nächsten Verteilen nicht wegräumen lassen, und wer das
+        // nicht sieht, wundert sich, warum jemand sitzen bleibt.
+        zelle.typ === 'tisch' && platz?.vorgabe && !!person && styles.vorgabeZelle,
       ]}
       onPointerDown={interaktiv ? () => onPointerDown(zeile, spalte) : undefined}
       {...datenAttribute({ zelle: datenSchluessel })}
@@ -1361,6 +1406,10 @@ const styles = StyleSheet.create({
   },
   klein: { color: colors.textMuted },
   markiert: { borderColor: colors.primary, borderWidth: 2, borderStyle: 'solid' },
+  /** Unter dem Mauszeiger: hebt den Kasten heraus, ohne etwas zu ändern. */
+  ueberfahren: { borderColor: colors.text, borderWidth: 2, borderStyle: 'solid' },
+  /** Fest gesetzt: kräftiger Rand, damit „bleibt hier“ auch von weitem gilt. */
+  vorgabeZelle: { borderColor: colors.danger, borderWidth: 2, borderStyle: 'solid' },
   vorschau: { backgroundColor: '#dbeafe', borderColor: colors.primary, borderWidth: 2, borderStyle: 'dashed' },
   tuer: { backgroundColor: colors.successBg, borderColor: colors.success },
   pult: { backgroundColor: colors.pult, borderColor: colors.pultRand },

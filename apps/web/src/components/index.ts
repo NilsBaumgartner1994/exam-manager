@@ -43,7 +43,6 @@ export {
 } from './RaumplanEditor';
 export { ScreenContainer } from './ScreenContainer';
 export { Section } from './Section';
-export { SitzplanVorschau } from './SitzplanVorschau';
 export { StatusText } from './StatusText';
 export { StudipEinsicht, type EinsichtArt } from './StudipEinsicht';
 export { Tile } from './Tile';

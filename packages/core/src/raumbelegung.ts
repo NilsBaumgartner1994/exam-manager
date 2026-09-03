@@ -114,6 +114,48 @@ export function sitzplatznummern(schemata: Raumschema[], ersteNummer: number): M
 }
 
 /**
+ * Wofür Sitzplatznummern vergeben werden:
+ *
+ * - `belegte` (Vorgabe) – nur die Tische, auf denen jemand sitzt. Am Aushang
+ *   steht dann keine Nummer, die niemandem gehört, und die Reihe der Nummern
+ *   ist die Reihe der Geprüften.
+ * - `alle` – jeder Tisch des Raums bekommt eine, auch der leere. Das ist die
+ *   Nummerierung eines Saals, der jedes Semester dieselben Schilder trägt.
+ */
+export type Nummerierung = 'belegte' | 'alle';
+
+/**
+ * Sitzplatznummern für einen Sitzplan: über alle Raumeinsätze fortlaufend, je
+ * Raum in Lesereihenfolge des Rasters – wahlweise nur für die belegten Tische
+ * (Vorgabe) oder für alle.
+ *
+ * Weil die Nummern der Belegung folgen, entstehen sie **nach** dem Verteilen:
+ * Wer jemanden umsetzt, ändert damit die Nummern der Plätze dahinter.
+ */
+export function platzNummern(
+  schemata: Raumschema[],
+  belegung: Platzbelegung[],
+  ersteNummer: number,
+  art: Nummerierung = 'belegte',
+): Map<string, number> {
+  if (art === 'alle') return sitzplatznummern(schemata, ersteNummer);
+  const belegt = new Set(
+    belegung
+      .filter((platz) => platz.matrikelnummer !== '')
+      .map((platz) => platzSchluessel(platz.raum, platz.zeile, platz.spalte)),
+  );
+  const nummern = new Map<string, number>();
+  let naechste = ersteNummer;
+  for (const schema of schemata) {
+    for (const zelle of tischzellen(schema)) {
+      const schluessel = platzSchluessel(schema.raum, zelle.zeile, zelle.spalte);
+      if (belegt.has(schluessel)) nummern.set(schluessel, naechste++);
+    }
+  }
+  return nummern;
+}
+
+/**
  * Wie die freien Tische eines Raums vergeben werden:
  *
  * - `lesereihenfolge` – von vorne links nach hinten rechts, wie im Raster,

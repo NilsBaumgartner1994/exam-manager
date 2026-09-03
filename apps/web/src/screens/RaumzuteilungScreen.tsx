@@ -15,7 +15,8 @@ import {
   eindeutigeNamenspraefixe,
   entfernePerson,
   nichtDarstellbareZeichen,
-  ohneFreieBelegung,
+  Nummerierung,
+  ohneSitzplatz,
   PLAN_ANZEIGE_STANDARD,
   PlanAnzeige,
   parseBelegung,
@@ -25,6 +26,7 @@ import {
   parseZulassungsliste,
   plaetzeJeRaum,
   planeSitzplan,
+  platzNummern,
   PLATZHALTER_SITZPLATZ,
   Platzbelegung,
   platzSchluessel,
@@ -44,12 +46,11 @@ import {
   sitzplaenePdf,
   Sitzverteilung,
   Sitzplatz,
-  sitzplaetzeMitBelegung,
+  sitzplaetzeAusBelegung,
   sitzplaetzeToCsv,
   SitzplanFeld,
   sitzplanRasterCsv,
-  Sitzplanung,
-  sitzplatznummern,
+  SitzplanOptionen,
   sitzplatzPdf,
   sitzplatzWerte,
   sortByNachname,
@@ -62,19 +63,17 @@ import {
   VORLAGE_SITZPLATZ,
   winAnsiText,
   Zulassung,
+  zulassungenToCsv,
 } from '@exam-manager/core';
 import {
   AppButton,
   Arbeitsflaeche,
   BlattModal,
-  Checkbox,
   DataTable,
   LabeledNumberInput,
   LabeledTextInput,
   FilePickerButton,
   Menueleiste,
-  PALETTEN_HINWEIS_ZEILE,
-  paletteEintraege,
   PlanFuss,
   PlatzBedarf,
   ProjektDownload,
@@ -82,18 +81,15 @@ import {
   rasterEintraege,
   rasterText,
   RaumListe,
-  Raumplan,
   RaumplanBuehne,
   raumZuZeile,
   Reiterinhalt,
   Section,
-  SitzplanVorschau,
   StatusText,
   StudipEinsicht,
   useProjektDownloadEintrag,
   useRaumplanEditor,
   VorlagenModal,
-  werkzeugTitel,
   zeilenZuRaeumen,
   type MenuEintrag,
   type MenuGruppe,
@@ -101,138 +97,91 @@ import {
   type Verschiebung,
 } from '../components';
 import { downloadCsv, downloadFile, downloadZip, readFileAsText } from '../files';
-import { druckeAnsicht, SEITENUMBRUCH } from '../print';
+import { druckeAnsicht } from '../print';
 import { useProjekt } from '../projekt';
 import { BEISPIEL_KLAUSUR_TEILNEHMER, BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMATA } from '../sampleData';
 import { colors, spacing } from '../theme';
 
+/**
+ * Die Ansichten der Verteilung. Eine zur Zeit, umgeschaltet im Menü
+ * „Ansicht“: der Plan eines Raums oder eine der drei Listen. Die frühere
+ * Alles-auf-einmal-Seite (Plan und Tabelle je Raum untereinander) gibt es
+ * nicht mehr – wer einen Raum ansieht, sieht den Raum.
+ */
 const ANSICHTEN = [
-  { key: 'aushang', titel: 'Aushang', testID: 'raum-ansicht-aushang' },
-  { key: 'dozent', titel: 'Dozent', testID: 'raum-ansicht-dozent' },
-  { key: 'tutor', titel: 'Tutor', testID: 'raum-ansicht-tutor' },
-  { key: 'raeume', titel: 'Räume', testID: 'raum-ansicht-raeume' },
+  {
+    key: 'raum',
+    titel: 'Raumplan',
+    hinweis: 'der Sitzplan des gewählten Raums',
+    testID: 'raum-ansicht-raum',
+  },
+  {
+    key: 'aushang',
+    titel: 'Aushang',
+    hinweis: 'Namenskürzel → Sitzplatz, wie er am Raum hängt',
+    testID: 'raum-ansicht-aushang',
+  },
+  {
+    key: 'alphabetisch',
+    titel: 'Liste nach Nachname',
+    hinweis: 'für den Einlass',
+    testID: 'raum-ansicht-alphabetisch',
+  },
+  {
+    key: 'nummern',
+    titel: 'Liste nach Sitzplatznummer',
+    hinweis: 'für die Aufsicht in den Reihen',
+    testID: 'raum-ansicht-nummern',
+  },
 ] as const;
 
 type Ansicht = (typeof ANSICHTEN)[number]['key'];
 
 /**
- * Was ein Tippen auf eine Zelle des Sitzplans bewirkt. Der Hinweis steht im
- * Menü „Werkzeuge“ unter dem Namen – **eine Zeile**: Die ausführliche
- * Anleitung gehört in die README, das Wichtigste zur Geste in die Fußleiste
- * (`PALETTEN_HINWEIS_ZEILE`).
+ * Was ein Tippen auf einen Platz bewirkt. Das Raster selbst wird hier **nicht**
+ * bearbeitet – dafür ist Schritt 5 da; hier geht es nur darum, wer sitzt und
+ * welcher Platz frei bleibt.
  */
-const PLAN_MODI = [
+const PLATZ_WERKZEUGE = [
   {
-    key: 'plaetze',
-    titel: 'Plätze belegen',
-    hinweis: 'wer sitzt hier – festsetzen, freihalten, räumen',
+    key: 'blatt',
+    titel: 'Platz öffnen',
+    hinweis: 'wer sitzt hier – setzen, räumen, festhalten, freihalten',
   },
   {
-    key: 'bearbeiten',
-    titel: 'Raum bearbeiten',
-    hinweis: 'mit der Palette am Raster zeichnen',
+    key: 'freihalten',
+    titel: 'Platz freihalten',
+    hinweis: 'ein Tippen hält den Platz frei; wer dort saß, fällt heraus',
+  },
+  {
+    key: 'freigeben',
+    titel: 'Freihalten aufheben',
+    hinweis: 'ein Tippen gibt den Platz wieder frei',
   },
 ] as const;
 
-type PlanModus = (typeof PLAN_MODI)[number]['key'];
-
-/**
- * Die beiden Reiter, die kein Raum sind. Das Doppelkreuz hält sie von den
- * Raumschlüsseln auseinander (`01/E01`, `01/E01 (2. Durchgang)`).
- */
-const REITER_EINSTELLUNGEN = '#einstellungen';
-const REITER_LISTEN = '#listen';
-
-/**
- * Ansicht "Räume" – zugleich die Druckvorlage der Aushänge: pro Raumeinsatz
- * eine Überschrift, der Sitzplan (falls ein Raster vorliegt) und die Tabelle
- * `Sitzplatz → Anfang Nachname`. Im Druck beginnt jeder Aushang auf einer
- * neuen Seite. `schemata` sind die Raster der Einsätze (`einsatzRaster`).
- */
-function RaumAushaenge({
-  sitzplaetze,
-  raeume,
-  schemata,
-  belegung,
-  nummern,
-  drehungen,
-  anzeige,
-}: {
-  sitzplaetze: Sitzplatz[];
-  raeume: Raum[];
-  schemata: Raumschema[];
-  belegung: Platzbelegung[];
-  nummern: Map<string, number>;
-  drehungen: Record<string, number>;
-  anzeige: PlanAnzeige;
-}) {
-  // Am Aushang sucht man seine Platznummer – die steht immer drauf, egal was
-  // im Plan am Bildschirm gerade angehakt ist. Gemerkt, damit `React.memo` in
-  // den Zellen greift: Ein neues Objekt je Render zeichnete alles neu.
-  const anzeigeAushang = useMemo<PlanAnzeige>(
-    () => ({ ...anzeige, sitzplatznummer: true }),
-    [anzeige],
-  );
-  // Ein Aushang je Raumeinsatz: Wird derselbe Raum zweimal geprüft, hängen
-  // dort zwei Listen – auf beiden steht derselbe Raumname, aber die Zeit der
-  // Gruppe und ihre eigenen Sitzplatznummern.
-  const einsaetze = [...new Set(sitzplaetze.map((platz) => platz.raumSchluessel))];
-  const personen = new Map(sitzplaetze.map((platz) => [platz.matrikelnummer, platz]));
-  return (
-    <View style={styles.raumTabellen}>
-      {einsaetze.map((schluessel) => {
-        const plaetzeImRaum = sitzplaetze
-          .filter((platz) => platz.raumSchluessel === schluessel)
-          .sort((a, b) => a.sitzplatznummer - b.sitzplatznummer);
-        const raum = raeume.find((r) => raumSchluessel(r) === schluessel);
-        const raumName = raum?.raum ?? plaetzeImRaum[0]?.raum ?? schluessel;
-        const zeit = plaetzeImRaum[0]?.reservierteZeit ?? raum?.reservierteZeit ?? '';
-        const schema = schemata.find((s) => s.raum === schluessel);
-        // Die Plätze des Raums sind die Tische seines Rasters – ohne Raster
-        // bleibt nur, wie viele hier tatsächlich sitzen.
-        const kapazitaet = schema ? tischzellen(schema).length : plaetzeImRaum.length;
-        return (
-          <View key={schluessel} style={styles.raumTabelle} {...SEITENUMBRUCH}>
-            <Text style={styles.raumUeberschrift}>
-              {raumName}
-              {zeit ? ` – ${zeit}` : ''} ({plaetzeImRaum.length}/{kapazitaet} Plätze)
-            </Text>
-            {schema ? (
-              <Raumplan
-                schema={schema}
-                schluessel={schluessel}
-                // Gedreht wird die Ansicht des Raums – beide Durchgänge sehen
-                // ihn aus derselben Richtung.
-                drehungen={drehungen[raumName] ?? 0}
-                belegung={belegung.filter((platz) => platz.raum === schluessel)}
-                nummern={nummern}
-                personen={personen}
-                anzeige={anzeigeAushang}
-                gitter={false}
-              />
-            ) : null}
-            <DataTable
-              columns={[
-                { key: 'sitzplatz', title: 'Sitzplatz' },
-                { key: 'anfangNachname', title: 'Anfang Nachname' },
-              ]}
-              rows={plaetzeImRaum.map((platz) => ({
-                sitzplatz: platz.sitzplatznummer,
-                anfangNachname: platz.anfangNachname,
-              }))}
-            />
-          </View>
-        );
-      })}
-    </View>
-  );
-}
+type PlatzWerkzeug = (typeof PLATZ_WERKZEUGE)[number]['key'];
 
 /**
  * Woher die Teilnehmerliste stammt. `anmeldungenAlle`/`anmeldungenZugelassen`
  * entstehen ohne den Export aus Schritt 3, direkt aus den Anmeldungen in
  * `0_Input_Klausuranmeldungen/`.
  */
+/** Ein Sitzplatz ohne Angaben – Grundlage für abgeleitete Einträge. */
+const LEERER_SITZPLATZ: Sitzplatz = {
+  anfangNachname: '',
+  sitzplatznummer: 0,
+  raum: '',
+  raumSchluessel: '',
+  reservierteZeit: '',
+  matrikelnummer: '',
+  anwesend: '',
+  nachname: '',
+  vorname: '',
+  zeitUndRaum: '',
+  email: '',
+};
+
 type TeilnehmerQuelle =
   | 'liste'
   | 'anmeldungenAlle'
@@ -263,12 +212,20 @@ export function RaumzuteilungScreen() {
   const [startnummer, setStartnummer] = useState<number | null>(1001);
   const [fuellung, setFuellung] = useState<Raumfuellung>('nacheinander');
 
-  // Ergebnis & Ausgabe.
-  const [sitzplaetze, setSitzplaetze] = useState<Sitzplatz[] | null>(null);
-  const [ohnePlatz, setOhnePlatz] = useState<Zulassung[]>([]);
-  const [ansicht, setAnsicht] = useState<Ansicht>('aushang');
-  /** Offener Reiter: Einstellungen, Listen oder ein Raumeinsatz (Schlüssel). */
-  const [reiter, setReiter] = useState<string>(REITER_EINSTELLUNGEN);
+  /**
+   * Wo im Schritt wir stehen: erst die **Vorbereitung** (Dateien und Räume als
+   * Formular), dann die **Verteilung** als Arbeitsfläche wie in Schritt 5.
+   * Zwei Dinge, zwei Bilder: Vorher wählt man aus, nachher arbeitet man am
+   * Plan – beides auf einer scrollenden Seite war keins von beidem.
+   */
+  const [phase, setPhase] = useState<'vorbereitung' | 'verteilung'>('vorbereitung');
+
+  // Ergebnis & Ausgabe. Wer wo sitzt, steht **allein in der Belegung**: Die
+  // Sitzplatzliste wird daraus abgeleitet (`sitzplaetze` weiter unten), statt
+  // sie als zweiten Stand mitzuführen, der auseinanderlaufen kann.
+  const [ansicht, setAnsicht] = useState<Ansicht>('raum');
+  /** Der Raumeinsatz, dessen Plan gezeigt wird (`raumSchluessel`). */
+  const [offenerRaumSchluessel, setOffenenRaum] = useState<string | null>(null);
   const [dateiname, setDateiname] = useState('studierendeZuRaumUndZeitZuordnung.csv');
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
   const [pdfHinweis, setPdfHinweis] = useState<string | null>(null);
@@ -279,12 +236,14 @@ export function RaumzuteilungScreen() {
   // Sitzplan im Raum.
   const [schemata, setSchemata] = useState<Raumschema[]>([]);
   const [belegung, setBelegung] = useState<Platzbelegung[]>([]);
-  const [planModus, setPlanModus] = useState<PlanModus>('plaetze');
-  const [ohnePlanPlatz, setOhnePlanPlatz] = useState<Sitzplatz[]>([]);
+  /** Was ein Tippen auf einen Platz tut (Menü „Werkzeuge“). */
+  const [platzWerkzeug, setPlatzWerkzeug] = useState<PlatzWerkzeug>('blatt');
   /** Was in den Kästen steht – am Bildschirm und im PDF dasselbe. */
   const [anzeige, setAnzeige] = useState<PlanAnzeige>(PLAN_ANZEIGE_STANDARD);
   /** Wie die freien Tische eines Raums vergeben werden. */
   const [sitzverteilung, setSitzverteilung] = useState<Sitzverteilung>('abstand');
+  /** Wer eine Sitzplatznummer bekommt: nur die belegten Tische oder alle. */
+  const [nummerierung, setNummerierung] = useState<Nummerierung>('belegte');
   /** Der Platz, dessen Blatt gerade offen ist. */
   const [platzDialog, setPlatzDialog] = useState<
     { schluessel: string; raumName: string; titel: string; zeile: number; spalte: number } | null
@@ -395,6 +354,51 @@ export function RaumzuteilungScreen() {
   }, [projekt, teilnehmer, zeilen, anmeldungen]);
 
   /**
+   * Auswahl und Belegung wandern von selbst in den Projektstand – und damit
+   * in den Browserspeicher. Wer den Screen wechselt und zurückkommt, findet
+   * seine Räume und seinen Sitzplan wieder vor; vorher war beides weg, solange
+   * niemand „speichern“ gedrückt hatte. Gebündelt (400 ms), sonst schriebe
+   * jeder Tastendruck in der Raumliste die Datei neu.
+   *
+   * Erst schreiben, wenn hier je etwas stand: Sonst legte der erste Besuch
+   * eine leere `klausurraeume.csv` an.
+   */
+  const { schreibe: projektSchreibe } = projekt;
+  const raeumeGeschrieben = useRef(false);
+  useEffect(() => {
+    if (zeilen.length === 0 && !raeumeGeschrieben.current) return;
+    const gleich = setTimeout(() => {
+      projektSchreibe('klausurraeume.csv', raeumeToCsv(zeilenZuRaeumen(zeilen)), 'klausurraeume');
+      raeumeGeschrieben.current = true;
+    }, 400);
+    return () => clearTimeout(gleich);
+  }, [zeilen, projektSchreibe]);
+
+  /**
+   * Die Teilnehmerliste wandert mit in den Projektstand, sobald sie nicht von
+   * dort stammt (eigene Datei, Anmeldungen, Beispieldaten). Sonst stünde nach
+   * einem Wechsel des Screens ein Sitzplan da, zu dem die Namen fehlen.
+   */
+  useEffect(() => {
+    if (teilnehmer.length === 0 || quelle === null || quelle === 'liste') return;
+    projektSchreibe('allowedStudents.csv', zulassungenToCsv(teilnehmer), 'teilnehmer');
+  }, [teilnehmer, quelle, projektSchreibe]);
+
+  const belegungGeschrieben = useRef(false);
+  useEffect(() => {
+    if (belegung.length === 0 && !belegungGeschrieben.current) return;
+    const gleich = setTimeout(() => {
+      projektSchreibe(
+        'raumbelegung.csv',
+        belegungToCsv(belegung, sitzplaetzeRef.current, nummernRef.current),
+        'raumbelegung',
+      );
+      belegungGeschrieben.current = true;
+    }, 400);
+    return () => clearTimeout(gleich);
+  }, [belegung, projektSchreibe]);
+
+  /**
    * Zu jedem Raumeinsatz sein Raster. Zwei Durchgänge desselben Raums zeigen
    * dasselbe Raster – es ist derselbe Raum –, laufen hier aber unter ihrem
    * eigenen Schlüssel: Belegung und Sitzplatznummern gehören je Durchgang.
@@ -418,41 +422,47 @@ export function RaumzuteilungScreen() {
     [teilnehmer, raeume, plaetze],
   );
 
-  /** Tischnummern: über alle Einsätze fortlaufend, in Lesereihenfolge des Rasters. */
+  /**
+   * Die Sitzplatznummern. Sie hängen an der **Belegung**: Voreingestellt
+   * bekommt nur ein Tisch eine Nummer, auf dem jemand sitzt – am Aushang soll
+   * keine Nummer stehen, die niemandem gehört. Unter „Einstellungen“ lässt
+   * sich das auf „jeder Tisch“ umstellen.
+   */
   const nummern = useMemo(
-    () => sitzplatznummern(raster, startnummer ?? 1001),
-    [raster, startnummer],
+    () => platzNummern(raster, belegung, startnummer ?? 1001, nummerierung),
+    [raster, belegung, startnummer, nummerierung],
   );
 
   /**
-   * Wie die Verteilung **aussähe** – gerechnet, sobald eine Art gewählt wird,
-   * und noch nicht übernommen. Das ist die Vorschau unter den Einstellungen:
-   * Wer zwischen „nacheinander“ und „gleichmäßig“ umschaltet, sieht sofort,
-   * wo die Leute säßen, statt erst zu verteilen und dann nachzusehen.
-   *
-   * `planeSitzplan` nimmt aus der bestehenden Belegung nur die freigehaltenen
-   * Plätze und die Vorgaben mit und verteilt alles andere von vorne – zweimal
-   * gerufen kommt zweimal dasselbe heraus.
+   * Wer wo sitzt – **abgeleitet aus der Belegung**, nicht daneben geführt.
+   * Der Plan ist die Quelle: Wer jemanden umsetzt, ändert damit Sitzplan,
+   * Aushang und Listen, ohne dass irgendwo ein zweiter Stand nachgezogen
+   * werden müsste.
    */
-  const vorschau: Sitzplanung = useMemo(
-    () =>
-      planeSitzplan(teilnehmer, raeume, schemata, belegung, {
-        sitzverteilung,
-        fuellung,
-        ersteSitzplatznummer: startnummer ?? 1001,
-      }),
-    [teilnehmer, raeume, schemata, belegung, sitzverteilung, fuellung, startnummer],
+  const sitzplaetze = useMemo(
+    () => sitzplaetzeAusBelegung(teilnehmer, raeume, belegung, nummern),
+    [teilnehmer, raeume, belegung, nummern],
   );
+  /** Für Ereignis-Handler und Effekte: der Stand aus dem letzten Render. */
+  const sitzplaetzeRef = useRef<Sitzplatz[]>(sitzplaetze);
+  sitzplaetzeRef.current = sitzplaetze;
+  const nummernRef = useRef(nummern);
+  nummernRef.current = nummern;
+
+  /** Ist schon verteilt worden? Dann sitzt in der Belegung jemand. */
+  const verteilt = sitzplaetze.length > 0;
 
   /**
-   * Die Sitzplätze, wie sie angezeigt und exportiert werden: Liegt ein
-   * Raumschema vor, gilt die Nummer des Tisches, an dem die Person sitzt.
+   * Wer keinen Platz hat. Das kann auch nachträglich passieren: Wird ein
+   * besetzter Platz freigehalten, fällt die Person heraus – im Menüband steht
+   * dann rot, wie viele es sind, und ein Eintrag darin verteilt neu.
    */
-  const angezeigteSitzplaetze = useMemo(() => {
-    if (sitzplaetze === null) return null;
-    if (raster.length === 0 || belegung.length === 0) return sitzplaetze;
-    return sitzplaetzeMitBelegung(sitzplaetze, belegung, nummern);
-  }, [sitzplaetze, raster, belegung, nummern]);
+  const ohnePlatz = useMemo(
+    // Vor der ersten Verteilung sitzt niemand – das ist kein Problem, sondern
+    // der Anfang. Gemeldet wird erst, wer nach einer Verteilung übrig bleibt.
+    () => (verteilt ? ohneSitzplatz(teilnehmer, belegung) : []),
+    [teilnehmer, belegung, verteilt],
+  );
 
   /** Belegung je Einsatz – einmal gruppiert, damit `React.memo` in den Zellen greift. */
   const belegungJeRaum = useMemo(() => {
@@ -477,36 +487,44 @@ export function RaumzuteilungScreen() {
       teilnehmer.map((person) => [
         person.matrikelnummer,
         {
+          ...LEERER_SITZPLATZ,
           anfangNachname: praefixe.get(person) ?? person.nachname,
-          sitzplatznummer: 0,
-          raum: '',
-          raumSchluessel: '',
-          reservierteZeit: '',
           matrikelnummer: person.matrikelnummer,
-          anwesend: '',
           nachname: person.nachname,
           vorname: person.vorname,
-          zeitUndRaum: '',
           email: person.email,
         },
       ]),
     );
-    for (const platz of angezeigteSitzplaetze ?? []) jeMatrikel.set(platz.matrikelnummer, platz);
+    for (const platz of sitzplaetze) jeMatrikel.set(platz.matrikelnummer, platz);
     return jeMatrikel;
-  }, [teilnehmer, angezeigteSitzplaetze]);
+  }, [teilnehmer, sitzplaetze]);
 
   /**
-   * Ohne Zuteilung steht der Plan trotzdem: leere Plätze, damit sich Reserven
-   * und Vorgaben schon vorher setzen lassen. Reserven und Vorgaben, die es
-   * schon gibt, bleiben dabei stehen.
+   * Die Belegung deckt immer **jeden Tisch** der gewählten Räume ab – auch
+   * bevor verteilt wurde. Sonst ließe sich in einem gerade hinzugefügten Raum
+   * kein Platz freihalten: Zu einem Tisch ohne Eintrag gibt es nichts zu
+   * ändern. Wer schon sitzt, bleibt sitzen; wer durch einen Umbau seinen Tisch
+   * verloren hat, rückt nach.
    */
   useEffect(() => {
-    if (sitzplaetze !== null || raster.length === 0) return;
-    const ergebnis = verteileAufRaumschemata([], raster, belegungRef.current);
+    if (raster.length === 0) return;
+    // Wer schon sitzt, steht in der Belegung – **nicht** in der
+    // Teilnehmerliste: Sonst verlöre ein Umbau alle, deren Liste gerade nicht
+    // geladen ist (etwa direkt nach dem Öffnen des Projekts).
+    const imPlan = belegungRef.current
+      .filter((platz) => platz.matrikelnummer !== '')
+      .map((platz) => ({
+        ...LEERER_SITZPLATZ,
+        matrikelnummer: platz.matrikelnummer,
+        raum: platz.raum,
+        raumSchluessel: platz.raum,
+      }));
+    const ergebnis = verteileAufRaumschemata(imPlan, raster, belegungRef.current, sitzverteilung);
     uebernehmeBelegung(ergebnis.belegung);
-    // `raster` ist gemerkt und ändert sich nur mit Räumen oder Rastern.
+    // Läuft, wenn sich Räume oder Raster ändern – `raster` ist gemerkt.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [raster, sitzplaetze]);
+  }, [raster]);
 
   const teilnehmerLaden = async (files: File[]) => {
     setFehler(null);
@@ -524,10 +542,21 @@ export function RaumzuteilungScreen() {
     setFehler(null);
     setTeilnehmer(parseZulassungsliste(BEISPIEL_KLAUSUR_TEILNEHMER));
     setZeilen(parseRaeume(BEISPIEL_RAEUME).map(raumZuZeile));
-    uebernehmeSchemata(parseRaumschemaDateien(Object.values(BEISPIEL_RAUMSCHEMATA)));
+    schemataUebernehmenUndSichern(parseRaumschemaDateien(Object.values(BEISPIEL_RAUMSCHEMATA)));
     uebernehmeBelegung([]);
     setQuelle('beispiel');
     setTeilnehmerStatus('Beispieldaten geladen.');
+  };
+
+  /**
+   * Geladene Raster übernehmen **und** in den Bestand des Projekts schreiben
+   * (`Raeume/`, je Raum eine Datei). Sie gehören dorthin und nicht in den
+   * Screen: Sonst stünden die Räume nach einem Wechsel des Screens ohne
+   * Raster da – und damit ohne Plätze.
+   */
+  const schemataUebernehmenUndSichern = (geladen: Raumschema[]) => {
+    uebernehmeSchemata(geladen);
+    if (geladen.length > 0) projekt.ersetze('raumschema', raumschemaDateien(geladen));
   };
 
   const raeumeLaden = async (files: File[]) => {
@@ -567,55 +596,33 @@ export function RaumzuteilungScreen() {
   };
 
   /**
-   * Belegung neu aufbauen. `vonVorne` verwirft alles außer Reserven und
-   * Vorgaben. Verteilt wird auf die Raster der **Einsätze**: Zwei Durchgänge
-   * desselben Raums bekommen zwei Belegungen.
-   */
-  const belegungAktualisieren = (
-    fuerSchemata: Raumschema[],
-    fuerSitzplaetze: Sitzplatz[],
-    basis: Platzbelegung[],
-    vonVorne = false,
-  ) => {
-    const ergebnis = verteileAufRaumschemata(
-      fuerSitzplaetze,
-      einsatzRaster(raeume, fuerSchemata),
-      vonVorne ? ohneFreieBelegung(basis) : basis,
-      sitzverteilung,
-    );
-    uebernehmeBelegung(ergebnis.belegung);
-    setOhnePlanPlatz(ergebnis.ohnePlatz);
-    return ergebnis;
-  };
-
-  /**
    * Raster eines Raums ändern und die Belegung nachziehen. Wandert ein ganzer
    * Block, wandern die Personen darin mit – sonst stünden die Tische woanders
    * als ihre Belegung. Das Raster gehört zum **Raum**, die Belegung zum
    * **Durchgang**: Wird derselbe Raum zweimal geprüft, ändert sich sein Raster
    * für beide, und die Personen wandern in jedem Durchgang mit.
+   *
+   * Gebaut wird das Raster in Schritt 5; hier hängt der Rückruf nur noch am
+   * Editor (Rückgängig, geladene Raster) – deshalb ist er kurz.
    */
   const schemaAendern = (
     raum: string,
     aendern: (schema: Raumschema) => Raumschema,
     verschiebung?: Verschiebung,
   ) => {
-    const neu = schemataRef.current.map((s) => (s.raum === raum ? aendern(s) : s));
-    uebernehmeSchemata(neu);
+    uebernehmeSchemata(schemataRef.current.map((s) => (s.raum === raum ? aendern(s) : s)));
+    if (!verschiebung) return;
     let basisBelegung = belegungRef.current;
-    if (verschiebung) {
-      for (const einsatz of raeume.filter((r) => r.raum === raum)) {
-        basisBelegung = verschiebeBelegung(
-          basisBelegung,
-          raumSchluessel(einsatz),
-          verschiebung.bereich,
-          verschiebung.dZeile,
-          verschiebung.dSpalte,
-        );
-      }
+    for (const einsatz of raeume.filter((r) => r.raum === raum)) {
+      basisBelegung = verschiebeBelegung(
+        basisBelegung,
+        raumSchluessel(einsatz),
+        verschiebung.bereich,
+        verschiebung.dZeile,
+        verschiebung.dSpalte,
+      );
     }
-    if (sitzplaetze) belegungAktualisieren(neu, sitzplaetze, basisBelegung);
-    else uebernehmeBelegung(basisBelegung);
+    uebernehmeBelegung(basisBelegung);
   };
 
   /** Nur das Schema schreiben – für Änderungen, an denen keine Belegung hängt. */
@@ -637,23 +644,43 @@ export function RaumzuteilungScreen() {
   });
 
   /**
-   * Die Vorschau übernehmen: Aus „so sähe es aus“ wird der Sitzplan, an dem
-   * sich danach von Hand weiterarbeiten lässt (umsetzen, festhalten,
-   * freihalten). Gerechnet wird hier nichts mehr – das steht schon in
-   * `vorschau`, und zweimal dasselbe zu rechnen hieße, dass beides
-   * auseinanderlaufen kann.
+   * Verteilen: die Plätze wählen und die Personen daraufsetzen
+   * (`planeSitzplan`). Freigehaltene Plätze und Vorgaben bleiben liegen, alles
+   * andere entsteht neu – gerechnet wird über die Belegung, und der Sitzplan
+   * fällt daraus ab.
+   *
+   * `abweichung` erlaubt, mit einer gerade umgestellten Einstellung zu
+   * rechnen, bevor der Zustand angekommen ist: Wer im Menü „gleichmäßig“
+   * wählt, soll das Ergebnis sofort sehen.
    */
-  const zuteilungUebernehmen = () => {
+  const verteilen = (abweichung: Partial<SitzplanOptionen> = {}) => {
     setFehler(null);
-    setHinweis(null);
     editor.merkeStand();
-    setSitzplaetze(vorschau.sitzplaetze);
-    setOhnePlatz(vorschau.ohnePlatz);
-    setOhnePlanPlatz([]);
-    uebernehmeBelegung(vorschau.belegung);
-    setAnsicht('aushang');
-    // Das Ergebnis steht in den Listen – also dorthin.
-    setReiter(REITER_LISTEN);
+    const ergebnis = planeSitzplan(teilnehmer, raeume, schemataRef.current, belegungRef.current, {
+      sitzverteilung,
+      fuellung,
+      nummerierung,
+      ersteSitzplatznummer: startnummer ?? 1001,
+      ...abweichung,
+    });
+    uebernehmeBelegung(ergebnis.belegung);
+    return ergebnis;
+  };
+
+  /**
+   * Weiter zur Verteilung: Die Auswahl steht, ab hier wird am Plan gearbeitet.
+   * Verteilt wird dabei gleich mit – ein leerer Plan wäre keine Antwort auf
+   * „weiter“.
+   */
+  const zurVerteilung = () => {
+    const ergebnis = verteilt ? null : verteilen();
+    setPhase('verteilung');
+    setAnsicht('raum');
+    setHinweis(
+      ergebnis
+        ? `${ergebnis.sitzplaetze.length} Plätze verteilt.`
+        : 'Bestehende Verteilung – im Menü „Verteilung“ lässt sie sich neu rechnen.',
+    );
   };
 
   /**
@@ -675,7 +702,7 @@ export function RaumzuteilungScreen() {
         drehungen: editor.drehungen[raum.raum] ?? 0,
       }))
       .filter((eintrag): eintrag is { schema: Raumschema; drehungen: number } => !!eintrag.schema);
-    const csv = sitzplanRasterCsv(einsaetze, belegung, angezeigteSitzplaetze ?? [], nummern, feld);
+    const csv = sitzplanRasterCsv(einsaetze, belegung, sitzplaetze, nummern, feld);
     downloadCsv(dateiname, csv);
     projekt.schreibe(dateiname, csv, 'sitzplanRaster');
     setHinweis(
@@ -686,18 +713,16 @@ export function RaumzuteilungScreen() {
   };
 
   /**
-   * Noch einmal verteilen – nach einer Vorgabe oder einem freigehaltenen
-   * Platz. Gerechnet wird dieselbe Verteilung wie in der Vorschau: Was fest
-   * ist, bleibt liegen, alles andere wird neu gewählt.
+   * Noch einmal verteilen – nach einer Vorgabe, einem freigehaltenen Platz
+   * oder einer geänderten Einstellung. Was fest ist, bleibt liegen.
    */
   const neuVerteilen = () => {
-    if (!sitzplaetze) return;
-    editor.merkeStand();
-    setSitzplaetze(vorschau.sitzplaetze);
-    setOhnePlatz(vorschau.ohnePlatz);
-    setOhnePlanPlatz([]);
-    uebernehmeBelegung(vorschau.belegung);
-    setHinweis('Sitzplan neu verteilt – freigehaltene Plätze und Vorgaben sind geblieben.');
+    const ergebnis = verteilen();
+    setHinweis(
+      `Neu verteilt: ${ergebnis.sitzplaetze.length} Plätze` +
+        (ergebnis.ohnePlatz.length > 0 ? `, ${ergebnis.ohnePlatz.length} ohne Platz` : '') +
+        ' – freigehaltene Plätze und Vorgaben sind geblieben.',
+    );
   };
 
   /** Raster laden – je Raum eine Datei, deshalb ruhig mehrere auf einmal. */
@@ -705,9 +730,8 @@ export function RaumzuteilungScreen() {
     setFehler(null);
     try {
       const geladen = parseRaumschemaDateien(await Promise.all(files.map(readFileAsText)));
-      uebernehmeSchemata(geladen);
-      if (sitzplaetze) belegungAktualisieren(geladen, sitzplaetze, belegungRef.current);
-      setHinweis(`${geladen.length} Raumraster geladen.`);
+      schemataUebernehmenUndSichern(geladen);
+      setHinweis(`${geladen.length} Raumraster geladen – auch im Projekt unter Raeume/.`);
     } catch (e) {
       setFehler(`Raumschema konnte nicht gelesen werden: ${String(e)}`);
     }
@@ -716,25 +740,11 @@ export function RaumzuteilungScreen() {
   const belegungLaden = async (files: File[]) => {
     setFehler(null);
     try {
-      const geladen = parseBelegung(await readFileAsText(files[0]));
-      if (sitzplaetze) {
-        belegungAktualisieren(schemataRef.current, sitzplaetze, geladen);
-      } else {
-        uebernehmeBelegung(geladen);
-      }
+      uebernehmeBelegung(parseBelegung(await readFileAsText(files[0])));
       setHinweis('Belegung geladen.');
     } catch (e) {
       setFehler(`Belegung konnte nicht gelesen werden: ${String(e)}`);
     }
-  };
-
-  /**
-   * Belegung übernehmen und dabei alle nachziehen, die (noch) keinen Tisch
-   * haben – etwa wer gerade von einem Reserveplatz verdrängt wurde.
-   */
-  const belegungSetzen = (neu: Platzbelegung[]) => {
-    if (sitzplaetze) belegungAktualisieren(schemataRef.current, sitzplaetze, neu);
-    else uebernehmeBelegung(neu);
   };
 
   /**
@@ -749,6 +759,18 @@ export function RaumzuteilungScreen() {
     zeile: number,
     spalte: number,
   ) => {
+    // Die beiden anderen Werkzeuge halten Plätze frei bzw. geben sie wieder
+    // frei – ein Tippen je Platz, ohne den Umweg über das Blatt.
+    if (platzWerkzeug !== 'blatt') {
+      const platz = belegungRef.current.find(
+        (eintrag) =>
+          eintrag.raum === schluessel && eintrag.zeile === zeile && eintrag.spalte === spalte,
+      );
+      if (!platz || platz.reserviert === (platzWerkzeug === 'freihalten')) return;
+      editor.merkeStand();
+      uebernehmeBelegung(schalteReserve(belegungRef.current, schluessel, zeile, spalte));
+      return;
+    }
     setHinweis(null);
     setPersonSuche('');
     setPlatzNotiz(
@@ -792,7 +814,7 @@ export function RaumzuteilungScreen() {
     );
     // Wer von Hand gesetzt wird, bleibt dort: sonst säße er nach dem nächsten
     // Verteilen woanders.
-    belegungSetzen(
+    uebernehmeBelegung(
       setzeVorgabe(gesetzt, platzDialog.schluessel, platzDialog.zeile, platzDialog.spalte, true),
     );
     setPersonSuche('');
@@ -801,7 +823,7 @@ export function RaumzuteilungScreen() {
   const platzRaeumen = () => {
     if (!platzDialog || !dialogPlatz?.matrikelnummer) return;
     editor.merkeStand();
-    belegungSetzen(entfernePerson(belegungRef.current, dialogPlatz.matrikelnummer));
+    uebernehmeBelegung(entfernePerson(belegungRef.current, dialogPlatz.matrikelnummer));
   };
 
   const vorgabeSchalten = () => {
@@ -816,7 +838,10 @@ export function RaumzuteilungScreen() {
     if (!platzDialog) return;
     editor.merkeStand();
     if (dialogPlatz?.reserviert) setPlatzNotiz('');
-    belegungSetzen(
+    // Wer dort saß, fällt heraus und wird **nicht** stillschweigend
+    // nachgesetzt: Im Menüband steht danach rot, dass jemand ohne Platz ist,
+    // und ein Eintrag darin verteilt neu.
+    uebernehmeBelegung(
       schalteReserve(belegungRef.current, platzDialog.schluessel, platzDialog.zeile, platzDialog.spalte),
     );
   };
@@ -862,21 +887,19 @@ export function RaumzuteilungScreen() {
       .map((person) => ({ person, sitztAuf: platzJePerson.get(person.matrikelnummer) }));
   })();
 
-  const aushaengeDrucken = () => {
+  /**
+   * Die sichtbare Liste drucken. Gedruckt wird genau der Knoten, der am
+   * Bildschirm steht – kein zweites Layout, das mitgepflegt werden müsste.
+   */
+  const listeDrucken = () => {
     setFehler(null);
     setHinweis(null);
-    // Gedruckt wird der sichtbare Knoten – der liegt im Reiter „Listen“.
-    setReiter(REITER_LISTEN);
-    setAnsicht('raeume');
-    // Erst rendern lassen, dann den sichtbaren Knoten drucken.
-    setTimeout(() => {
-      const knoten = aushangRef.current as unknown as HTMLElement | null;
-      if (druckeAnsicht(knoten, 'Aushänge')) {
-        setHinweis('Druckdialog geöffnet – dort „Als PDF sichern“ wählen.');
-      } else {
-        setFehler('Das Druckfenster wurde blockiert. Bitte Pop-ups für diese Seite erlauben.');
-      }
-    }, 100);
+    const knoten = aushangRef.current as unknown as HTMLElement | null;
+    if (druckeAnsicht(knoten, 'Liste')) {
+      setHinweis('Druckdialog geöffnet – dort „Als PDF sichern“ wählen.');
+    } else {
+      setFehler('Das Druckfenster wurde blockiert. Bitte Pop-ups für diese Seite erlauben.');
+    }
   };
 
   // Eine im Projekt gespeicherte Vorlage sticht den Anfangstext: Wer den Text
@@ -889,20 +912,20 @@ export function RaumzuteilungScreen() {
   }, [vorlageDatei?.text]);
 
   const pdfsHerunterladen = async () => {
-    if (!angezeigteSitzplaetze) return;
+    if (!verteilt) return;
     setFehler(null);
     setPdfHinweis(null);
     setPdfLaeuft(true);
     try {
       const dateien = new Map<string, Uint8Array | string>();
-      for (const platz of angezeigteSitzplaetze) {
+      for (const platz of sitzplaetze) {
         dateien.set(`${platz.matrikelnummer}.pdf`, await sitzplatzPdf(platz, vorlage));
       }
       downloadZip('sitzplatz_pdfs.zip', await erstelleZip(dateien));
       // Die eingebaute PDF-Schrift kennt nicht jedes Sonderzeichen; statt am
       // ersten abzubrechen, schreibt sie es um – wer betroffen ist, gehört
       // auf den Bildschirm.
-      const umgeschrieben = angezeigteSitzplaetze
+      const umgeschrieben = sitzplaetze
         .map((platz) => `${platz.vorname} ${platz.nachname}`)
         .filter((name) => nichtDarstellbareZeichen(name).length > 0)
         .map((name) => `${name} → ${winAnsiText(name)}`);
@@ -1012,7 +1035,7 @@ export function RaumzuteilungScreen() {
   /** Aushang: je Raumeinsatz eine Seite, nach Namenskürzel sortiert. */
   const aushangAlsPdf = () =>
     mitPdfLauf('Der Aushang', async () => {
-      const plaetze = angezeigteSitzplaetze ?? [];
+      const plaetze = sitzplaetze;
       const abschnitte = raeume
         .map((raum) => {
           const schluessel = raumSchluessel(raum);
@@ -1034,7 +1057,7 @@ export function RaumzuteilungScreen() {
   /** Dozentenliste (nach Sitzplatz) und Tutorenliste (nach Nachname). */
   const listeAlsPdf = (fuer: 'dozent' | 'tutor') =>
     mitPdfLauf(fuer === 'dozent' ? 'Die Dozentenliste' : 'Die Tutorenliste', async () => {
-      const plaetze = angezeigteSitzplaetze ?? [];
+      const plaetze = sitzplaetze;
       const sortiert =
         fuer === 'dozent'
           ? [...plaetze].sort((a, b) => a.sitzplatznummer - b.sitzplatznummer)
@@ -1057,9 +1080,7 @@ export function RaumzuteilungScreen() {
       downloadFile(`${fuer === 'dozent' ? 'dozentenliste' : 'tutorenliste'}.pdf`, pdf, 'application/pdf');
       setHinweis(`${fuer === 'dozent' ? 'Dozentenliste' : 'Tutorenliste'} als PDF gespeichert.`);
     });
-  const anzahlRaeume = angezeigteSitzplaetze
-    ? new Set(angezeigteSitzplaetze.map((platz) => platz.raumSchluessel)).size
-    : 0;
+  const anzahlRaeume = new Set(sitzplaetze.map((platz) => platz.raumSchluessel)).size;
   /**
    * „in einem Raum“ statt „in 1 Räumen“: Seit die Räume nacheinander gefüllt
    * werden, ist ein einzelner Raum der Normalfall und nicht die Ausnahme.
@@ -1067,11 +1088,11 @@ export function RaumzuteilungScreen() {
   const raeumeText = anzahlRaeume === 1 ? 'einem Raum' : `${anzahlRaeume} Räumen`;
 
   /**
-   * Ein Reiter je Raumeinsatz – aber nur, wo ein Raster vorliegt: Ohne Raster
+   * Ein Eintrag je Raumeinsatz – aber nur, wo ein Raster vorliegt: Ohne Raster
    * gibt es keinen Plan zu zeigen. Zwei Durchgänge desselben Raums sind zwei
-   * Reiter mit demselben Raster und je eigener Belegung.
+   * Einträge mit demselben Raster und je eigener Belegung.
    */
-  const raumReiter = raeume
+  const raumEintraege = raeume
     .map((raum) => ({ raum, schema: schemata.find((s) => s.raum === raum.raum) }))
     .filter((eintrag): eintrag is { raum: Raum; schema: Raumschema } => eintrag.schema !== undefined)
     .map(({ raum, schema }) => ({
@@ -1083,18 +1104,22 @@ export function RaumzuteilungScreen() {
     }));
 
   /**
-   * Der offene Reiter. Er kann veralten (Raum entfernt, andere Räume geladen);
-   * dann stehen wieder die Einstellungen da, statt dass nichts zu sehen ist.
+   * Der gezeigte Raum. Die Wahl kann veralten (Raum entfernt, andere Räume
+   * geladen); dann gilt der erste – ein leerer Arbeitsbereich wäre die
+   * schlechtere Antwort.
    */
-  const offenerRaum = raumReiter.find((eintrag) => eintrag.key === reiter) ?? null;
-  const offenerReiter = offenerRaum
-    ? offenerRaum.key
-    : reiter === REITER_LISTEN
-      ? REITER_LISTEN
-      : REITER_EINSTELLUNGEN;
+  const offenerRaum =
+    raumEintraege.find((eintrag) => eintrag.key === offenerRaumSchluessel) ?? raumEintraege[0] ?? null;
+  /**
+   * Der Raumplan ist nur zu sehen, wenn verteilt wird, die Ansicht ihn zeigt
+   * und es einen Raum dazu gibt. Daran hängt auch die Fußleiste: Ohne Plan
+   * gibt es nichts zu zoomen.
+   */
+  const zeigtRaum = phase === 'verteilung' && ansicht === 'raum' && offenerRaum !== null;
 
-  const reiterWechseln = (ziel: string) => {
-    setReiter(ziel);
+  const raumWechseln = (schluessel: string) => {
+    setOffenenRaum(schluessel);
+    setAnsicht('raum');
     // Die Auswahl gehört zum vorherigen Plan – im neuen wäre sie geraten.
     editor.setzeAuswahl(null);
   };
@@ -1110,347 +1135,495 @@ export function RaumzuteilungScreen() {
   const projektEintrag = useProjektDownloadEintrag(setFehler, 'raum-projekt-download');
 
   /**
-   * Das Menüband: „Datei“, „PDF“, „Werkzeuge“, „Anzeigen“ und „Räume“ – die
-   * Menüleiste einer Tabellenkalkulation. Der Screen beschreibt nur, was es zu
-   * tun gibt; ob daraus am Rechner ein herunterklappendes Menü wird oder auf
-   * dem Handy eine Schublade, entscheidet `Menueleiste`.
+   * Das Menüband: „Datei“, „Verteilung“, „Raum“, „Ansicht“, „Werkzeuge“ und
+   * „Einstellungen“ – die Menüleiste einer Tabellenkalkulation. Der Screen
+   * beschreibt nur, was es zu tun gibt; ob daraus am Rechner ein
+   * herunterklappendes Menü wird oder auf dem Handy eine Schublade,
+   * entscheidet `Menueleiste`.
    *
-   * „Werkzeuge“ und „Anzeigen“ gibt es nur mit offenem Raum: In den Reitern
-   * „Einstellungen“ und „Listen“ wäre jeder Eintrag darin grau.
+   * In der Vorbereitung steht dort nur „Datei“: Solange ausgewählt wird, gibt
+   * es weder einen Plan noch eine Ansicht, und graue Menüs sind Ballast.
    */
-  const menus: MenuGruppe[] = [
-    {
-      titel: 'Datei',
-      testID: 'raum-menue-datei',
-      eintraege: [
-        { art: 'trenner', titel: 'Speichern' },
-        {
-          art: 'aktion',
-          titel: 'Sitzplan-CSV speichern',
-          hinweis: `im Projekt als ${dateiname}`,
-          deaktiviert: !angezeigteSitzplaetze,
-          onWaehlen: () => {
-            if (!angezeigteSitzplaetze) return;
-            const csv = sitzplaetzeToCsv(angezeigteSitzplaetze);
-            downloadCsv(dateiname, csv);
-            projekt.schreibe(dateiname, csv, 'sitzplan');
-            setHinweis(`Sitzplan gespeichert – im Projekt als ${dateiname}.`);
-          },
-          testID: 'raum-download',
+  const dateiMenu: MenuGruppe = {
+    titel: 'Datei',
+    testID: 'raum-menue-datei',
+    eintraege: [
+      { art: 'trenner', titel: 'Speichern' },
+      {
+        art: 'aktion',
+        titel: 'Sitzplan-CSV speichern',
+        hinweis: `im Projekt als ${dateiname}`,
+        deaktiviert: !verteilt,
+        onWaehlen: () => {
+          if (!verteilt) return;
+          const csv = sitzplaetzeToCsv(sitzplaetze);
+          downloadCsv(dateiname, csv);
+          projekt.schreibe(dateiname, csv, 'sitzplan');
+          setHinweis(`Sitzplan gespeichert – im Projekt als ${dateiname}.`);
         },
-        {
-          art: 'aktion',
-          titel: 'Räume der Klausur speichern',
-          hinweis: 'klausurraeume.csv – nicht der Bestand des Hauses',
-          onWaehlen: () => {
-            // Nicht in `Raeume/`: Dort steht der Bestand des Hauses, hier die
-            // Auswahl für diese eine Klausur (mit ihren Durchgängen).
-            const csv = raeumeToCsv(raeume);
-            downloadCsv('klausurraeume.csv', csv);
-            projekt.schreibe('klausurraeume.csv', csv, 'klausurraeume');
-            setHinweis(
-              'Räume der Klausur gespeichert – im Projekt unter 4_Raumzuteilung_Export/klausurraeume.csv.',
+        testID: 'raum-download',
+      },
+      {
+        art: 'aktion',
+        titel: 'Räume der Klausur speichern',
+        hinweis: 'klausurraeume.csv – nicht der Bestand des Hauses',
+        onWaehlen: () => {
+          // Nicht in `Raeume/`: Dort steht der Bestand des Hauses, hier die
+          // Auswahl für diese eine Klausur (mit ihren Durchgängen).
+          const csv = raeumeToCsv(raeume);
+          downloadCsv('klausurraeume.csv', csv);
+          setHinweis('Räume der Klausur heruntergeladen (klausurraeume.csv).');
+        },
+        testID: 'raum-speichern',
+      },
+      {
+        art: 'aktion',
+        titel: 'Raster als CSV speichern',
+        hinweis: 'je Raum eine Datei in Raeume/',
+        deaktiviert: schemata.length === 0,
+        onWaehlen: async () => {
+          // Je Raum eine Datei; im Projekt ersetzen sie den bisherigen
+          // Bestand, damit kein Raster liegen bleibt, das es nicht mehr gibt.
+          const dateien = raumschemaDateien(schemata);
+          projekt.ersetze('raumschema', dateien);
+          const namen = [...dateien.keys()];
+          if (namen.length === 1) {
+            downloadCsv(namen[0], dateien.get(namen[0]) ?? '');
+          } else {
+            const inhalte = new Map<string, Uint8Array | string>(
+              [...dateien].map(([name, csv]) => [`Raeume/${name}`, csv]),
             );
-          },
-          testID: 'raum-speichern',
+            downloadZip('raumschema.zip', await erstelleZip(inhalte));
+          }
+          setHinweis(`Raster gespeichert – je Raum eine Datei in Raeume/: ${namen.join(', ')}.`);
         },
-        {
-          art: 'aktion',
-          titel: 'Raster als CSV speichern',
-          hinweis: 'je Raum eine Datei in Raeume/',
-          deaktiviert: schemata.length === 0,
-          onWaehlen: async () => {
-            // Je Raum eine Datei; im Projekt ersetzen sie den bisherigen
-            // Bestand, damit kein Raster liegen bleibt, das es nicht mehr gibt.
-            const dateien = raumschemaDateien(schemata);
-            projekt.ersetze('raumschema', dateien);
-            const namen = [...dateien.keys()];
-            if (namen.length === 1) {
-              downloadCsv(namen[0], dateien.get(namen[0]) ?? '');
-            } else {
-              const inhalte = new Map<string, Uint8Array | string>(
-                [...dateien].map(([name, csv]) => [`Raeume/${name}`, csv]),
-              );
-              downloadZip('raumschema.zip', await erstelleZip(inhalte));
-            }
-            setHinweis(`Raster gespeichert – je Raum eine Datei in Raeume/: ${namen.join(', ')}.`);
-          },
-          testID: 'raum-schema-speichern',
+        testID: 'raum-schema-speichern',
+      },
+      {
+        art: 'aktion',
+        titel: 'Sitzplan als Raster-CSV (Nummern)',
+        hinweis: 'sitzplan_nummern.csv – der Raumplan als Tabelle, je Feld die Sitzplatznummer',
+        deaktiviert: raster.length === 0,
+        onWaehlen: () => rasterCsvSpeichern('nummer'),
+        testID: 'raum-raster-nummern',
+      },
+      {
+        art: 'aktion',
+        titel: 'Sitzplan als Raster-CSV (mit Namen)',
+        hinweis: 'sitzplan_namen.csv – je Feld Sitzplatznummer, Matrikelnummer und Name',
+        deaktiviert: raster.length === 0,
+        onWaehlen: () => rasterCsvSpeichern('person'),
+        testID: 'raum-raster-namen',
+      },
+      {
+        art: 'aktion',
+        titel: 'Belegung als CSV herunterladen',
+        hinweis: 'wer wo sitzt, samt freigehaltener Plätze und Vorgaben',
+        deaktiviert: belegung.length === 0,
+        onWaehlen: () => {
+          downloadCsv('raumbelegung.csv', belegungToCsv(belegung, sitzplaetze, nummern));
+          setHinweis('Belegung heruntergeladen – im Projekt steht sie ohnehin.');
         },
-        {
-          art: 'aktion',
-          titel: 'Sitzplan als Raster-CSV (Nummern)',
-          hinweis: 'sitzplan_nummern.csv – der Raumplan als Tabelle, je Feld die Sitzplatznummer',
-          deaktiviert: raster.length === 0,
-          onWaehlen: () => rasterCsvSpeichern('nummer'),
-          testID: 'raum-raster-nummern',
+        testID: 'raum-belegung-speichern',
+      },
+      { art: 'trenner', titel: pdfLaeuft ? 'PDF läuft …' : 'PDF' },
+      {
+        art: 'aktion',
+        titel: 'Sitzpläne als PDF',
+        hinweis: 'alle Räume in einer Datei, je Einsatz eine Seite',
+        deaktiviert: pdfLaeuft || raster.length === 0,
+        onWaehlen: sitzplaeneAlsPdf,
+        testID: 'raum-sitzplan-pdf',
+      },
+      {
+        art: 'aktion',
+        titel: 'Aushang als PDF',
+        hinweis: 'Sitzplatz → Anfang Nachname, je Raum eine Seite',
+        deaktiviert: pdfLaeuft || !verteilt,
+        onWaehlen: aushangAlsPdf,
+        testID: 'raum-aushang-pdf',
+      },
+      {
+        art: 'aktion',
+        titel: 'Liste nach Sitzplatznummer als PDF',
+        hinweis: 'für die Aufsicht in den Reihen (Dozentenliste)',
+        deaktiviert: pdfLaeuft || !verteilt,
+        onWaehlen: () => listeAlsPdf('dozent'),
+        testID: 'raum-dozent-pdf',
+      },
+      {
+        art: 'aktion',
+        titel: 'Liste nach Nachname als PDF',
+        hinweis: 'für den Einlass (Tutorenliste)',
+        deaktiviert: pdfLaeuft || !verteilt,
+        onWaehlen: () => listeAlsPdf('tutor'),
+        testID: 'raum-tutor-pdf',
+      },
+      {
+        art: 'aktion',
+        titel: 'Sitzplatz-PDFs als ZIP',
+        hinweis: 'je Person ein Schreiben, benannt nach der Matrikelnummer',
+        deaktiviert: pdfLaeuft || !verteilt,
+        onWaehlen: pdfsHerunterladen,
+        testID: 'raum-download-pdfs',
+      },
+      {
+        art: 'aktion',
+        titel: 'Text der PDFs anpassen',
+        hinweis: 'die Vorlage der Sitzplatz-Schreiben',
+        onWaehlen: () => setVorlageOffen(true),
+        testID: 'raum-vorlage-oeffnen',
+      },
+      {
+        art: 'aktion',
+        titel: 'Liste drucken',
+        hinweis: 'die Liste, die gerade zu sehen ist',
+        deaktiviert: !verteilt || zeigtRaum,
+        onWaehlen: listeDrucken,
+        testID: 'raum-aushaenge-pdf',
+      },
+      { art: 'trenner', titel: 'Laden' },
+      {
+        art: 'datei',
+        titel: 'Teilnehmer-CSV laden',
+        accept: '.csv',
+        onDateien: teilnehmerLaden,
+        testID: 'raum-teilnehmer-laden',
+      },
+      {
+        art: 'datei',
+        titel: 'Räume-CSV laden',
+        accept: '.csv',
+        onDateien: raeumeLaden,
+        testID: 'raum-raeume-laden',
+      },
+      {
+        art: 'datei',
+        titel: 'Raumschema-CSVs laden',
+        hinweis: 'mehrere auf einmal – je Raum eine Datei',
+        accept: '.csv',
+        mehrere: true,
+        onDateien: schemaLaden,
+        testID: 'raum-schema-laden',
+      },
+      {
+        art: 'datei',
+        titel: 'Belegung-CSV laden',
+        accept: '.csv',
+        onDateien: belegungLaden,
+        testID: 'raum-belegung-laden',
+      },
+      {
+        art: 'aktion',
+        titel: 'Beispieldaten laden',
+        onWaehlen: beispielLaden,
+        testID: 'raum-beispiel',
+      },
+      { art: 'trenner', titel: 'Projekt' },
+      projektEintrag,
+    ],
+  };
+
+  /** Was mit der Verteilung als Ganzes geschieht. */
+  const verteilungMenu: MenuGruppe = {
+    titel: 'Verteilung',
+    wert: verteilt ? `${sitzplaetze.length}/${teilnehmer.length}` : 'noch nicht verteilt',
+    testID: 'raum-menue-verteilung',
+    eintraege: [
+      { art: 'trenner', titel: 'Rechnen' },
+      {
+        art: 'aktion',
+        titel: 'Neu verteilen',
+        hinweis: 'wählt die Plätze neu – Vorgaben und freigehaltene Plätze bleiben',
+        deaktiviert: teilnehmer.length === 0 || raster.length === 0,
+        onWaehlen: neuVerteilen,
+        testID: 'raum-neu-verteilen',
+      },
+      {
+        art: 'aktion',
+        titel: 'Alle Vorgaben lösen',
+        hinweis: 'niemand sitzt danach mehr fest',
+        deaktiviert: !belegung.some((platz) => platz.vorgabe),
+        onWaehlen: () => {
+          editor.merkeStand();
+          uebernehmeBelegung(belegungRef.current.map((platz) => ({ ...platz, vorgabe: false })));
+          setHinweis('Alle Vorgaben gelöst – das nächste Verteilen setzt alle neu.');
         },
-        {
-          art: 'aktion',
-          titel: 'Sitzplan als Raster-CSV (mit Namen)',
-          hinweis: 'sitzplan_namen.csv – je Feld Sitzplatznummer, Matrikelnummer und Name',
-          deaktiviert: raster.length === 0,
-          onWaehlen: () => rasterCsvSpeichern('person'),
-          testID: 'raum-raster-namen',
+        testID: 'raum-vorgaben-loesen',
+      },
+      {
+        art: 'aktion',
+        titel: 'Alle freigehaltenen Plätze aufheben',
+        deaktiviert: !belegung.some((platz) => platz.reserviert),
+        onWaehlen: () => {
+          editor.merkeStand();
+          uebernehmeBelegung(
+            belegungRef.current.map(({ notiz: _weg, ...platz }) => ({ ...platz, reserviert: false })),
+          );
+          setHinweis('Alle freigehaltenen Plätze sind wieder frei – neu verteilen füllt sie.');
         },
-        {
-          art: 'aktion',
-          titel: 'Belegung als CSV speichern',
-          hinweis: 'wer wo sitzt, samt Reserven und Vorgaben',
-          deaktiviert: belegung.length === 0,
-          onWaehlen: () => {
-            const csv = belegungToCsv(belegung, angezeigteSitzplaetze ?? [], nummern);
-            downloadCsv('raumbelegung.csv', csv);
-            projekt.schreibe('raumbelegung.csv', csv, 'raumbelegung');
-            setHinweis('Belegung gespeichert – im Projekt unter 4_Raumzuteilung_Export/.');
-          },
-          testID: 'raum-belegung-speichern',
-        },
-        { art: 'trenner', titel: 'Laden' },
-        {
-          art: 'datei',
-          titel: 'Teilnehmer-CSV laden',
-          accept: '.csv',
-          onDateien: teilnehmerLaden,
-          testID: 'raum-teilnehmer-laden',
-        },
-        {
-          art: 'datei',
-          titel: 'Räume-CSV laden',
-          accept: '.csv',
-          onDateien: raeumeLaden,
-          testID: 'raum-raeume-laden',
-        },
-        {
-          art: 'datei',
-          titel: 'Raumschema-CSVs laden',
-          hinweis: 'mehrere auf einmal – je Raum eine Datei',
-          accept: '.csv',
-          mehrere: true,
-          onDateien: schemaLaden,
-          testID: 'raum-schema-laden',
-        },
-        {
-          art: 'datei',
-          titel: 'Belegung-CSV laden',
-          accept: '.csv',
-          onDateien: belegungLaden,
-          testID: 'raum-belegung-laden',
-        },
-        {
-          art: 'aktion',
-          titel: 'Beispieldaten laden',
-          onWaehlen: beispielLaden,
-          testID: 'raum-beispiel',
-        },
-        { art: 'trenner', titel: 'Projekt' },
-        projektEintrag,
-      ],
-    },
-    {
-      titel: 'PDF',
-      testID: 'raum-menue-pdf',
-      eintraege: [
-        { art: 'trenner', titel: pdfLaeuft ? 'PDF läuft …' : 'Für den Raum' },
-        {
-          art: 'aktion',
-          titel: 'Sitzpläne als PDF',
-          hinweis: 'alle Räume in einer Datei, je Einsatz eine Seite',
-          deaktiviert: pdfLaeuft || raster.length === 0,
-          onWaehlen: sitzplaeneAlsPdf,
-          testID: 'raum-sitzplan-pdf',
-        },
-        {
-          art: 'aktion',
-          titel: 'Aushang als PDF',
-          hinweis: 'Sitzplatz → Anfang Nachname, je Raum eine Seite',
-          deaktiviert: pdfLaeuft || !angezeigteSitzplaetze,
-          onWaehlen: aushangAlsPdf,
-          testID: 'raum-aushang-pdf',
-        },
-        { art: 'trenner', titel: 'Für die Aufsicht' },
-        {
-          art: 'aktion',
-          titel: 'Dozentenliste als PDF',
-          deaktiviert: pdfLaeuft || !angezeigteSitzplaetze,
-          onWaehlen: () => listeAlsPdf('dozent'),
-          testID: 'raum-dozent-pdf',
-        },
-        {
-          art: 'aktion',
-          titel: 'Tutorenliste als PDF',
-          deaktiviert: pdfLaeuft || !angezeigteSitzplaetze,
-          onWaehlen: () => listeAlsPdf('tutor'),
-          testID: 'raum-tutor-pdf',
-        },
-        { art: 'trenner', titel: 'Für die Studierenden' },
-        {
-          art: 'aktion',
-          titel: 'Sitzplatz-PDFs als ZIP',
-          hinweis: 'je Person ein Schreiben',
-          deaktiviert: pdfLaeuft || !angezeigteSitzplaetze,
-          onWaehlen: pdfsHerunterladen,
-          testID: 'raum-download-pdfs',
-        },
-        {
-          art: 'aktion',
-          titel: 'Text der PDFs anpassen',
-          hinweis: 'die Vorlage der Sitzplatz-Schreiben',
-          onWaehlen: () => setVorlageOffen(true),
-          testID: 'raum-vorlage-oeffnen',
-        },
-        { art: 'trenner' },
-        {
-          art: 'aktion',
-          titel: 'Ansicht drucken',
-          hinweis: 'was gerade im Reiter „Listen“ steht',
-          deaktiviert: !angezeigteSitzplaetze,
-          onWaehlen: aushaengeDrucken,
-          testID: 'raum-aushaenge-pdf',
-        },
-      ],
-    },
-    ...(offenerRaum
+        testID: 'raum-reserven-aufheben',
+      },
+      { art: 'trenner', titel: 'Auswahl' },
+      {
+        art: 'aktion',
+        titel: '‹ Zurück zur Auswahl',
+        hinweis: 'Teilnehmende und Räume – die Verteilung bleibt stehen',
+        onWaehlen: () => setPhase('vorbereitung'),
+        testID: 'raum-zurueck-auswahl',
+      },
+    ],
+  };
+
+  /** Zwischen den Räumen dieser Klausur wechseln. */
+  const raumMenu: MenuGruppe = {
+    titel: 'Raum',
+    wert: zeigtRaum ? (offenerRaum?.titel ?? '') : undefined,
+    testID: 'raum-menue-raum',
+    eintraege:
+      raumEintraege.length === 0
+        ? [
+            {
+              art: 'aktion',
+              titel: 'Noch kein Raumplan',
+              hinweis: 'ohne Raster gibt es keinen Plan – Raster laden oder in Schritt 5 anlegen',
+              deaktiviert: true,
+              onWaehlen: () => {},
+            },
+          ]
+        : raumEintraege.map(
+            (eintrag): MenuEintrag => ({
+              art: 'aktion',
+              titel: eintrag.titel,
+              hinweis: belegungText(eintrag.key, eintrag.schema),
+              gewaehlt: zeigtRaum && eintrag.key === offenerRaum?.key,
+              onWaehlen: () => raumWechseln(eintrag.key),
+              testID: eintrag.testID,
+            }),
+          ),
+  };
+
+  /** Raumplan oder eine der drei Listen. */
+  const ansichtMenu: MenuGruppe = {
+    titel: 'Ansicht',
+    wert: ANSICHTEN.find((eintrag) => eintrag.key === ansicht)?.titel,
+    testID: 'raum-menue-ansicht',
+    eintraege: ANSICHTEN.map(
+      (eintrag): MenuEintrag => ({
+        art: 'aktion',
+        titel: eintrag.titel,
+        hinweis: eintrag.hinweis,
+        gewaehlt: ansicht === eintrag.key,
+        deaktiviert: eintrag.key === 'raum' ? raumEintraege.length === 0 : !verteilt,
+        onWaehlen: () => setAnsicht(eintrag.key),
+        testID: eintrag.testID,
+      }),
+    ),
+  };
+
+  /**
+   * Was ein Tippen im Plan tut, dazu Drehen und der Verlauf. Nur im Raumplan
+   * zu gebrauchen – in einer Liste gibt es nichts anzutippen, deshalb steht
+   * das Menü dort grau da, statt zu verschwinden.
+   */
+  const werkzeugeMenu: MenuGruppe = {
+    titel: 'Werkzeuge',
+    wert: zeigtRaum
+      ? PLATZ_WERKZEUGE.find((werkzeug) => werkzeug.key === platzWerkzeug)?.titel
+      : undefined,
+    testID: 'raum-menue-werkzeuge',
+    eintraege: zeigtRaum
       ? [
-          {
-            titel: 'Werkzeuge',
-            // Was ein Tippen in den Plan bewirkt, steht hinter dem Namen –
-            // vorher war es die hervorgehobene Kachel der Palette.
-            wert: planModus === 'bearbeiten' ? werkzeugTitel(editor) : 'Plätze belegen',
-            testID: 'raum-menue-werkzeuge',
-            eintraege: [
-              { art: 'trenner', titel: 'Was ein Tippen tut' } as MenuEintrag,
-              ...PLAN_MODI.map(
-                (modus): MenuEintrag => ({
-                  art: 'aktion',
-                  titel: modus.titel,
-                  hinweis: modus.hinweis,
-                  gewaehlt: planModus === modus.key,
-                  onWaehlen: () => setPlanModus(modus.key),
-                  testID: `raum-modus-${modus.key}`,
-                }),
-              ),
-              ...(planModus === 'bearbeiten'
-                ? [{ art: 'trenner', titel: 'Palette' } as MenuEintrag, ...paletteEintraege(editor)]
-                : []),
-              ...rasterEintraege(editor, offenerRaum.raum.raum, planModus === 'bearbeiten'),
-              { art: 'trenner', titel: 'Zuteilung' } as MenuEintrag,
-              {
-                art: 'aktion',
-                titel: 'Sitzplan neu verteilen',
-                hinweis: 'wählt die Plätze neu – Vorgaben und freigehaltene Plätze bleiben',
-                deaktiviert: !sitzplaetze,
-                onWaehlen: neuVerteilen,
-                testID: 'raum-neu-verteilen',
-              } as MenuEintrag,
-            ],
-          },
-          {
-            // Was in den Kästen steht – dasselbe am Bildschirm und im PDF.
-            titel: 'Anzeigen',
-            testID: 'raum-menue-anzeige',
-            eintraege: [
-              {
-                art: 'schalter',
-                titel: 'Namenskürzel',
-                wert: anzeige.namensPraefix,
-                onChange: (wert: boolean) => setAnzeige((alt) => ({ ...alt, namensPraefix: wert })),
-                testID: 'raum-anzeige-name',
-              } as MenuEintrag,
-              {
-                art: 'schalter',
-                titel: 'Matrikelnummer',
-                wert: anzeige.matrikelnummer,
-                onChange: (wert: boolean) => setAnzeige((alt) => ({ ...alt, matrikelnummer: wert })),
-                testID: 'raum-anzeige-matrikel',
-              } as MenuEintrag,
-              {
-                art: 'schalter',
-                titel: 'Sitzplatznummer',
-                wert: anzeige.sitzplatznummer,
-                onChange: (wert: boolean) =>
-                  setAnzeige((alt) => ({ ...alt, sitzplatznummer: wert })),
-                testID: 'raum-anzeige-nummer',
-              } as MenuEintrag,
-              {
-                art: 'schalter',
-                titel: 'Pult beschriften',
-                wert: anzeige.pultText,
-                onChange: (wert: boolean) => setAnzeige((alt) => ({ ...alt, pultText: wert })),
-                testID: 'raum-anzeige-pult',
-              } as MenuEintrag,
-            ],
-          },
+          { art: 'trenner', titel: 'Was ein Tippen tut' },
+          ...PLATZ_WERKZEUGE.map(
+            (werkzeug): MenuEintrag => ({
+              art: 'aktion',
+              titel: werkzeug.titel,
+              hinweis: werkzeug.hinweis,
+              gewaehlt: platzWerkzeug === werkzeug.key,
+              onWaehlen: () => setPlatzWerkzeug(werkzeug.key),
+              testID: `raum-werkzeug-${werkzeug.key}`,
+            }),
+          ),
+          // Das Raster selbst wird in Schritt 5 gebaut: Hier bleiben Drehen
+          // und der Verlauf, nicht die Palette.
+          ...rasterEintraege(editor, offenerRaum?.raum.raum ?? '', false),
         ]
-      : []),
-    {
-      titel: 'Räume',
-      wert: offenerRaum
-        ? offenerRaum.titel
-        : offenerReiter === REITER_LISTEN
-          ? 'Listen'
-          : 'Einstellungen',
-      testID: 'raum-menue-raeume',
-      eintraege: [
-        { art: 'trenner', titel: 'Übersicht' },
-        {
-          art: 'aktion',
-          titel: 'Einstellungen',
-          hinweis: 'Räume der Klausur, Verteilung, Teilnehmende',
-          gewaehlt: offenerReiter === REITER_EINSTELLUNGEN,
-          onWaehlen: () => reiterWechseln(REITER_EINSTELLUNGEN),
-          testID: 'raum-reiter-einstellungen',
+      : [
+          {
+            art: 'aktion',
+            titel: 'Nur im Raumplan',
+            hinweis: 'unter „Ansicht“ den Raumplan wählen',
+            deaktiviert: true,
+            onWaehlen: () => {},
+          },
+        ],
+  };
+
+  /** Wie verteilt und nummeriert wird – und was in den Kästen steht. */
+  const einstellungenMenu: MenuGruppe = {
+    titel: 'Einstellungen',
+    testID: 'raum-menue-einstellungen',
+    eintraege: [
+      { art: 'trenner', titel: 'Sitzplatznummern' },
+      {
+        art: 'schalter',
+        titel: 'Nur belegte Plätze nummerieren',
+        hinweis: 'sonst bekommt jeder Tisch des Raums eine Nummer',
+        wert: nummerierung === 'belegte',
+        onChange: (wert: boolean) => setNummerierung(wert ? 'belegte' : 'alle'),
+        testID: 'raum-einstellung-nummern',
+      },
+      { art: 'trenner', titel: 'Räume füllen' },
+      {
+        art: 'aktion',
+        titel: 'Nacheinander',
+        hinweis: 'ein Raum wird voll, dann der nächste',
+        gewaehlt: fuellung === 'nacheinander',
+        onWaehlen: () => {
+          setFuellung('nacheinander');
+          verteilen({ fuellung: 'nacheinander' });
         },
-        {
-          art: 'aktion',
-          titel: 'Listen',
-          hinweis: 'Aushang, Dozentenliste, Tutorenliste, Räume',
-          gewaehlt: offenerReiter === REITER_LISTEN,
-          onWaehlen: () => reiterWechseln(REITER_LISTEN),
-          testID: 'raum-reiter-listen',
+        testID: 'raum-fuellung-nacheinander',
+      },
+      {
+        art: 'aktion',
+        titel: 'Gleichmäßig',
+        hinweis: 'jeder Platz dorthin, wo prozentual am meisten frei ist',
+        gewaehlt: fuellung === 'gleichmaessig',
+        onWaehlen: () => {
+          setFuellung('gleichmaessig');
+          verteilen({ fuellung: 'gleichmaessig' });
         },
-        { art: 'trenner', titel: 'Raumeinsätze' },
-        ...(raumReiter.length === 0
-          ? [
-              {
-                art: 'aktion',
-                titel: 'Noch kein Raumplan',
-                hinweis: 'ohne Raster gibt es keinen Plan – Raster laden oder in Schritt 5 anlegen',
-                deaktiviert: true,
-                onWaehlen: () => {},
-              } as MenuEintrag,
-            ]
-          : raumReiter.map(
-              (eintrag): MenuEintrag => ({
-                art: 'aktion',
-                titel: eintrag.titel,
-                hinweis: belegungText(eintrag.key, eintrag.schema),
-                gewaehlt: eintrag.key === offenerReiter,
-                onWaehlen: () => reiterWechseln(eintrag.key),
-                testID: eintrag.testID,
-              }),
-            )),
-      ],
-    },
-  ];
+        testID: 'raum-fuellung-gleichmaessig',
+      },
+      { art: 'trenner', titel: 'Plätze im Raum' },
+      {
+        art: 'aktion',
+        titel: 'So weit auseinander wie möglich',
+        hinweis: 'jeder nächste Platz hat den größten Abstand zu den gewählten',
+        gewaehlt: sitzverteilung === 'abstand',
+        onWaehlen: () => {
+          setSitzverteilung('abstand');
+          verteilen({ sitzverteilung: 'abstand' });
+        },
+        testID: 'raum-sitz-abstand',
+      },
+      {
+        art: 'aktion',
+        titel: 'Der Reihe nach',
+        hinweis: 'von vorne links, wie im Raster',
+        gewaehlt: sitzverteilung === 'lesereihenfolge',
+        onWaehlen: () => {
+          setSitzverteilung('lesereihenfolge');
+          verteilen({ sitzverteilung: 'lesereihenfolge' });
+        },
+        testID: 'raum-sitz-reihe',
+      },
+      { art: 'trenner', titel: 'Was in den Kästen steht' },
+      {
+        art: 'schalter',
+        titel: 'Namenskürzel',
+        wert: anzeige.namensPraefix,
+        onChange: (wert: boolean) => setAnzeige((alt) => ({ ...alt, namensPraefix: wert })),
+        testID: 'raum-anzeige-name',
+      },
+      {
+        art: 'schalter',
+        titel: 'Matrikelnummer',
+        wert: anzeige.matrikelnummer,
+        onChange: (wert: boolean) => setAnzeige((alt) => ({ ...alt, matrikelnummer: wert })),
+        testID: 'raum-anzeige-matrikel',
+      },
+      {
+        art: 'schalter',
+        titel: 'Sitzplatznummer',
+        wert: anzeige.sitzplatznummer,
+        onChange: (wert: boolean) => setAnzeige((alt) => ({ ...alt, sitzplatznummer: wert })),
+        testID: 'raum-anzeige-nummer',
+      },
+      {
+        art: 'schalter',
+        titel: 'Pult beschriften',
+        wert: anzeige.pultText,
+        onChange: (wert: boolean) => setAnzeige((alt) => ({ ...alt, pultText: wert })),
+        testID: 'raum-anzeige-pult',
+      },
+    ],
+  };
+
+  /**
+   * Der rote Eintrag: Es sitzt jemand nicht. Er steht im Menüband und nicht in
+   * einer Meldung, die man wegscrollt – wer einen besetzten Platz freihält,
+   * soll die Folge sehen, bis sie behoben ist.
+   */
+  const warnungMenu: MenuGruppe = {
+    titel: `⚠ ${ohnePlatz.length} ohne Platz`,
+    warnung: true,
+    testID: 'raum-menue-warnung',
+    eintraege: [
+      { art: 'trenner', titel: 'Ohne Platz' },
+      ...ohnePlatz.slice(0, 12).map(
+        (person): MenuEintrag => ({
+          art: 'aktion',
+          titel: `${person.nachname}, ${person.vorname}`,
+          hinweis: person.matrikelnummer,
+          deaktiviert: true,
+          onWaehlen: () => {},
+        }),
+      ),
+      ...(ohnePlatz.length > 12
+        ? [{ art: 'trenner', titel: `… und ${ohnePlatz.length - 12} weitere` } as MenuEintrag]
+        : []),
+      { art: 'trenner' },
+      {
+        art: 'aktion',
+        titel: 'Neu verteilen',
+        hinweis: 'Vorgaben und freigehaltene Plätze bleiben',
+        onWaehlen: neuVerteilen,
+        testID: 'raum-warnung-neu-verteilen',
+      },
+    ],
+  };
+
+  const menus: MenuGruppe[] =
+    phase === 'vorbereitung'
+      ? [dateiMenu]
+      : [
+          dateiMenu,
+          verteilungMenu,
+          raumMenu,
+          ansichtMenu,
+          werkzeugeMenu,
+          einstellungenMenu,
+          ...(ohnePlatz.length > 0 ? [warnungMenu] : []),
+        ];
 
   /**
    * Links in der Fußleiste – die Statuszeile: erst die Meldung, dann der Stand
-   * des offenen Reiters. Beides nebeneinander, damit eine Meldung nicht
-   * dauerhaft verdeckt, wie viele Plätze gerade belegt sind.
+   * dessen, was gerade zu sehen ist. Beides nebeneinander, damit eine Meldung
+   * nicht dauerhaft verdeckt, wie viele Plätze belegt sind.
    */
   const fussText = [
     fehler,
     fehler ? null : (hinweis ?? pdfHinweis),
-    offenerRaum
-      ? `${belegungText(offenerRaum.key, offenerRaum.schema)} · ${rasterText(editor, offenerRaum.schema)}` +
-        (planModus === 'bearbeiten' ? ` · ${PALETTEN_HINWEIS_ZEILE}` : '')
-      : angezeigteSitzplaetze
-        ? `${angezeigteSitzplaetze.length} Sitzplätze in ${raeumeText} vergeben`
-        : `${teilnehmer.length} Teilnehmende · ${raeume.length} Raumeinsätze mit höchstens ${bedarf.plaetze} Plätzen – noch keine Zuteilung`,
+    phase === 'vorbereitung'
+      ? `${teilnehmer.length} Teilnehmende · ${raeume.length} Raumeinsätze mit höchstens ${bedarf.plaetze} Plätzen`
+      : zeigtRaum && offenerRaum
+        ? `${belegungText(offenerRaum.key, offenerRaum.schema)} · ${rasterText(editor, offenerRaum.schema)}`
+        : `${sitzplaetze.length} Sitzplätze in ${raeumeText} vergeben`,
   ]
     .filter((teil): teil is string => !!teil)
     .join(' · ');
+
+  /** Die Liste, die gerade gezeigt wird – für Tabelle und Druck. */
+  const listenZeilen = () => {
+    if (ansicht === 'aushang') {
+      return [...sitzplaetze].sort((a, b) => a.anfangNachname.localeCompare(b.anfangNachname, 'de'));
+    }
+    if (ansicht === 'alphabetisch') return sortByNachname(sitzplaetze);
+    return [...sitzplaetze].sort((a, b) => a.sitzplatznummer - b.sitzplatznummer);
+  };
 
   return (
     <>
@@ -1460,128 +1633,14 @@ export function RaumzuteilungScreen() {
           <PlanFuss
             editor={editor}
             text={fussText}
-            ansichtZeigen={offenerRaum !== null}
+            ansichtZeigen={zeigtRaum}
             testID="raum-fuss"
           />
         }
         testID="Raumzuteilung-screen"
       >
         {(hoehe) =>
-          offenerRaum ? (
-            <RaumplanBuehne
-              key={offenerRaum.key}
-              editor={editor}
-              schema={offenerRaum.schema}
-              schluessel={offenerRaum.key}
-              titel={offenerRaum.titel}
-              hoehe={hoehe}
-              bearbeiten={planModus === 'bearbeiten'}
-              belegung={belegungJeRaum.get(offenerRaum.key) ?? []}
-              nummern={nummern}
-              personen={personenJeMatrikel}
-              anzeige={anzeige}
-              onZellePress={(zeile, spalte) =>
-                zellePress(offenerRaum.key, offenerRaum.raum.raum, offenerRaum.titel, zeile, spalte)
-              }
-            />
-          ) : offenerReiter === REITER_LISTEN ? (
-            <Reiterinhalt testID="raum-listen">
-              <Section title="Ansichten" testID="raum-ansichten">
-                {angezeigteSitzplaetze ? (
-                  <>
-                    <View style={styles.buttonZeile}>
-                      {ANSICHTEN.map((a) => (
-                        <AppButton
-                          key={a.key}
-                          title={a.titel}
-                          variant={ansicht === a.key ? 'primary' : 'secondary'}
-                          onPress={() => setAnsicht(a.key)}
-                          testID={a.testID}
-                        />
-                      ))}
-                    </View>
-                    {ansicht === 'aushang' ? (
-                      <DataTable
-                        columns={[
-                          { key: 'anfangNachname', title: 'Anfang Nachname' },
-                          { key: 'sitzplatznummer', title: 'Sitzplatznummer' },
-                          { key: 'raum', title: 'Raum' },
-                        ]}
-                        rows={[...angezeigteSitzplaetze]
-                          .sort((a, b) => a.anfangNachname.localeCompare(b.anfangNachname, 'de'))
-                          .map((platz) => ({
-                            anfangNachname: platz.anfangNachname,
-                            sitzplatznummer: platz.sitzplatznummer,
-                            raum: platz.raum,
-                          }))}
-                      />
-                    ) : null}
-                    {ansicht === 'dozent' ? (
-                      <DataTable
-                        columns={[
-                          { key: 'sitzplatz', title: 'Sitzplatz' },
-                          { key: 'vorname', title: 'Vorname' },
-                          { key: 'nachname', title: 'Nachname' },
-                          { key: 'raum', title: 'Raum' },
-                          { key: 'anwesend', title: 'Anwesend' },
-                        ]}
-                        rows={[...angezeigteSitzplaetze]
-                          .sort((a, b) => a.sitzplatznummer - b.sitzplatznummer)
-                          .map((platz) => ({
-                            sitzplatz: platz.sitzplatznummer,
-                            vorname: platz.vorname,
-                            nachname: platz.nachname,
-                            raum: platz.raum,
-                            anwesend: platz.anwesend,
-                          }))}
-                      />
-                    ) : null}
-                    {ansicht === 'tutor' ? (
-                      <DataTable
-                        columns={[
-                          { key: 'sitzplatz', title: 'Sitzplatz' },
-                          { key: 'vorname', title: 'Vorname' },
-                          { key: 'nachname', title: 'Nachname' },
-                          { key: 'raum', title: 'Raum' },
-                          { key: 'anwesend', title: 'Anwesend' },
-                        ]}
-                        rows={sortByNachname(angezeigteSitzplaetze).map((platz) => ({
-                          sitzplatz: platz.sitzplatznummer,
-                          vorname: platz.vorname,
-                          nachname: platz.nachname,
-                          raum: platz.raum,
-                          anwesend: platz.anwesend,
-                        }))}
-                      />
-                    ) : null}
-                    {/* Die Aushänge bleiben gerendert, solange die Ansicht sie zeigt –
-                        der Druck nimmt genau diesen sichtbaren Knoten. */}
-                    {ansicht === 'raeume' ? (
-                      <View ref={aushangRef}>
-                        <RaumAushaenge
-                          sitzplaetze={angezeigteSitzplaetze}
-                          raeume={raeume}
-                          schemata={raster}
-                          belegung={belegung}
-                          nummern={nummern}
-                          // Gedreht wird im Editor je Raum; der Aushang zeigt ihn aus
-                          // derselben Richtung – sonst stünde auf dem Papier ein
-                          // anderer Raum als auf dem Bildschirm.
-                          drehungen={editor.drehungen}
-                          anzeige={anzeige}
-                        />
-                      </View>
-                    ) : null}
-                  </>
-                ) : (
-                  <StatusText kind="info">
-                    Noch keine Zuteilung – unter „Einstellungen“ die Teilnehmenden und die Räume
-                    prüfen, die Vorschau ansehen und „Verteilung übernehmen“ wählen.
-                  </StatusText>
-                )}
-              </Section>
-            </Reiterinhalt>
-          ) : (
+          phase === 'vorbereitung' ? (
             <Reiterinhalt testID="raum-einstellungen">
               {rueckfrage ? (
                 <Section title="Nicht alle Angemeldeten sind zugelassen" testID="raum-rueckfrage">
@@ -1610,7 +1669,7 @@ export function RaumzuteilungScreen() {
                 </Section>
               ) : null}
 
-              <Section title="Teilnehmende">
+              <Section title="1. Teilnehmende">
                 <Text style={styles.hinweis}>
                   Die Liste kommt aus Schritt 3 (allowedStudents.csv) oder – wenn dort nichts
                   liegt – direkt aus den geprüften Anmeldungen. Eine eigene Datei sticht beides:
@@ -1633,12 +1692,13 @@ export function RaumzuteilungScreen() {
                 ) : null}
               </Section>
 
-              <Section title="Räume der Klausur" testID="raum-raeume">
+              <Section title="2. Räume der Klausur" testID="raum-raeume">
                 <Text style={styles.hinweis}>
                   Die Räume selbst und ihre Raster gehören zu keiner einzelnen Klausur: Sie liegen
                   als Bestand in <Text style={styles.pfad}>Raeume/</Text> und werden in Schritt 5
                   gepflegt. Hier steht, welche davon <Text style={styles.pfad}>diese</Text> Klausur
-                  benutzt – jeder davon bekommt oben einen eigenen Reiter.
+                  benutzt. Die Auswahl wandert in den Projektstand – sie steht auch nach einem
+                  Wechsel des Screens wieder da.
                 </Text>
                 <Text style={styles.hinweis}>
                   Denselben Raum mehrfach hinzufügen heißt: Er wird mehrfach belegt – etwa Gruppe 1
@@ -1678,13 +1738,14 @@ export function RaumzuteilungScreen() {
                 <ProjektQuelle rolle="raumschema" alle testID="raum-quelle-schema" />
               </Section>
 
-              <Section title="Verteilung">
+              <Section title="3. Verteilung" testID="raum-weiter">
                 <Text style={styles.hinweis}>
                   Verteilt wird in zwei Schritten: Erst werden die{' '}
-                  <Text style={styles.pfad}>Plätze</Text> gewählt, dann kommen die{' '}
-                  <Text style={styles.pfad}>Personen</Text> darauf – der Reihe nach, Raum für Raum
-                  und darin Reihe für Reihe. Deshalb steigt mit dem Nachnamen die
-                  Sitzplatznummer, auch wenn die Plätze quer durch den Raum liegen.
+                  <Text style={styles.pfad}>Plätze</Text> gewählt – so weit auseinander wie
+                  möglich –, dann kommen die <Text style={styles.pfad}>Personen</Text> darauf, der
+                  Reihe nach, Raum für Raum und darin Reihe für Reihe. Wie gefüllt und nummeriert
+                  wird, steht danach im Menü „Einstellungen“ und lässt sich dort jederzeit
+                  umstellen; der Plan rechnet sofort neu.
                 </Text>
                 <LabeledNumberInput
                   label="Erste Sitzplatznummer"
@@ -1692,130 +1753,29 @@ export function RaumzuteilungScreen() {
                   onChange={setStartnummer}
                   testID="raum-startnummer"
                 />
-                <Checkbox
-                  label="Plätze so weit auseinander wie möglich"
-                  wert={sitzverteilung === 'abstand'}
-                  onChange={(wert) => setSitzverteilung(wert ? 'abstand' : 'lesereihenfolge')}
-                  testID="raum-sitz-abstand"
-                />
-                <Text style={styles.hinweis}>
-                  Gewählt wird ein erster Platz, danach immer der mit dem größten Abstand zu den
-                  schon gewählten. Ein Platz zur Seite zählt dabei doppelt (dort schaut man direkt
-                  aufs Nachbarblatt), und zwei sitzen lieber hintereinander als schräg versetzt.
-                  Ohne Haken werden die Plätze schlicht der Reihe nach genommen.
-                </Text>
-                <Text style={styles.hinweis}>
-                  Und über die Räume hinweg: entweder wird ein Raum gefüllt, bis er voll ist, und
-                  dann der nächste – oder gleichmäßig, dann geht jeder neue Platz in den Raum, in
-                  dem prozentual am meisten frei ist.
-                </Text>
-                <View style={styles.buttonZeile}>
-                  <AppButton
-                    title="Räume nacheinander füllen"
-                    variant={fuellung === 'nacheinander' ? 'primary' : 'secondary'}
-                    onPress={() => setFuellung('nacheinander')}
-                    testID="raum-fuellung-nacheinander"
-                  />
-                  <AppButton
-                    title="Räume gleichmäßig füllen"
-                    variant={fuellung === 'gleichmaessig' ? 'primary' : 'secondary'}
-                    onPress={() => setFuellung('gleichmaessig')}
-                    testID="raum-fuellung-gleichmaessig"
-                  />
-                </View>
-                <PlatzBedarf bedarf={bedarf} testID="raum-platzbedarf-zuteilung" />
-                {fehler ? <StatusText kind="error">{fehler}</StatusText> : null}
-                {hinweis ? <StatusText kind="info">{hinweis}</StatusText> : null}
-              </Section>
-
-              <Section title="Vorschau" testID="raum-vorschau">
-                <Text style={styles.hinweis}>
-                  So sähen die Plätze aus – gerechnet, sobald oben etwas umgestellt wird. Wer im
-                  Sitzplan jemanden festsetzt oder einen Platz freihält, sieht hier gleich die
-                  neue Verteilung. Übernommen wird sie mit dem Knopf darunter; heruntergeladen
-                  wird danach im Menü „Datei“ und „PDF“.
-                </Text>
-                {teilnehmer.length === 0 ? (
-                  <StatusText kind="info" testID="raum-vorschau-leer">
-                    Noch keine Teilnehmenden – oben eine Liste laden oder Beispieldaten wählen.
-                  </StatusText>
-                ) : (
-                  <>
-                    <StatusText
-                      kind={vorschau.ohnePlatz.length > 0 ? 'error' : 'info'}
-                      testID="raum-vorschau-zahl"
-                    >
-                      {`${vorschau.sitzplaetze.length} von ${teilnehmer.length} Teilnehmenden bekämen einen Platz` +
-                        ` – in ${vorschau.raeume.filter((r) => r.belegt > 0).length} von ${vorschau.raeume.length} Raumeinsätzen.`}
-                    </StatusText>
-                    {vorschau.ohnePlatz.length > 0 ? (
-                      <StatusText kind="error">
-                        {`Kein Platz für: ${vorschau.ohnePlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')} – weitere Räume aufnehmen oder im Raster mehr Tische setzen.`}
-                      </StatusText>
-                    ) : null}
-                    <SitzplanVorschau
-                      planung={vorschau}
-                      raeume={raeume}
-                      raster={raster}
-                      drehungen={editor.drehungen}
-                      anzeige={anzeige}
-                      testID="raum-vorschau-plaene"
-                    />
-                  </>
-                )}
                 <AppButton
-                  title={sitzplaetze ? 'Verteilung erneut übernehmen' : 'Verteilung übernehmen'}
-                  onPress={zuteilungUebernehmen}
-                  disabled={teilnehmer.length === 0 || raeume.length === 0}
+                  title={verteilt ? 'Weiter zur Verteilung' : 'Verteilen und weiter'}
+                  onPress={zurVerteilung}
+                  disabled={teilnehmer.length === 0 || raster.length === 0}
                   testID="raum-erstellen"
                 />
-                {angezeigteSitzplaetze ? (
+                {verteilt ? (
                   <StatusText kind="success" testID="raum-ergebnis">
-                    {`${angezeigteSitzplaetze.length} Sitzplätze in ${raeumeText} vergeben.`}
+                    {`${sitzplaetze.length} Sitzplätze in ${raeumeText} vergeben.`}
                   </StatusText>
                 ) : null}
                 {ohnePlatz.length > 0 ? (
                   <StatusText kind="error">
-                    {`Kein Platz für: ${ohnePlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')}`}
+                    {`Ohne Platz: ${ohnePlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')}`}
                   </StatusText>
                 ) : null}
-                {ohnePlanPlatz.length > 0 ? (
-                  <StatusText kind="error">
-                    {`Ohne Tisch im Sitzplan: ${ohnePlanPlatz.map((p) => `${p.vorname} ${p.nachname}`).join(', ')} – im Reiter des Raums unter „Raum bearbeiten“ mehr Tische setzen.`}
-                  </StatusText>
-                ) : null}
+                {fehler ? <StatusText kind="error">{fehler}</StatusText> : null}
+                {hinweis ? <StatusText kind="info">{hinweis}</StatusText> : null}
               </Section>
 
-              <Section title="Sitzplan im Raum" testID="raum-sitzplan">
-                <Text style={styles.hinweis}>
-                  Jeder Raumeinsatz hat oben einen eigenen Reiter. Der Sitzplan zeigt, wo im Raum
-                  die Tische stehen – schon bevor verteilt wird. Die Sitzplatznummer gehört zum
-                  Tisch: Wer den Platz wechselt, bekommt die Nummer des neuen Tisches.
-                </Text>
-                {PLAN_MODI.map((m) => (
-                  <Text key={m.key} style={styles.hinweis}>
-                    <Text style={styles.pfad}>{m.titel}</Text> · {m.hinweis}
-                  </Text>
-                ))}
-                {raster.length === 0 ? (
-                  <StatusText kind="info">
-                    Noch kein Raster – Räume hinzufügen oder in Schritt 5 anlegen.
-                  </StatusText>
-                ) : null}
-              </Section>
-
-              <Section title="Sitzplatz-PDFs in Stud.IP bereitstellen" testID="raum-studip">
-                <Text style={styles.hinweis}>
-                  Unter „PDF“ entsteht je Person ein Schreiben mit ihrem Sitzplatz, benannt nach
-                  ihrer Matrikelnummer. So kommt es zu den Studierenden, ohne dass jemand die
-                  Plätze der anderen sieht:
-                </Text>
-                <StudipEinsicht art="sitzplatz" testID="raum-studip-schritte" />
-              </Section>
-
-              <Section title="Dateiname des Sitzplans">
+              <Section title="Ausgaben" testID="raum-ausgaben">
                 <LabeledTextInput
-                  label="Dateiname"
+                  label="Dateiname des Sitzplans"
                   value={dateiname}
                   onChangeText={setDateiname}
                   testID="raum-dateiname"
@@ -1835,10 +1795,76 @@ export function RaumzuteilungScreen() {
                     {pdfHinweis}
                   </StatusText>
                 ) : null}
+                <StudipEinsicht art="sitzplatz" testID="raum-studip-schritte" />
                 <ProjektDownload
                   hinweis="Enthält Räume und Raumschema in Raeume/ sowie Sitzplan und Belegung in 4_Raumzuteilung_Export/."
                   testID="raum-projekt-download-gross"
                 />
+              </Section>
+            </Reiterinhalt>
+          ) : zeigtRaum && offenerRaum ? (
+            <RaumplanBuehne
+              key={offenerRaum.key}
+              editor={editor}
+              schema={offenerRaum.schema}
+              schluessel={offenerRaum.key}
+              titel={offenerRaum.titel}
+              hoehe={hoehe}
+              bearbeiten={false}
+              belegung={belegungJeRaum.get(offenerRaum.key) ?? []}
+              nummern={nummern}
+              personen={personenJeMatrikel}
+              anzeige={anzeige}
+              onZellePress={(zeile, spalte) =>
+                zellePress(offenerRaum.key, offenerRaum.raum.raum, offenerRaum.titel, zeile, spalte)
+              }
+            />
+          ) : (
+            <Reiterinhalt testID="raum-listen">
+              <Section
+                title={ANSICHTEN.find((eintrag) => eintrag.key === ansicht)?.titel ?? 'Liste'}
+                testID="raum-ansichten"
+              >
+                {verteilt ? (
+                  <View ref={aushangRef}>
+                    {ansicht === 'aushang' ? (
+                      <DataTable
+                        columns={[
+                          { key: 'anfangNachname', title: 'Anfang Nachname' },
+                          { key: 'sitzplatznummer', title: 'Sitzplatznummer' },
+                          { key: 'raum', title: 'Raum' },
+                        ]}
+                        rows={listenZeilen().map((platz) => ({
+                          anfangNachname: platz.anfangNachname,
+                          sitzplatznummer: platz.sitzplatznummer,
+                          raum: platz.raum,
+                        }))}
+                      />
+                    ) : (
+                      <DataTable
+                        columns={[
+                          { key: 'sitzplatz', title: 'Sitzplatz' },
+                          { key: 'nachname', title: 'Nachname' },
+                          { key: 'vorname', title: 'Vorname' },
+                          { key: 'raum', title: 'Raum' },
+                          { key: 'anwesend', title: 'Anwesend' },
+                        ]}
+                        rows={listenZeilen().map((platz) => ({
+                          sitzplatz: platz.sitzplatznummer,
+                          nachname: platz.nachname,
+                          vorname: platz.vorname,
+                          raum: platz.raum,
+                          anwesend: platz.anwesend,
+                        }))}
+                      />
+                    )}
+                  </View>
+                ) : (
+                  <StatusText kind="info">
+                    Noch keine Verteilung – im Menü „Verteilung“ auf „Neu verteilen“ gehen oder
+                    über „Zurück zur Auswahl“ Teilnehmende und Räume prüfen.
+                  </StatusText>
+                )}
               </Section>
             </Reiterinhalt>
           )
@@ -1853,7 +1879,7 @@ export function RaumzuteilungScreen() {
         standard={VORLAGE_SITZPLATZ}
         platzhalter={PLATZHALTER_SITZPLATZ}
         werte={
-          angezeigteSitzplaetze?.[0] ? sitzplatzWerte(angezeigteSitzplaetze[0]) : BEISPIEL_WERTE
+          sitzplaetze[0] ? sitzplatzWerte(sitzplaetze[0]) : BEISPIEL_WERTE
         }
         onSpeichern={(neu) => {
           setVorlage(neu);

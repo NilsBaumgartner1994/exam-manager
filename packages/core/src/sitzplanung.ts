@@ -24,12 +24,13 @@
 import { normalizeName } from './namen';
 import {
   einsatzRaster,
+  Nummerierung,
   ohneFreieBelegung,
   platzAbstand,
+  platzNummern,
   platzSchluessel,
   Platzbelegung,
   Sitzverteilung,
-  sitzplatznummern,
 } from './raumbelegung';
 import { Raumschema, tischzellen } from './raumschema';
 import { eindeutigeNamenspraefixe, raumSchluessel } from './raumzuteilung';
@@ -74,6 +75,8 @@ export interface SitzplanOptionen {
   fuellung?: Raumfuellung;
   /** Erste vergebene Sitzplatznummer (Vorgabe 1001). */
   ersteSitzplatznummer?: number;
+  /** Wer eine Nummer bekommt: nur die belegten Tische (Vorgabe) oder alle. */
+  nummerierung?: Nummerierung;
 }
 
 /** Ein Platz im Raster eines Raumeinsatzes. */
@@ -230,7 +233,6 @@ export function planeSitzplan(
 ): Sitzplanung {
   const raster = einsatzRaster(raeume, schemata);
   const ersteNummer = optionen.ersteSitzplatznummer ?? 1001;
-  const nummern = sitzplatznummern(raster, ersteNummer);
   // Nur Reserven und Vorgaben sind gesetzt – der Rest wird gleich verteilt.
   const basis = ohneFreieBelegung(bestehend);
   const vorher = new Map(
@@ -289,33 +291,11 @@ export function planeSitzplan(
   }
   const ohnePlatz = offen.slice(Math.min(naechste, offen.length));
 
-  const praefixe = eindeutigeNamenspraefixe(teilnehmer);
-  const jeMatrikel = new Map(teilnehmer.map((person) => [person.matrikelnummer, person]));
+  // Die Nummern gehören zur fertigen Belegung: Standardmäßig bekommt nur ein
+  // Tisch eine, auf dem jemand sitzt.
+  const nummern = platzNummern(raster, belegung, ersteNummer, optionen.nummerierung ?? 'belegte');
+  const sitzplaetze = sitzplaetzeAusBelegung(teilnehmer, raeume, belegung, nummern);
   const einsatzJeSchluessel = new Map(raeume.map((raum) => [raumSchluessel(raum), raum]));
-
-  const sitzplaetze: Sitzplatz[] = [];
-  for (const platz of belegung) {
-    const person = jeMatrikel.get(platz.matrikelnummer);
-    if (!person) continue;
-    const einsatz = einsatzJeSchluessel.get(platz.raum);
-    const raumName = einsatz?.raum ?? platz.raum;
-    const zeit = einsatz?.reservierteZeit ?? '';
-    sitzplaetze.push({
-      anfangNachname: praefixe.get(person) ?? person.nachname,
-      sitzplatznummer:
-        nummern.get(platzSchluessel(platz.raum, platz.zeile, platz.spalte)) ?? ersteNummer,
-      raum: raumName,
-      raumSchluessel: platz.raum,
-      reservierteZeit: zeit,
-      matrikelnummer: person.matrikelnummer,
-      anwesend: '',
-      nachname: person.nachname,
-      vorname: person.vorname,
-      zeitUndRaum: `${zeit} - ${raumName}`,
-      email: person.email,
-    });
-  }
-  sitzplaetze.sort((a, b) => a.sitzplatznummer - b.sitzplatznummer);
 
   return {
     belegung,
@@ -344,4 +324,68 @@ function nachNamen(a: Zulassung, b: Zulassung): number {
   const vorname = normalizeName(a.vorname).localeCompare(normalizeName(b.vorname));
   if (vorname !== 0) return vorname;
   return a.matrikelnummer.localeCompare(b.matrikelnummer);
+}
+
+/**
+ * Die Sitzplätze zu einer Belegung – wer sitzt wo, mit Nummer, Raum und Zeit.
+ *
+ * **Die Belegung ist die Quelle**, nicht eine zweite Liste daneben: Wer im
+ * Plan jemanden umsetzt, ändert damit den Sitzplan. Deshalb entsteht die
+ * Liste hier aus dem Plan und nicht umgekehrt – und der Screen kann sie nach
+ * jeder Änderung neu ableiten, statt zwei Stände nachzuführen.
+ *
+ * Sortiert nach Sitzplatznummer; wer keine hat (Tisch ohne Nummer), steht am
+ * Ende in der Reihenfolge des Rasters.
+ */
+export function sitzplaetzeAusBelegung(
+  teilnehmer: Zulassung[],
+  raeume: Raum[],
+  belegung: Platzbelegung[],
+  nummern: Map<string, number>,
+): Sitzplatz[] {
+  const praefixe = eindeutigeNamenspraefixe(teilnehmer);
+  const jeMatrikel = new Map(teilnehmer.map((person) => [person.matrikelnummer, person]));
+  const einsatzJeSchluessel = new Map(raeume.map((raum) => [raumSchluessel(raum), raum]));
+
+  const sitzplaetze: { platz: Sitzplatz; nummer: number | undefined }[] = [];
+  for (const platz of belegung) {
+    const person = jeMatrikel.get(platz.matrikelnummer);
+    if (!person) continue;
+    const einsatz = einsatzJeSchluessel.get(platz.raum);
+    const raumName = einsatz?.raum ?? platz.raum;
+    const zeit = einsatz?.reservierteZeit ?? '';
+    const nummer = nummern.get(platzSchluessel(platz.raum, platz.zeile, platz.spalte));
+    sitzplaetze.push({
+      nummer,
+      platz: {
+        anfangNachname: praefixe.get(person) ?? person.nachname,
+        sitzplatznummer: nummer ?? 0,
+        raum: raumName,
+        raumSchluessel: platz.raum,
+        reservierteZeit: zeit,
+        matrikelnummer: person.matrikelnummer,
+        anwesend: '',
+        nachname: person.nachname,
+        vorname: person.vorname,
+        zeitUndRaum: `${zeit} - ${raumName}`,
+        email: person.email,
+      },
+    });
+  }
+  return sitzplaetze
+    .sort((a, b) => (a.nummer ?? Infinity) - (b.nummer ?? Infinity))
+    .map((eintrag) => eintrag.platz);
+}
+
+/**
+ * Wer in dieser Belegung keinen Platz hat – die Antwort auf „sind alle
+ * verteilt?“. Sie steht in Schritt 4 rot im Menüband: Wird ein besetzter Platz
+ * freigehalten oder ein Tisch entfernt, fällt jemand heraus, und das darf
+ * nicht auffallen, wenn die Listen schon gedruckt sind.
+ */
+export function ohneSitzplatz(teilnehmer: Zulassung[], belegung: Platzbelegung[]): Zulassung[] {
+  const sitzt = new Set(
+    belegung.filter((platz) => platz.matrikelnummer !== '').map((platz) => platz.matrikelnummer),
+  );
+  return teilnehmer.filter((person) => !sitzt.has(person.matrikelnummer));
 }

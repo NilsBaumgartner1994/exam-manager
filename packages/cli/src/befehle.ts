@@ -443,6 +443,12 @@ const raumzuteilung: Befehl = {
         standard: 'abstand',
       },
       {
+        name: 'nummern',
+        art: 'text',
+        beschreibung: 'Sitzplatznummern für belegte Plätze oder alle Tische',
+        standard: 'belegte',
+      },
+      {
         name: 'out',
         art: 'pfad',
         beschreibung:
@@ -533,6 +539,12 @@ const raumzuteilung: Befehl = {
         `--sitzverteilung kennt nur lesereihenfolge und abstand, nicht „${sitzverteilung}“.`,
       );
     }
+    const nummerierung = text(args, 'nummern') ?? 'belegte';
+    if (nummerierung !== 'belegte' && nummerierung !== 'alle') {
+      throw new FehlendeAngabe(
+        `--nummern kennt nur belegte und alle, nicht „${nummerierung}“.`,
+      );
+    }
     const ersteNummer = zahl(args, 'start', 1001);
 
     // Erst die Plätze, dann die Personen: `planeSitzplan` wählt die Tische
@@ -547,10 +559,13 @@ const raumzuteilung: Befehl = {
       {
         sitzverteilung: sitzverteilung as Sitzverteilung,
         fuellung,
+        nummerierung,
         ersteSitzplatznummer: ersteNummer,
       },
     );
-    melde(`Plätze im Raum: ${sitzverteilung}, erste Sitzplatznummer ${ersteNummer}`);
+    melde(
+      `Plätze im Raum: ${sitzverteilung}, Nummern für ${nummerierung === 'alle' ? 'alle Tische' : 'die belegten Plätze'} ab ${ersteNummer}`,
+    );
     for (const einsatz of einsaetze) {
       const belegt = belegung.filter(
         (platz) => platz.raum === einsatz.raum && platz.matrikelnummer !== '',

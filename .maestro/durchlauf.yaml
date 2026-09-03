@@ -1,7 +1,8 @@
 # Kompletter Durchlauf: alle fünf Screens mit den eingebauten Beispieldaten.
 # Erwartete Zahlen stammen aus dem anonymisierten Beispiel-Datensatz
 # (siehe README "Beispieldaten"): 6 neue Zulassungen, 9 mit Zulassung,
-# 7 von 8 Angemeldeten zugelassen, 7 Sitzplätze in 5 Räumen.
+# 7 von 8 Angemeldeten zugelassen, 7 Sitzplätze – seit die Räume nacheinander
+# gefüllt werden, alle im ersten (01/E01 hat 193 Plätze).
 url: http://localhost:8081
 ---
 # ---------- Startseite ----------
@@ -81,34 +82,35 @@ url: http://localhost:8081
 - assertVisible: 'Nicht zugelassen: Crick, Francis (1000006)'
 
 # ---------- Screen 4: Raumzuteilung & Sitzplan ----------
-# Arbeitsfläche wie eine Tabellenkalkulation: oben die Menüleiste (Datei, PDF,
-# Werkzeuge, Anzeigen, Räume), dazwischen die Fläche, unten die Fußleiste.
-# Jede Aktion steht in einem Menü – erst den Namen antippen, dann den Eintrag.
+# Zwei Bilder: erst die Auswahl (Teilnehmende, Räume), dann die Arbeitsfläche
+# mit der Menüleiste (Datei, Verteilung, Raum, Ansicht, Werkzeuge,
+# Einstellungen), der Fläche und der Fußleiste. Jede Aktion steht in einem
+# Menü – erst den Namen antippen, dann den Eintrag.
 - launchApp
 - tapOn: '4. Raumzuteilung & Sitzplan'
 - tapOn:
     id: 'raum-menue-datei'
 - tapOn: 'Beispieldaten laden'
-# Welche Räume die Klausur benutzt, steht im Reiter „Einstellungen“ – aus dem
-# Bestand in Raeume/ ausgewählt; derselbe Raum darf mehrfach dabei sein.
+# Welche Räume die Klausur benutzt, wird in der Auswahl zusammengestellt – aus
+# dem Bestand in Raeume/; derselbe Raum darf mehrfach dabei sein.
 - assertVisible: 'Räume der Klausur'
 # Über der Liste steht, ob die Plätze reichen – die Räume der Beispieldaten
 # haben zusammen 345 Plätze (die Tische in ihren Rastern).
 - scrollUntilVisible:
     element: 'höchstens 345 Plätze'
-# Unter den Einstellungen steht die Vorschau: Sie rechnet mit, sobald eine
-# Verteilungsart gewählt wird – erst der Knopf darunter übernimmt sie.
+# Schritt 4 beginnt mit der Auswahl: erst die Teilnehmenden, dann die Räume.
+# „Verteilen und weiter“ rechnet die Verteilung und wechselt zur Arbeitsfläche.
 - scrollUntilVisible:
-    element: 'Plätze so weit auseinander wie möglich'
-- scrollUntilVisible:
-    element: 'Vorschau'
-- assertVisible: '7 von 7 Teilnehmenden bekämen einen Platz'
-- scrollUntilVisible:
-    element: 'Verteilung übernehmen'
-- tapOn: 'Verteilung übernehmen'
-# Danach steht das Ergebnis im Reiter „Listen“. Die Räume werden nacheinander
-# gefüllt, und in 01/E01 (193 Plätze) ist für alle sieben Platz.
-- assertVisible: '7 Sitzplätze in einem Raum vergeben'
+    element: 'Erste Sitzplatznummer'
+- tapOn:
+    id: 'raum-erstellen'
+# Danach steht der Raumplan da; das Menüband nennt den Stand der Verteilung.
+- assertVisible: 'Einstellungen'
+- tapOn:
+    id: 'raum-menue-verteilung'
+- assertVisible: 'Neu verteilen'
+- tapOn:
+    id: 'raum-menue-verteilung'
 # Der Plan als Tabelle: einmal nur mit den Nummern (Aushang), einmal mit
 # Matrikelnummer und Name (Aufsicht).
 - tapOn:
@@ -119,32 +121,37 @@ url: http://localhost:8081
     id: 'raum-menue-datei'
 - tapOn: 'Sitzplan als Raster-CSV (mit Namen)'
 - assertVisible: 'je Feld Nummer, Matrikelnummer und Name'
-- tapOn: 'Dozent'
-- tapOn: 'Tutor'
+# Die Listen liegen im Menü „Ansicht“ – eine zur Zeit.
 - tapOn:
-    id: 'raum-ansicht-raeume'
-- tapOn: 'Aushang'
-# Ein Reiter je Raumeinsatz – zu finden im Menü „Räume“. Der Sitzplan füllt
-# danach die Fläche, Zoom und Stand stehen darunter.
+    id: 'raum-menue-ansicht'
 - tapOn:
-    id: 'raum-menue-raeume'
+    id: 'raum-ansicht-nummern'
+- assertVisible: 'Liste nach Sitzplatznummer'
+- tapOn:
+    id: 'raum-menue-ansicht'
+- tapOn:
+    id: 'raum-ansicht-aushang'
+- assertVisible: 'Anfang Nachname'
+# Zurück zum Raumplan – die Räume dieser Klausur stehen im Menü „Raum“.
+- tapOn:
+    id: 'raum-menue-raum'
 - tapOn:
     id: 'raum-reiter-94/E01'
 - assertVisible: 'Raster 9 Spalten'
-# Was in den Kästen steht, hängt im Menü „Anzeigen“ – ein Häkchen lässt es
-# offen, deshalb schließt der zweite Tipp auf den Namen es wieder.
+# Was in den Kästen steht und wie verteilt wird, hängt im Menü
+# „Einstellungen“ – ein Häkchen lässt es offen, deshalb schließt der zweite
+# Tipp auf den Namen es wieder.
 - tapOn:
-    id: 'raum-menue-anzeige'
+    id: 'raum-menue-einstellungen'
 - assertVisible: 'Namenskürzel'
+- assertVisible: 'Nur belegte Plätze nummerieren'
 - tapOn:
-    id: 'raum-menue-anzeige'
-# Die Palette liegt im Menü „Werkzeuge“ – erst der Modus, dann die Elemente.
+    id: 'raum-menue-einstellungen'
+# Was ein Tippen auf einen Platz tut, steht im Menü „Werkzeuge“ – das Raster
+# selbst wird in Schritt 5 gebaut.
 - tapOn:
     id: 'raum-menue-werkzeuge'
-- tapOn: 'Raum bearbeiten'
-- tapOn:
-    id: 'raum-menue-werkzeuge'
-- assertVisible: 'Sitzplatz'
+- assertVisible: 'Platz freihalten'
 - tapOn:
     id: 'raum-menue-werkzeuge'
 # Der Text der Sitzplatz-PDFs ist eine Vorlage: Blatt öffnen, Vorschau mit den

@@ -71,13 +71,29 @@ describe('Plätze wählen (vor den Personen)', () => {
 
 describe('Personen zuordnen (nach der Platzwahl)', () => {
   it('ordnet der Reihe nach zu: alphabetisch aufsteigende Sitzplatznummern', () => {
-    const { sitzplaetze, ohnePlatz } = planeSitzplan(PERSONEN, [{ raum: 'Reihe', reservierteZeit: '' }], REIHE);
+    const { sitzplaetze, ohnePlatz, nummern } = planeSitzplan(
+      PERSONEN,
+      [{ raum: 'Reihe', reservierteZeit: '' }],
+      REIHE,
+    );
     expect(ohnePlatz).toHaveLength(0);
     expect(sitzplaetze.map((s) => s.nachname)).toEqual(['Archi', 'Bohr', 'Curie', 'Darwin']);
+    // Nummeriert wird, wo jemand sitzt: Der leere Tisch (Spalte 3) bekommt
+    // keine Nummer, die Sitzenden dafür 1001 bis 1004 in Lesereihenfolge.
+    expect(sitzplaetze.map((s) => s.sitzplatznummer)).toEqual([1001, 1002, 1003, 1004]);
+    expect(nummern.get('Reihe|0|3')).toBeUndefined();
+  });
+
+  it('nummeriert auf Wunsch jeden Tisch, auch den leeren', () => {
+    const { sitzplaetze, nummern } = planeSitzplan(
+      PERSONEN,
+      [{ raum: 'Reihe', reservierteZeit: '' }],
+      REIHE,
+      [],
+      { nummerierung: 'alle' },
+    );
+    expect(nummern.get('Reihe|0|3')).toBe(1004);
     expect(sitzplaetze.map((s) => s.sitzplatznummer)).toEqual([1001, 1002, 1003, 1005]);
-    // Gewählt wurden zuerst die äußeren Plätze – die Nummern zeigen, dass die
-    // Personen erst danach der Reihe nach daraufgesetzt wurden.
-    expect(sitzplaetze[0].sitzplatznummer).toBeLessThan(sitzplaetze[3].sitzplatznummer);
   });
 
   it('trägt Raum und Zeit des Einsatzes in jeden Sitzplatz ein', () => {
@@ -111,7 +127,7 @@ describe('Personen zuordnen (nach der Platzwahl)', () => {
   it('setzt niemanden auf einen Platz mit Nachricht', () => {
     const leer = planeSitzplan([], [{ raum: 'Reihe', reservierteZeit: '' }], REIHE);
     const gesperrt = setzeNotiz(leer.belegung, 'Reihe', 0, 2, 'Tisch wackelt');
-    const { belegung, sitzplaetze } = planeSitzplan(
+    const { belegung, sitzplaetze, nummern } = planeSitzplan(
       PERSONEN,
       [{ raum: 'Reihe', reservierteZeit: '' }],
       REIHE,
@@ -119,7 +135,10 @@ describe('Personen zuordnen (nach der Platzwahl)', () => {
     );
     const mitte = belegung.find((platz) => platz.spalte === 2);
     expect(mitte).toMatchObject({ reserviert: true, matrikelnummer: '', notiz: 'Tisch wackelt' });
-    expect(sitzplaetze.map((s) => s.sitzplatznummer)).not.toContain(1003);
+    // Vier Personen, aber nur vier freie Tische: Der gesperrte bleibt leer und
+    // bekommt deshalb auch keine Nummer.
+    expect(nummern.get('Reihe|0|2')).toBeUndefined();
+    expect(belegung.filter((platz) => platz.matrikelnummer !== '')).toHaveLength(4);
 
     // Die Nachricht überlebt den Weg durch die Belegungs-CSV.
     const wieder = parseBelegung(belegungToCsv(belegung, sitzplaetze, sitzplatznummern(REIHE, 1001)));

@@ -285,29 +285,58 @@ Und die vier Schritte selbst:
    CSV herunterladen. Der Export ist nur für den Klausurdruck nötig – Schritt 4
    kommt auch ohne ihn aus (siehe dort).
 4. **Raumzuteilung & Sitzplan** – Teilnehmende aus Schritt 3 (oder aus den
-   Anmeldungen selbst, siehe unten), die Räume dieser Klausur
-   zusammenstellen, Sitzplätze ab Startnummer
-   (Default 1001) vergeben; Ansichten: Aushang (anonym), Dozent (nach
-   Sitzplatz), Tutor (nach Nachname), Räume/Aushänge je Raum; Export als CSV,
-   Sitzplatz-PDFs (ZIP) und alle Aushänge als PDF über den Druckdialog. Auch
-   hier lässt sich der **Text der PDFs** anpassen (siehe unten).
+   Anmeldungen selbst, siehe unten), die Räume dieser Klausur zusammenstellen,
+   verteilen und die Plätze vergeben; Export als CSV, Sitzplan-PDFs, Aushang,
+   Listen und Sitzplatz-PDFs (ZIP). Auch hier lässt sich der **Text der PDFs**
+   anpassen (siehe unten).
 
-   **Aufbau wie eine Tabellenkalkulation** (genauso in Schritt 5): oben im
-   Kopf der App „Zurück“ und der Titel, darunter die **Menüleiste** – wie in
-   Word oder Excel klappt jedes Menü mit einem Klick auf seinen Namen auf:
-   **Datei** (speichern, laden, Projekt), **PDF**, **Werkzeuge** (was ein
-   Tippen in den Plan tut, die Palette, Raster und Rückgängig), **Anzeigen**
-   (was in den Kästen steht) und **Räume**. Dazwischen nichts als die
-   Arbeitsfläche in voller Breite; unten die **Fußleiste** mit Ansicht/Zoom und
-   dem Stand (belegte Plätze, Rastergröße, Meldungen). Im Menü **Räume** wird
-   umgeschaltet: **Einstellungen** (Teilnehmende, Räume der Klausur,
-   Zuteilung), **Listen** (Aushang, Dozent, Tutor, Aushänge je Raum) und
-   **je ein Eintrag pro Raumeinsatz** mit dessen Sitzplan; was gerade offen ist
-   (und welches Werkzeug malt), steht klein hinter dem Menünamen. **Werkzeuge**
-   und **Anzeigen** gibt es nur bei offenem Raumplan. Auf schmalen
-   Bildschirmen wird daraus ein **Burger-Menü ☰**: Es öffnet eine Schublade
-   mit den Menüs, ein Tippen geht eine Ebene tiefer, „Zurück“ wieder herauf –
-   so behält der Plan den Platz.
+   **Zwei Bilder, nicht eine lange Seite:** Der Screen beginnt mit der
+   **Auswahl** – erst die Teilnehmenden (Datei oder Projekt), dann die Räume,
+   bis genug Plätze da sind. Was hier gewählt wird, wandert von selbst in den
+   Projektstand: Teilnehmerliste, Raumliste (`klausurraeume.csv`), Raster und
+   Belegung stehen nach einem Wechsel des Screens wieder da, ohne dass jemand
+   „speichern“ gedrückt hat. Der Knopf **„Verteilen und weiter“** rechnet die
+   Verteilung und wechselt zur **Arbeitsfläche** – dem zweiten Bild, gebaut wie
+   Schritt 5.
+
+   **Die Arbeitsfläche** (genauso in Schritt 5): oben im Kopf der App „Zurück“
+   und der Titel, darunter die **Menüleiste** – wie in Word oder Excel klappt
+   jedes Menü mit einem Klick auf seinen Namen auf:
+
+   - **Datei** – speichern (Sitzplan, Räume, Raster, Belegung), die PDFs,
+     laden, Projekt.
+   - **Verteilung** – neu verteilen, alle Vorgaben lösen, alle freigehaltenen
+     Plätze aufheben, zurück zur Auswahl. Hinter dem Namen steht, wie viele
+     von wie vielen einen Platz haben.
+   - **Raum** – zwischen den Räumen dieser Klausur wechseln (je Einsatz ein
+     Eintrag mit „x/y belegt“).
+   - **Ansicht** – **Raumplan**, **Aushang** (Namenskürzel → Sitzplatz),
+     **Liste nach Nachname** (für den Einlass) und **Liste nach
+     Sitzplatznummer** (für die Aufsicht in den Reihen). Gezeigt wird immer
+     genau eins davon: Wer einen Raum ansieht, sieht den Raum – nicht Plan und
+     Tabelle untereinander.
+   - **Werkzeuge** – was ein Tippen auf einen Platz tut: das **Blatt öffnen**
+     (Voreinstellung), **freihalten** oder **freihalten aufheben**; dazu
+     Drehen der Ansicht und Rückgängig/Wiederholen. Nur im Raumplan zu
+     gebrauchen; in einer Liste steht dort der Hinweis darauf.
+   - **Einstellungen** – Sitzplatznummern **nur für belegte Plätze**
+     (Voreinstellung) oder für jeden Tisch, Räume **nacheinander** oder
+     **gleichmäßig** füllen, Plätze **mit Abstand** oder der Reihe nach, und
+     was in den Kästen steht (Namenskürzel, Matrikelnummer, Sitzplatznummer,
+     „Pult“). Jede Umstellung der Verteilung rechnet den Plan sofort neu.
+   - **⚠ n ohne Platz** – erscheint **rot**, sobald jemand keinen Platz hat
+     (etwa weil ein besetzter Platz freigehalten wurde). Darin stehen die
+     Namen und „Neu verteilen“.
+
+   Dazwischen nichts als die Arbeitsfläche in voller Breite; unten die
+   **Fußleiste** mit Ansicht/Zoom und dem Stand (belegte Plätze, Rastergröße,
+   Meldungen). Auf schmalen Bildschirmen wird die Leiste ein **Burger-Menü ☰**:
+   Es öffnet eine Schublade mit den Menüs, ein Tippen geht eine Ebene tiefer,
+   „Zurück“ wieder herauf – so behält der Plan den Platz.
+
+   **Das Raster wird hier nicht gebaut.** Tische setzen, Wände ziehen,
+   beschriften – das ist Schritt 5. In Schritt 4 geht es darum, **wer** wo
+   sitzt: platzieren, festsetzen, freihalten, räumen.
 
    **Ohne Umweg über Schritt 3:** Liegt im Projektordner keine Teilnehmerliste
    in `3_Klausur_Teilnehmende_Export/`, prüft dieser Schritt die Anmeldungen
@@ -334,12 +363,18 @@ Und die vier Schritte selbst:
    Raum für Raum, darin Reihe für Reihe. Mit dem Nachnamen steigt so die
    Sitzplatznummer, auch wenn die Plätze quer durch den Raum liegen.
 
-   **Die Vorschau steht darunter** und rechnet mit: Jede Umstellung zeigt
-   sofort, wo die Leute säßen – ein Plan je benutztem Raumeinsatz, leer
-   bleibende Räume als Zeile darunter. Erst „Verteilung übernehmen“ macht
-   daraus den Sitzplan, an dem sich danach von Hand weiterarbeiten lässt
-   (jemanden festsetzen, einen Platz mit einer Nachricht freihalten, neu
-   verteilen). Heruntergeladen wird danach, in den Menüs „Datei“ und „PDF“.
+   **Die Sitzplatznummern gehören zur Verteilung:** Voreingestellt bekommt nur
+   ein Tisch eine Nummer, auf dem jemand sitzt – am Aushang soll keine Nummer
+   stehen, die niemandem gehört. Wer die Nummern eines Saals durchzählen will
+   (jedes Semester dieselben Schilder), stellt das unter „Einstellungen“ auf
+   „jeder Tisch“ um.
+
+   **Der Plan ist die Vorschau:** Jede Umstellung unter „Einstellungen“ rechnet
+   sofort neu, und man sieht im Raumplan, wo die Leute säßen. Von Hand geht
+   danach weiter, was zu einer Klausur gehört – jemanden festsetzen (der Platz
+   bekommt einen roten Rand und bleibt beim nächsten Verteilen), einen Platz
+   mit einer Nachricht freihalten, neu verteilen. Heruntergeladen wird zuletzt,
+   im Menü „Datei“.
 
    **Räume der Klausur:** Der Bestand des Hauses steht in `Raeume/` (Schritt 5)
    und gilt für jedes Jahr. Hier wird ausgewählt, welche dieser Räume die
@@ -377,20 +412,25 @@ Und die vier Schritte selbst:
      Teilnehmenden – wer schon woanders sitzt, tauscht den Platz), den
      **Platz räumen**, die **Vorgabe** lösen oder setzen und den Platz als
      **Reserve** freihalten.
-   - **Vorgabe** – wer von Hand gesetzt wird, bleibt dort: auch bei „Sitzplan
-     neu verteilen“ und bei einer neuen Zuteilung (die Person kommt dann in
-     genau diesen Raum). Im Plan steht „fest“ daneben.
-   - **Reserve** – ein Platz, der für **diese** Klausur frei bleibt; wer
-     dadurch verdrängt wird, rückt auf einen freien Tisch nach (bleibt keiner
-     übrig, nennt die App die Person). Die Reserve steht in der Belegung,
-     nicht im Raster des Raums – ein dauerhaft freier Tisch bekommt in
-     Schritt 5 das Element „Reserve“.
+   - **Vorgabe** – wer von Hand gesetzt wird, bleibt dort: auch beim nächsten
+     Verteilen. Im Plan bekommt der Kasten einen **roten Rand** und darunter
+     „fest“ – das sieht man auch aus der Entfernung.
+   - **Reserve** – ein Platz, der für **diese** Klausur frei bleibt. Wer dort
+     saß, fällt heraus und wird **nicht** stillschweigend nachgesetzt:
+     Stattdessen steht oben rot „⚠ 1 ohne Platz“, und ein Klick darauf bietet
+     „Neu verteilen“ an. Die Reserve steht in der Belegung, nicht im Raster des
+     Raums – ein dauerhaft freier Tisch bekommt in Schritt 5 das Element
+     „Reserve“. Mehrere Plätze nacheinander sperrt das Werkzeug „Platz
+     freihalten“ (Menü „Werkzeuge“).
    - **Nachricht am Platz** – zu einem freigehaltenen Platz lässt sich
      hinschreiben, **warum** er frei bleibt („Tisch wackelt“,
      „Nachteilsausgleich“). Sie steht statt „Reserve“ im Kasten des Plans, im
      PDF, in der Belegungs-CSV (Spalte `Hinweis`) und im Sitzplan als Tabelle
      – damit die Aufsicht die Lücke nicht für einen Fehler hält.
-   - **Was in den Kästen steht** – Häkchen über dem Plan: Namenskürzel,
+   - **Unter dem Mauszeiger** wird der Kasten hervorgehoben, über dem er
+     gerade steht – in einem Hörsaal mit 44 Spalten trifft man den gemeinten
+     Tisch sonst kaum. Das gilt in Schritt 4 wie in Schritt 5.
+   - **Was in den Kästen steht** – im Menü „Einstellungen“: Namenskürzel,
      Matrikelnummer, Sitzplatznummer, „Pult“ beschriften. Sie gelten für den
      Bildschirm **und** für die PDFs; auf dem Aushang steht die Sitzplatznummer
      immer.
@@ -398,52 +438,27 @@ Und die vier Schritte selbst:
      dazu getrennt „Aushang als PDF“ (eine Seite je Raum),
      „Dozentenliste als PDF“ (nach Sitzplatz) und „Tutorenliste als PDF“ (nach
      Nachname). Gezeichnet wird dasselbe Raster wie am Bildschirm.
-   - **Zeiger (voreingestellt)** – das neutrale Werkzeug: Ein Klick in den Plan
-     öffnet ein Blatt mit dem, was an dieser Stelle ist – Art der Zelle,
-     Sitzplatznummer, wer dort sitzt, welcher Text darüber liegt – und ändert
-     nichts. Dort steht auch der **Text dieser Stelle zum Hineinschreiben**
-     („Text anlegen“, wenn noch keiner da ist). Gezeichnet wird erst, wenn man
-     ein Element aus der Palette wählt; ein Ziehen mit dem Zeiger schiebt den
-     Ausschnitt.
-   - **Raum bearbeiten** – im Menü **Werkzeuge** liegt die Palette
-     (Zeiger, Auswählen, Verschieben, Sitzplatz, Reserve, Pult, Wand, Tür,
-     Text, Radierer). Ein Element auf eine Zelle **ziehen**
-     setzt es dort; **antippen** wählt es aus und man malt damit im Plan (über
-     Zellen ziehen zeichnet z. B. eine ganze Wand). Mit **Auswählen** zieht
-     man über mehrere Zellen, ohne etwas zu verändern – markiert wird nur –,
-     und **gedrückt halten in der Auswahl** verschiebt den ganzen Block; die
-     Belegung wandert mit. Am blauen **Griff an der unteren Ecke** zieht man
-     die Auswahl wie in einer Tabellenkalkulation über mehrere Felder auf oder
-     wieder zusammen und füllt sie dabei. Zeilen und Spalten lassen sich
-     zusätzlich über die Einträge desselben Menüs hinzufügen und entfernen.
+   - **Das Raster selbst ändert Schritt 5** – Tische setzen, Wände ziehen,
+     Zellen verbinden, beschriften: alles in „Räume & Raumpläne“, mit
+     derselben Ansicht und derselben Bedienung (siehe dort). Schritt 4 zeigt
+     denselben Plan, ändert daran aber nur die Belegung – so baut niemand beim
+     Verteilen aus Versehen den Saal um.
    - **Sitzplatz, Reserve oder Pult?** Alle drei sind Tische. Ein
      **Sitzplatz** (`T`) ist ein Tisch, an dem jemand geprüft wird: Nur diese
      werden nummeriert und belegt, und nur sie zählt die Platzzahl des Raums.
      Ein **Reserve**-Tisch (`R`) bleibt in diesem Raum dauerhaft frei – der
      defekte Tisch, der Platz direkt an der Tafel, der der Aufsicht – und
-     bekommt keine Nummer; warum, schreibt man mit dem Textwerkzeug darauf.
-     Das **Pult** (`P`) ist der einfache Tisch für alles andere (Ablage,
-     Materialtisch).
+     bekommt keine Nummer; warum, schreibt man in Schritt 5 mit dem
+     Textwerkzeug daneben. Das **Pult** (`P`) ist der einfache Tisch für alles
+     andere (Ablage, Materialtisch).
    - **Flache Kästen:** Eine Zelle ist halb so hoch wie breit – es sind Tische,
      keine Quadrate. So passen doppelt so viele Reihen ins Bild, ohne dass die
      Kästen schmaler werden.
    - **Rückgängig / Wiederholen** – jeder Schritt im Plan lässt sich zurück-
      nehmen: die Einträge im Menü **Werkzeuge** oder <kbd>Strg</kbd>/<kbd>⌘</kbd> +
      <kbd>Z</kbd> (vorwärts mit <kbd>Umschalt</kbd> + <kbd>Z</kbd> bzw.
-     <kbd>Y</kbd>). Das gilt auch fürs Platzieren, für Reserven und Vorgaben –
-     Raster und Belegung gehen immer zusammen einen Schritt zurück.
-   - **Text und verbundene Zellen** – mit dem Werkzeug **Text** zieht man über
-     mehrere Felder ein Feld auf, in das sich frei schreiben lässt (z. B.
-     „Tafel“, „Haupteingang“ oder ein Hinweis für die Aufsicht). Dasselbe
-     leisten die Einträge **Zellen verbinden** und **Zellen trennen** für die
-     aktuelle Auswahl. Das Feld legt sich **über** den Plan, statt ihn zu
-     ersetzen: So lässt sich auch eine Tür, ein Pult oder eine ganze
-     Tischreihe beschriften – die Zellen darunter bleiben, was sie sind. Weg
-     ist ein Feld mit **Zellen trennen** oder dem Radierer.
-     **Hineingeschrieben** wird wie in einer Tabellenkalkulation per
-     **Doppelklick** auf das Feld – oder im Blatt des Zeigers. Ein einzelner
-     Klick schreibt nicht: Er gehört dem Werkzeug, damit man nicht aus
-     Versehen im Text landet.
+     <kbd>Y</kbd>). Das gilt fürs Platzieren, fürs Freihalten und für Vorgaben
+     ebenso wie fürs Verteilen.
    - **Raster sehen** – jedes Feld hat eine dünne Linie, oben stehen die
      Spalten als `A`, `B`, `C` … und links die Zeilen als `1`, `2`, `3` – wie
      in einer Tabellenkalkulation. Die Fußleiste nennt die Rastergröße und
@@ -694,6 +709,7 @@ yarn 4_raumzuteilung [<allowedStudents.csv>] [<klausurraeume.csv>] [Schalter]
 | `--raeume <Ordner>` | Ordner mit den Rastern, je Raum eine CSV |
 | `--modus <Wort>` | Räume füllen: `nacheinander` oder `gleichmaessig`, Standard `nacheinander` (die englischen Wörter `sequential`/`balanced` der ersten Fassung gelten weiter) |
 | `--sitzverteilung <Wort>` | Plätze im Raum: `abstand` (so weit auseinander wie möglich) oder `lesereihenfolge`, Standard `abstand` |
+| `--nummern <Wort>` | Sitzplatznummern für `belegte` Plätze oder `alle` Tische, Standard `belegte` |
 | `--start <Zahl>` | erste Sitzplatznummer (Standard 1001) |
 | `--out <Datei>` | Sitzplan hierhin schreiben; die beiden Raster-CSVs landen daneben (mit `--projekt`: `4_Raumzuteilung_Export/`) |
 | `--trotzdem` | auch verteilen, wenn die Plätze nicht reichen |

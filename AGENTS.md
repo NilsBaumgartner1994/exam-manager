@@ -283,9 +283,9 @@ Konventionen des Datensatzes:
   rechnen. Ein Vollbild-Modus wäre danach überflüssig: Der Screen **ist** das
   Vollbild.
 - **Das Menüband ist eine Menüleiste, keine Knopfreihe** (`Menueband.tsx`,
-  `Menueleiste`): eine Zeile mit „Datei“, „Verteilung“, „Raum“, „Ansicht“,
-  „Werkzeuge“, „Einstellungen“ (Schritt 5: „Datei“, „PDF“, „Werkzeuge“,
-  „Anzeigen“, „Räume“) – jedes klappt auf, wie in Word oder Excel. Über dreißig Knöpfe in
+  `Menueleiste`): eine Zeile mit „Datei“, „Verteilung“, „Raum“, „Werkzeuge“,
+  „Einstellungen“ (Schritt 5: „Datei“, „PDF“, „Werkzeuge“, „Anzeigen“,
+  „Räume“) – jedes klappt auf, wie in Word oder Excel. Über dreißig Knöpfe in
   vier Zeilen nahmen dem Plan den halben Bildschirm. Ein Screen beschreibt
   seine Menüs als **Daten** (`MenuGruppe`/`MenuEintrag`: `aktion`, `schalter`,
   `datei`, `ziehbar`, `trenner`), nicht als Bausteine – daraus wird am Rechner
@@ -307,6 +307,11 @@ Konventionen des Datensatzes:
     „Ansicht Raumplan“) und auf dem Handy neben dem Burger: In einer
     Knopfreihe war es die hervorgehobene Kachel, im zugeklappten Menü sähe man
     es sonst nicht.
+  - **Ein Eintrag darf ein Untermenü aufmachen** (`art: 'unter'`): Beim
+    Überfahren klappt rechts daneben eine zweite Liste auf, auf dem Handy geht
+    die Schublade eine Ebene tiefer (der Weg dorthin ist ein Pfad, kein
+    einzelner Titel). So steht „als CSV oder als PDF?“ am Namen der Liste,
+    statt jede Liste zweimal ins Menü zu schreiben.
   - **Ein Menü darf rot sein** (`warnung`): Schritt 4 hängt „⚠ n ohne Platz“
     ins Band, sobald jemand keinen Platz hat. Ein Hinweis im Formular wäre
     weggescrollt, sobald man im Plan arbeitet – im Band steht er, bis er
@@ -417,6 +422,19 @@ Konventionen des Datensatzes:
   „Werkzeuge“ sagt nur, was ein Tippen auf einen Platz tut (Blatt öffnen,
   freihalten, freihalten aufheben) und hält Drehen und Verlauf bereit. Wer
   beim Verteilen aus Versehen den Saal umbaut, merkt es erst im Aushang.
+- **Die Listen stehen im Core** (`listen.ts`, `baueListe`): Spalten,
+  Sortierung und Abschnitte einmal beschrieben, daraus entstehen CSV **und**
+  gedruckte Tabelle. Vorher gab es je Ausgabe eine eigene Zusammenstellung,
+  und sie liefen auseinander. Die Aufsichtsliste zerfällt dabei in Abschnitte
+  je Raumeinsatz – daraus wird beim CSV je Raum eine Datei (ZIP), beim Druck
+  je Raum eine Seite.
+- **„Als PDF“ heißt bei Listen: drucken.** Die Liste wird außerhalb des Bildes
+  gerendert (`druckbereich`, absolut nach links geschoben – nicht
+  `display: none`, das hätte keine Maße) und dann mit `druckeAnsicht`
+  ausgegeben. So sieht das Papier aus wie der Bildschirm, samt Zebrastreifen,
+  und es gibt kein zweites Listenlayout im Code. Wichtig: Die Verschiebung
+  sitzt **außen**, der gedruckte Knoten liegt darin – sonst steht die Liste im
+  Druckfenster ebenfalls bei −20000 px und das Blatt bleibt leer.
 - **Die Belegung ist die Quelle, der Sitzplan die Ableitung**
   (`sitzplaetzeAusBelegung`): Der Screen führt keine zweite Liste mit, die
   nachgezogen werden müsste – wer jemanden umsetzt, ändert damit Aushang,
@@ -533,11 +551,12 @@ Konventionen des Datensatzes:
   bestehenden Belegung nur freigehaltene Plätze und Vorgaben mitnimmt und
   sonst von vorne verteilt, ist es wiederholbar: zweimal gerufen kommt zweimal
   dasselbe heraus.
-- **PDFs entstehen im Core, nicht im Druckdialog:** `sitzplaenePdf()` zeichnet
-  das Raster der Räume (je Raumeinsatz eine neue Seite), `tabellenPdf()` setzt
-  Listen (je Abschnitt eine Seite). So fällt eine Sitzplan-PDF heraus und
-  daneben Aushang, Dozenten- und Tutorenliste als eigene Dateien – mit
-  `druckeAnsicht` wäre für jede davon ein eigener Druckdialog nötig.
+- **Mit pdf-lib entsteht, was ohne Browser laufen muss:** `sitzplaenePdf()`
+  zeichnet das Raster der Räume (je Raumeinsatz eine neue Seite) und
+  `sitzplatzPdf()` die Schreiben an einzelne Personen. Die **Listen** dagegen
+  werden gedruckt (siehe oben) – ein zweites Listenlayout in pdf-lib
+  („tabellenPdf“) gab es einmal und ist wieder weg: Es sah anders aus als der
+  Bildschirm und musste doppelt gepflegt werden.
 - Wer im Screen die Belegung ändert, geht über `belegungSetzen()` – das setzt
   Verdrängte auf freie Tische nach und hält die Warnung „Ohne Tisch im
   Sitzplan“ aktuell.

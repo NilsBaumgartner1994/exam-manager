@@ -61,6 +61,20 @@ export type MenuEintrag =
       onAblegen: (x: number, y: number) => void;
       testID?: string;
     }
+  /**
+   * Ein Untermenü: Beim Überfahren klappt rechts daneben eine zweite Liste auf
+   * (auf dem Handy geht die Schublade eine Ebene tiefer). So steht „als CSV
+   * oder als PDF?“ dort, wo die Frage aufkommt – am Namen der Liste –, statt
+   * jede Liste zweimal ins Menü zu schreiben.
+   */
+  | {
+      art: 'unter';
+      titel: string;
+      hinweis?: string;
+      deaktiviert?: boolean;
+      eintraege: (MenuEintrag | null | false)[];
+      testID?: string;
+    }
   /** Trennlinie, mit optionaler Überschrift für die Gruppe darunter. */
   | { art: 'trenner'; titel?: string };
 
@@ -115,9 +129,17 @@ export function Menueleiste({ menus, testID }: { menus: MenuGruppe[]; testID?: s
   );
 }
 
-/** Die Einträge eines Menüs ohne die weggelassenen. */
-function eintraegeVon(menu: MenuGruppe): MenuEintrag[] {
+/** Die Einträge eines Menüs (oder Untermenüs) ohne die weggelassenen. */
+function eintraegeVon(menu: { eintraege: (MenuEintrag | null | false)[] }): MenuEintrag[] {
   return menu.eintraege.filter((eintrag): eintrag is MenuEintrag => !!eintrag);
+}
+
+/** Ein Untermenü aus einer Liste heraussuchen. */
+type UnterMenu = Extract<MenuEintrag, { art: 'unter' }>;
+function unterMenu(eintraege: MenuEintrag[], titel: string): UnterMenu | undefined {
+  return eintraege.find(
+    (eintrag): eintrag is UnterMenu => eintrag.art === 'unter' && eintrag.titel === titel,
+  );
 }
 
 /** Am Rechner: eine Zeile mit Menünamen, darunter klappt eines auf. */
@@ -131,11 +153,17 @@ function Menuezeile({ menus, testID }: { menus: MenuGruppe[]; testID?: string })
    * keine Zeiger annimmt, und sonst läge das Menü im Weg.
    */
   const [zieht, setzeZieht] = useState(false);
+  /** Das offene Untermenü: sein Titel und wo es hingehört. */
+  const [unter, setzeUnter] = useState<{ titel: string; oben: number; links: number } | null>(null);
   const leiste = useRef<View>(null);
   const blatt = useRef<View>(null);
+  const unterBlatt = useRef<View>(null);
   const knoepfe = useRef<Record<string, View | null>>({});
 
-  const schliessen = () => setzeOffen(null);
+  const schliessen = () => {
+    setzeUnter(null);
+    setzeOffen(null);
+  };
 
   const oeffne = (menu: MenuGruppe) => {
     const knoten = knoepfe.current[menu.titel] as unknown as HTMLElement | null;
@@ -151,7 +179,24 @@ function Menuezeile({ menus, testID }: { menus: MenuGruppe[]; testID?: string })
         hoehe: Math.max(120, Math.round(window.innerHeight - oben - spacing.md)),
       });
     }
+    setzeUnter(null);
     setzeOffen(menu.titel);
+  };
+
+  /**
+   * Ein Untermenü aufklappen – rechts neben der Zeile, an der es hängt. Ist
+   * dort kein Platz mehr, klappt es nach links auf: Ein Menü, das halb aus dem
+   * Fenster ragt, ist keins.
+   */
+  const oeffneUnter = (titel: string, zeileOben: number) => {
+    if (!ort) return;
+    const rechts = ort.links + MENU_BREITE + 4;
+    const passt = rechts + MENU_BREITE <= window.innerWidth - spacing.sm;
+    setzeUnter({
+      titel,
+      oben: Math.max(spacing.xs, Math.min(zeileOben, window.innerHeight - 160)),
+      links: passt ? rechts : Math.max(spacing.xs, ort.links - MENU_BREITE - 4),
+    });
   };
 
   // Daneben tippen, Escape oder eine Größenänderung schließen das Menü. Kein
@@ -163,7 +208,13 @@ function Menuezeile({ menus, testID }: { menus: MenuGruppe[]; testID?: string })
       !!ziel && !!(behaelter as unknown as HTMLElement | null)?.contains(ziel);
     const gedrueckt = (ereignis: PointerEvent) => {
       const ziel = ereignis.target as Node | null;
-      if (enthaelt(leiste.current, ziel) || enthaelt(blatt.current, ziel)) return;
+      if (
+        enthaelt(leiste.current, ziel) ||
+        enthaelt(blatt.current, ziel) ||
+        enthaelt(unterBlatt.current, ziel)
+      ) {
+        return;
+      }
       schliessen();
     };
     const getippt = (ereignis: KeyboardEvent) => {
@@ -181,25 +232,57 @@ function Menuezeile({ menus, testID }: { menus: MenuGruppe[]; testID?: string })
 
   const offenesMenu = menus.find((menu) => menu.titel === offen) ?? null;
 
+  const offeneEintraege = offenesMenu ? eintraegeVon(offenesMenu) : [];
+  const offenesUnter = unter ? unterMenu(offeneEintraege, unter.titel) : undefined;
+
   const menuBlatt = useModalEbene(
     offenesMenu && ort ? (
-      <View
-        ref={blatt}
-        style={[styles.blatt, { left: ort.links, top: ort.oben, maxHeight: ort.hoehe }]}
-        pointerEvents={zieht ? 'none' : 'auto'}
-        testID={offenesMenu.testID ? `${offenesMenu.testID}-blatt` : undefined}
-      >
-        <ScrollView style={styles.blattScroll} contentContainerStyle={styles.blattInhalt}>
-          {eintraegeVon(offenesMenu).map((eintrag, index) => (
-            <MenuZeile
-              key={schluessel(eintrag, index)}
-              eintrag={eintrag}
-              schliessen={schliessen}
-              ziehtGerade={setzeZieht}
-            />
-          ))}
-        </ScrollView>
-      </View>
+      <>
+        <View
+          ref={blatt}
+          style={[styles.blatt, { left: ort.links, top: ort.oben, maxHeight: ort.hoehe }]}
+          pointerEvents={zieht ? 'none' : 'auto'}
+          testID={offenesMenu.testID ? `${offenesMenu.testID}-blatt` : undefined}
+        >
+          <ScrollView style={styles.blattScroll} contentContainerStyle={styles.blattInhalt}>
+            {offeneEintraege.map((eintrag, index) => (
+              <MenuZeile
+                key={schluessel(eintrag, index)}
+                eintrag={eintrag}
+                schliessen={schliessen}
+                ziehtGerade={setzeZieht}
+                unterOffen={unter?.titel === eintrag.titel}
+                onUnter={oeffneUnter}
+                onZeileUeberfahren={() => {
+                  // Überfährt man eine andere Zeile, schließt das Untermenü –
+                  // wie in einer Menüleiste, in der immer eines offen ist.
+                  if (eintrag.art !== 'unter') setzeUnter(null);
+                }}
+              />
+            ))}
+          </ScrollView>
+        </View>
+        {offenesUnter && unter ? (
+          <View
+            ref={unterBlatt}
+            style={[
+              styles.blatt,
+              { left: unter.links, top: unter.oben, maxHeight: ort.hoehe },
+            ]}
+            testID={offenesUnter.testID ? `${offenesUnter.testID}-blatt` : undefined}
+          >
+            <ScrollView style={styles.blattScroll} contentContainerStyle={styles.blattInhalt}>
+              {eintraegeVon(offenesUnter).map((eintrag, index) => (
+                <MenuZeile
+                  key={schluessel(eintrag, index)}
+                  eintrag={eintrag}
+                  schliessen={schliessen}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+      </>
     ) : null,
   );
 
@@ -258,12 +341,16 @@ function Menuezeile({ menus, testID }: { menus: MenuGruppe[]; testID?: string })
  */
 function Schublade({ menus, testID }: { menus: MenuGruppe[]; testID?: string }) {
   const [offen, setzeOffen] = useState(false);
-  /** Titel des Menüs, in dem wir stehen – `null` ist die oberste Ebene. */
-  const [ebene, setzeEbene] = useState<string | null>(null);
+  /**
+   * Der Weg, den wir gegangen sind: erst das Menü, dann ggf. ein Untermenü.
+   * Leer ist die oberste Ebene. Ein Pfad statt eines Titels, weil „Datei →
+   * Aushang → als PDF“ drei Ebenen sind.
+   */
+  const [pfad, setzePfad] = useState<string[]>([]);
 
   const schliessen = () => {
     setzeOffen(false);
-    setzeEbene(null);
+    setzePfad([]);
   };
 
   useEffect(() => {
@@ -275,7 +362,21 @@ function Schublade({ menus, testID }: { menus: MenuGruppe[]; testID?: string }) 
     return () => window.removeEventListener('keydown', getippt);
   }, [offen]);
 
-  const menu = menus.find((eintrag) => eintrag.titel === ebene) ?? null;
+  /** Was auf der aktuellen Ebene steht – dem Pfad entlang aufgeschlagen. */
+  const ebene = (() => {
+    if (pfad.length === 0) return null;
+    const menu = menus.find((eintrag) => eintrag.titel === pfad[0]);
+    if (!menu) return null;
+    let titel = menu.titel;
+    let eintraege = eintraegeVon(menu);
+    for (const stufe of pfad.slice(1)) {
+      const tiefer = unterMenu(eintraege, stufe);
+      if (!tiefer) break;
+      titel = tiefer.titel;
+      eintraege = eintraegeVon(tiefer);
+    }
+    return { titel, eintraege };
+  })();
   /** Was gerade gilt, steht neben dem Burger – sonst wäre es hinter ihm versteckt. */
   const stand = menus
     .map((eintrag) => eintrag.wert)
@@ -287,17 +388,17 @@ function Schublade({ menus, testID }: { menus: MenuGruppe[]; testID?: string }) 
       <View style={styles.schubladeEbene}>
         <View style={styles.schublade} testID="menue-schublade">
           <View style={styles.schubladeKopf}>
-            {menu ? (
+            {ebene ? (
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setzeEbene(null)}
+                onPress={() => setzePfad((alt) => alt.slice(0, -1))}
                 testID="menue-zurueck"
               >
                 <Text style={styles.zurueck}>‹ Zurück</Text>
               </Pressable>
             ) : null}
             <Text style={styles.schubladeTitel} numberOfLines={1}>
-              {menu ? menu.titel : 'Menü'}
+              {ebene ? ebene.titel : 'Menü'}
             </Text>
             <Pressable
               accessibilityRole="button"
@@ -308,19 +409,45 @@ function Schublade({ menus, testID }: { menus: MenuGruppe[]; testID?: string }) 
             </Pressable>
           </View>
           <ScrollView style={styles.schubladeScroll} contentContainerStyle={styles.blattInhalt}>
-            {menu
-              ? eintraegeVon(menu).map((eintrag, index) => (
-                  <MenuZeile
-                    key={schluessel(eintrag, index)}
-                    eintrag={eintrag}
-                    schliessen={schliessen}
-                  />
-                ))
+            {ebene
+              ? ebene.eintraege.map((eintrag, index) =>
+                  // Ein Untermenü führt eine Ebene tiefer, statt aufzuklappen:
+                  // Neben dem Finger wäre für ein zweites Blatt kein Platz.
+                  eintrag.art === 'unter' ? (
+                    <Pressable
+                      key={schluessel(eintrag, index)}
+                      accessibilityRole="button"
+                      disabled={eintrag.deaktiviert}
+                      onPress={() => setzePfad((alt) => [...alt, eintrag.titel])}
+                      style={({ pressed }) => [
+                        styles.eintrag,
+                        eintrag.deaktiviert && styles.deaktiviert,
+                        pressed && styles.gedrueckt,
+                      ]}
+                      testID={eintrag.testID}
+                    >
+                      <Text style={styles.haken} />
+                      <View style={styles.eintragText}>
+                        <Text style={styles.eintragTitel}>{eintrag.titel}</Text>
+                        {eintrag.hinweis ? (
+                          <Text style={styles.eintragHinweis}>{eintrag.hinweis}</Text>
+                        ) : null}
+                      </View>
+                      <Text style={styles.pfeil}>›</Text>
+                    </Pressable>
+                  ) : (
+                    <MenuZeile
+                      key={schluessel(eintrag, index)}
+                      eintrag={eintrag}
+                      schliessen={schliessen}
+                    />
+                  ),
+                )
               : menus.map((eintrag) => (
                   <Pressable
                     key={eintrag.titel}
                     accessibilityRole="button"
-                    onPress={() => setzeEbene(eintrag.titel)}
+                    onPress={() => setzePfad([eintrag.titel])}
                     style={({ pressed }) => [
                       styles.eintrag,
                       eintrag.warnung && styles.nameWarnung,
@@ -356,7 +483,7 @@ function Schublade({ menus, testID }: { menus: MenuGruppe[]; testID?: string }) 
       <Pressable
         accessibilityRole="button"
         onPress={() => {
-          setzeEbene(null);
+          setzePfad([]);
           setzeOffen(true);
         }}
         style={({ pressed }) => [styles.name, pressed && styles.gedrueckt]}
@@ -392,17 +519,32 @@ function MenuZeile({
   eintrag,
   schliessen,
   ziehtGerade,
+  unterOffen,
+  onUnter,
+  onZeileUeberfahren,
 }: {
   eintrag: MenuEintrag;
   schliessen: () => void;
   /** Meldet einen laufenden Zug aus der Palette (nur im aufgeklappten Menü). */
   ziehtGerade?: (laeuft: boolean) => void;
+  /** Klappt das Untermenü dieser Zeile gerade auf? */
+  unterOffen?: boolean;
+  /** Untermenü öffnen – mit der Oberkante dieser Zeile im Fenster. */
+  onUnter?: (titel: string, zeileOben: number) => void;
+  /** Der Zeiger ist über dieser Zeile (schließt ein fremdes Untermenü). */
+  onZeileUeberfahren?: () => void;
 }) {
   if (eintrag.art === 'trenner') {
     return (
       <View style={styles.trenner}>
         {eintrag.titel ? <Text style={styles.trennerTitel}>{eintrag.titel}</Text> : null}
       </View>
+    );
+  }
+
+  if (eintrag.art === 'unter') {
+    return (
+      <UnterZeile eintrag={eintrag} offen={!!unterOffen} onOeffnen={onUnter} />
     );
   }
 
@@ -446,6 +588,7 @@ function MenuZeile({
       accessibilityState={{ checked: gewaehlt, disabled: deaktiviert }}
       disabled={deaktiviert}
       onPress={waehlen}
+      onHoverIn={onZeileUeberfahren}
       style={({ pressed }) => [
         styles.eintrag,
         deaktiviert && styles.deaktiviert,
@@ -460,6 +603,58 @@ function MenuZeile({
         </Text>
         {eintrag.hinweis ? <Text style={styles.eintragHinweis}>{eintrag.hinweis}</Text> : null}
       </View>
+    </Pressable>
+  );
+}
+
+/**
+ * Die Zeile, an der ein Untermenü hängt: Überfahren (oder Antippen) klappt es
+ * rechts daneben auf, das Pfeilzeichen sagt, dass es weitergeht – wie das
+ * „Speichern unter“ eines Textprogramms.
+ *
+ * Sie meldet ihre Lage im Fenster, denn das Untermenü wird in die Modal-Ebene
+ * gezeichnet und muss wissen, auf welcher Höhe es stehen soll.
+ */
+function UnterZeile({
+  eintrag,
+  offen,
+  onOeffnen,
+}: {
+  eintrag: UnterMenu;
+  offen: boolean;
+  onOeffnen?: (titel: string, zeileOben: number) => void;
+}) {
+  const zeile = useRef<View>(null);
+  const oeffnen = () => {
+    if (eintrag.deaktiviert) return;
+    const knoten = zeile.current as unknown as HTMLElement | null;
+    const kasten = knoten?.getBoundingClientRect();
+    onOeffnen?.(eintrag.titel, Math.round(kasten?.top ?? 0));
+  };
+  return (
+    <Pressable
+      ref={zeile}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: offen, disabled: !!eintrag.deaktiviert }}
+      disabled={eintrag.deaktiviert}
+      onPress={oeffnen}
+      onHoverIn={oeffnen}
+      style={({ pressed }) => [
+        styles.eintrag,
+        eintrag.deaktiviert && styles.deaktiviert,
+        offen && styles.eintragOffen,
+        pressed && styles.gedrueckt,
+      ]}
+      testID={eintrag.testID}
+    >
+      <Text style={styles.haken} />
+      <View style={styles.eintragText}>
+        <Text style={[styles.eintragTitel, offen && styles.eintragTitelAktiv]}>
+          {eintrag.titel}
+        </Text>
+        {eintrag.hinweis ? <Text style={styles.eintragHinweis}>{eintrag.hinweis}</Text> : null}
+      </View>
+      <Text style={styles.pfeil}>›</Text>
     </Pressable>
   );
 }
@@ -567,6 +762,8 @@ const styles = StyleSheet.create({
   haken: { width: 14, fontSize: 13, fontWeight: '700', color: colors.primary, lineHeight: 19 },
   eintragText: { flex: 1, gap: 1 },
   eintragTitel: { fontSize: 14, color: colors.text, lineHeight: 19 },
+  /** Die Zeile, deren Untermenü gerade offen ist. */
+  eintragOffen: { backgroundColor: colors.background },
   eintragTitelAktiv: { fontWeight: '700', color: colors.primary },
   eintragHinweis: { fontSize: 12, color: colors.textMuted, lineHeight: 16 },
 

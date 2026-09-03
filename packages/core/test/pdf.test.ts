@@ -7,7 +7,6 @@ import {
   sitzplaenePdf,
   sitzplatzPdf,
   sitzplatznummern,
-  tabellenPdf,
   verteileImRaum,
   vorlagenPdf,
   winAnsiText,
@@ -212,17 +211,4 @@ describe('Sitzplan und Listen als PDF (Screen 4)', () => {
     expect((await PDFDocument.load(pdf)).getPageCount()).toBe(1);
   });
 
-  it('setzt Listen mit einer Seite je Abschnitt', async () => {
-    const pdf = await tabellenPdf([
-      {
-        titel: 'Aushang 94/E01',
-        untertitel: '01.02.2026',
-        spalten: ['Sitzplatz', 'Anfang Nachname'],
-        zeilen: [[1001, 'Schr'], [1002, 'Ł']],
-      },
-      { titel: 'Dozentenliste', spalten: ['Sitzplatz', 'Name'], zeilen: [[1001, 'Schrödinger']] },
-    ]);
-    expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
-    expect(pdf.length).toBeGreaterThan(500);
-  });
 });

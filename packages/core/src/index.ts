@@ -10,6 +10,7 @@ export * from './raumzuteilung';
 export * from './raumschema';
 export * from './raumbelegung';
 export * from './sitzplanung';
+export * from './listen';
 export * from './pdfVorlage';
 export * from './pdf';
 export * from './zip';

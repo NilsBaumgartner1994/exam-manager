@@ -3,15 +3,20 @@ import { StyleSheet, Text, View } from 'react-native';
 import readXlsxFile from 'read-excel-file';
 import {
   AnmeldungsPruefung,
+  baueListe,
   anzeigeBereich,
   BEISPIEL_WERTE,
   Bereich,
   bereichAus,
   bereichName,
   belegungToCsv,
+  dateiKennung,
   einsatzRaster,
   erstelleZip,
   ladeZulassungsBestand,
+  Liste,
+  ListenArt,
+  listenDateien,
   eindeutigeNamenspraefixe,
   entfernePerson,
   nichtDarstellbareZeichen,
@@ -49,14 +54,11 @@ import {
   Sitzverteilung,
   Sitzplatz,
   sitzplaetzeAusBelegung,
-  sitzplaetzeToCsv,
   SitzplanFeld,
   sitzplanRasterCsv,
   SitzplanOptionen,
   sitzplatzPdf,
   sitzplatzWerte,
-  sortByNachname,
-  tabellenPdf,
   tischzellen,
   verschiebeBelegung,
   verteileAufRaumschemata,
@@ -99,45 +101,39 @@ import {
   type Verschiebung,
 } from '../components';
 import { downloadCsv, downloadFile, downloadZip, readFileAsText } from '../files';
-import { druckeAnsicht } from '../print';
+import { druckeAnsicht, SEITENUMBRUCH } from '../print';
 import { useProjekt } from '../projekt';
 import { BEISPIEL_KLAUSUR_TEILNEHMER, BEISPIEL_RAEUME, BEISPIEL_RAUMSCHEMATA } from '../sampleData';
 import { colors, spacing } from '../theme';
 
 /**
- * Die Ansichten der Verteilung. Eine zur Zeit, umgeschaltet im Menü
- * „Ansicht“: der Plan eines Raums oder eine der drei Listen. Die frühere
- * Alles-auf-einmal-Seite (Plan und Tabelle je Raum untereinander) gibt es
- * nicht mehr – wer einen Raum ansieht, sieht den Raum.
+ * Was sich ausgeben lässt – je Eintrag im Menü „Datei → Exportieren“ eine
+ * Liste, dahinter das Untermenü „als CSV“ / „drucken“. Der Aufbau der Listen
+ * (Spalten, Sortierung, Abschnitte) steht im Core (`baueListe`), damit CSV und
+ * gedruckte Tabelle nicht auseinanderlaufen.
  */
-const ANSICHTEN = [
+const AUSGABEN: { art: ListenArt; titel: string; hinweis: string }[] = [
   {
-    key: 'raum',
-    titel: 'Raumplan',
-    hinweis: 'der Sitzplan des gewählten Raums',
-    testID: 'raum-ansicht-raum',
+    art: 'teilnehmer',
+    titel: 'Teilnehmendenliste',
+    hinweis: 'alle Angaben, nach Sitzplatznummer',
   },
   {
-    key: 'aushang',
+    art: 'tutoren',
+    titel: 'Tutorenliste (Einlass)',
+    hinweis: 'nach Nachname – „wo sitze ich?“',
+  },
+  {
+    art: 'aufsicht',
+    titel: 'Aufsichtsliste je Raum und Zeit',
+    hinweis: 'je Raumeinsatz eine Liste, nach Sitzplatznummer',
+  },
+  {
+    art: 'aushang',
     titel: 'Aushang',
-    hinweis: 'Namenskürzel → Sitzplatz, wie er am Raum hängt',
-    testID: 'raum-ansicht-aushang',
+    hinweis: 'Namenskürzel, Sitzplatz, Raum und Zeit',
   },
-  {
-    key: 'alphabetisch',
-    titel: 'Liste nach Nachname',
-    hinweis: 'für den Einlass',
-    testID: 'raum-ansicht-alphabetisch',
-  },
-  {
-    key: 'nummern',
-    titel: 'Liste nach Sitzplatznummer',
-    hinweis: 'für die Aufsicht in den Reihen',
-    testID: 'raum-ansicht-nummern',
-  },
-] as const;
-
-type Ansicht = (typeof ANSICHTEN)[number]['key'];
+];
 
 /**
  * Was ein Tippen auf einen Platz bewirkt. Das Raster selbst wird hier **nicht**
@@ -169,6 +165,33 @@ type PlatzWerkzeug = (typeof PLATZ_WERKZEUGE)[number]['key'];
  * entstehen ohne den Export aus Schritt 3, direkt aus den Anmeldungen in
  * `0_Input_Klausuranmeldungen/`.
  */
+/**
+ * Eine Liste, wie sie gedruckt wird: Überschrift, je Abschnitt eine Tabelle –
+ * dieselbe `DataTable` wie am Bildschirm, mit Zebrastreifen. Gedruckt wird der
+ * DOM-Knoten (`druckeAnsicht`), es gibt also kein zweites Layout, das
+ * mitgepflegt werden müsste.
+ */
+function ListenDruck({ liste }: { liste: Liste }) {
+  const spalten = liste.spalten.map((spalte) => ({ key: spalte.key, title: spalte.titel }));
+  return (
+    <View style={styles.druckBlatt}>
+      {liste.abschnitte.map((abschnitt, index) => (
+        <View key={abschnitt.kennung ?? index} style={styles.druckAbschnitt} {...SEITENUMBRUCH}>
+          <Text style={styles.druckTitel}>
+            {abschnitt.titel ? `${liste.titel} · ${abschnitt.titel}` : liste.titel}
+            {abschnitt.untertitel ? ` – ${abschnitt.untertitel}` : ''}
+          </Text>
+          <DataTable
+            columns={spalten}
+            rows={abschnitt.zeilen}
+            emptyText="In diesem Raum sitzt niemand."
+          />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** Ein Sitzplatz ohne Angaben – Grundlage für abgeleitete Einträge. */
 const LEERER_SITZPLATZ: Sitzplatz = {
   anfangNachname: '',
@@ -225,10 +248,15 @@ export function RaumzuteilungScreen() {
   // Ergebnis & Ausgabe. Wer wo sitzt, steht **allein in der Belegung**: Die
   // Sitzplatzliste wird daraus abgeleitet (`sitzplaetze` weiter unten), statt
   // sie als zweiten Stand mitzuführen, der auseinanderlaufen kann.
-  const [ansicht, setAnsicht] = useState<Ansicht>('raum');
   /** Der Raumeinsatz, dessen Plan gezeigt wird (`raumSchluessel`). */
   const [offenerRaumSchluessel, setOffenenRaum] = useState<string | null>(null);
-  const [dateiname, setDateiname] = useState('studierendeZuRaumUndZeitZuordnung.csv');
+  /**
+   * Die Liste, die gerade gedruckt wird. Sie wird dafür kurz **außerhalb des
+   * Bildes** gerendert und dann gedruckt – so sieht das Papier aus wie die
+   * Tabelle am Bildschirm (Zebrastreifen inklusive), ohne dass es ein zweites
+   * Layout gäbe, das mitgepflegt werden müsste.
+   */
+  const [druckListe, setDruckListe] = useState<ListenArt | null>(null);
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
   const [pdfHinweis, setPdfHinweis] = useState<string | null>(null);
   /** Text der Sitzplatz-PDFs – bearbeitbar, mit dem Anfangstext als Vorgabe. */
@@ -254,7 +282,8 @@ export function RaumzuteilungScreen() {
   /** Nachricht des offenen Platzes – warum er freigehalten wird. */
   const [platzNotiz, setPlatzNotiz] = useState('');
 
-  const aushangRef = useRef<View>(null);
+  /** Der Bereich, in dem eine Liste zum Drucken gerendert wird (außerhalb des Bildes). */
+  const druckRef = useRef<View>(null);
 
   /**
    * Schema und Belegung liegen zusätzlich in Refs: Beim Ziehen kommen viele
@@ -561,15 +590,6 @@ export function RaumzuteilungScreen() {
     if (geladen.length > 0) projekt.ersetze('raumschema', raumschemaDateien(geladen));
   };
 
-  const raeumeLaden = async (files: File[]) => {
-    setFehler(null);
-    try {
-      setZeilen(parseRaeume(await readFileAsText(files[0])).map(raumZuZeile));
-    } catch (e) {
-      setFehler(`Räume-CSV konnte nicht gelesen werden: ${String(e)}`);
-    }
-  };
-
   /**
    * Räume, die sich hinzufügen lassen: der Bestand des Hauses, also jeder
    * Raum, für den in `Raeume/` ein Raster liegt. Die Plätze sind die Tische
@@ -681,7 +701,6 @@ export function RaumzuteilungScreen() {
   const zurVerteilung = () => {
     const ergebnis = verteilt ? null : verteilen();
     setPhase('verteilung');
-    setAnsicht('raum');
     setHinweis(
       ergebnis
         ? `${ergebnis.sitzplaetze.length} Plätze verteilt.`
@@ -690,7 +709,8 @@ export function RaumzuteilungScreen() {
   };
 
   /**
-   * Der Sitzplan als Tabelle – je Feld des Raums eine Zelle.
+   * Die Sitzpläne als Tabelle – je Feld des Raums eine Zelle, **je Raumeinsatz
+   * eine Datei** in einer ZIP.
    *
    * Zweimal, weil zwei Leute damit arbeiten: Am Aushang hängt der Plan mit den
    * **Nummern** (mehr braucht dort niemand zu sehen), die Aufsicht geht mit dem
@@ -698,25 +718,31 @@ export function RaumzuteilungScreen() {
    * Tabelle weiterverarbeiten – ausdrucken, einfärben, in eine eigene Vorlage
    * kopieren.
    */
-  const rasterCsvSpeichern = (feld: SitzplanFeld) => {
-    const dateiname = feld === 'nummer' ? 'sitzplan_nummern.csv' : 'sitzplan_namen.csv';
-    // Gedreht wird die Ansicht je **Raum**, das Raster gehört zum **Einsatz**:
-    // Beide Durchgänge sehen den Raum aus derselben Richtung.
-    const einsaetze = raeume
-      .map((raum) => ({
-        schema: raster.find((eintrag) => eintrag.raum === raumSchluessel(raum)),
-        drehungen: editor.drehungen[raum.raum] ?? 0,
-      }))
-      .filter((eintrag): eintrag is { schema: Raumschema; drehungen: number } => !!eintrag.schema);
-    const csv = sitzplanRasterCsv(einsaetze, belegung, sitzplaetze, nummern, feld);
-    downloadCsv(dateiname, csv);
-    projekt.schreibe(dateiname, csv, 'sitzplanRaster');
-    setHinweis(
-      feld === 'nummer'
-        ? `Sitzplan als Raster gespeichert (${dateiname}) – je Feld die Sitzplatznummer.`
-        : `Sitzplan als Raster gespeichert (${dateiname}) – je Feld Nummer, Matrikelnummer und Name.`,
-    );
-  };
+  const sitzplaeneAlsCsv = (feld: SitzplanFeld) =>
+    mitPdfLauf('Die Sitzpläne', async () => {
+      // Gedreht wird die Ansicht je **Raum**, das Raster gehört zum
+      // **Einsatz**: Beide Durchgänge sehen den Raum aus derselben Richtung.
+      const dateien = new Map<string, Uint8Array | string>();
+      for (const raum of raeume) {
+        const schluessel = raumSchluessel(raum);
+        const schema = raster.find((eintrag) => eintrag.raum === schluessel);
+        if (!schema) continue;
+        const drehungen = editor.drehungen[raum.raum] ?? 0;
+        const csv = sitzplanRasterCsv([{ schema, drehungen }], belegung, sitzplaetze, nummern, feld);
+        dateien.set(`sitzplan_${feld === 'nummer' ? 'nummern' : 'namen'}_${dateiKennung(schluessel)}.csv`, csv);
+      }
+      if (dateien.size === 0) return;
+      downloadZip(
+        `sitzplaene_${feld === 'nummer' ? 'nummern' : 'namen'}.zip`,
+        await erstelleZip(dateien),
+      );
+      setHinweis(
+        `Sitzpläne als CSV: ${dateien.size} Datei${dateien.size === 1 ? '' : 'en'} in der ZIP – ` +
+          (feld === 'nummer'
+            ? 'je Feld die Sitzplatznummer.'
+            : 'je Feld Nummer, Matrikelnummer und Name.'),
+      );
+    });
 
   /**
    * Noch einmal verteilen – nach einer Vorgabe, einem freigehaltenen Platz
@@ -746,28 +772,6 @@ export function RaumzuteilungScreen() {
         (vorgaben > 0 ? `, ${vorgaben} Vorgabe${vorgaben === 1 ? '' : 'n'} verworfen` : '') +
         ' – freigehaltene Plätze sind geblieben.',
     );
-  };
-
-  /** Raster laden – je Raum eine Datei, deshalb ruhig mehrere auf einmal. */
-  const schemaLaden = async (files: File[]) => {
-    setFehler(null);
-    try {
-      const geladen = parseRaumschemaDateien(await Promise.all(files.map(readFileAsText)));
-      schemataUebernehmenUndSichern(geladen);
-      setHinweis(`${geladen.length} Raumraster geladen – auch im Projekt unter Raeume/.`);
-    } catch (e) {
-      setFehler(`Raumschema konnte nicht gelesen werden: ${String(e)}`);
-    }
-  };
-
-  const belegungLaden = async (files: File[]) => {
-    setFehler(null);
-    try {
-      uebernehmeBelegung(parseBelegung(await readFileAsText(files[0])));
-      setHinweis('Belegung geladen.');
-    } catch (e) {
-      setFehler(`Belegung konnte nicht gelesen werden: ${String(e)}`);
-    }
   };
 
   /**
@@ -910,21 +914,6 @@ export function RaumzuteilungScreen() {
       .map((person) => ({ person, sitztAuf: platzJePerson.get(person.matrikelnummer) }));
   })();
 
-  /**
-   * Die sichtbare Liste drucken. Gedruckt wird genau der Knoten, der am
-   * Bildschirm steht – kein zweites Layout, das mitgepflegt werden müsste.
-   */
-  const listeDrucken = () => {
-    setFehler(null);
-    setHinweis(null);
-    const knoten = aushangRef.current as unknown as HTMLElement | null;
-    if (druckeAnsicht(knoten, 'Liste')) {
-      setHinweis('Druckdialog geöffnet – dort „Als PDF sichern“ wählen.');
-    } else {
-      setFehler('Das Druckfenster wurde blockiert. Bitte Pop-ups für diese Seite erlauben.');
-    }
-  };
-
   // Eine im Projekt gespeicherte Vorlage sticht den Anfangstext: Wer den Text
   // einmal angepasst hat, findet ihn nach dem Neuladen wieder vor.
   const vorlageDatei = projekt
@@ -1055,54 +1044,56 @@ export function RaumzuteilungScreen() {
       setHinweis(`Sitzpläne als PDF: ${plaene.length} Seite${plaene.length === 1 ? '' : 'n'}.`);
     });
 
-  /** Aushang: je Raumeinsatz eine Seite, nach Namenskürzel sortiert. */
-  const aushangAlsPdf = () =>
-    mitPdfLauf('Der Aushang', async () => {
-      const plaetze = sitzplaetze;
-      const abschnitte = raeume
-        .map((raum) => {
-          const schluessel = raumSchluessel(raum);
-          const imRaum = plaetze
-            .filter((platz) => platz.raumSchluessel === schluessel)
-            .sort((a, b) => a.anfangNachname.localeCompare(b.anfangNachname, 'de'));
-          return {
-            titel: einsatzTitel(raum),
-            untertitel: raum.reservierteZeit,
-            spalten: ['Anfang Nachname', 'Sitzplatz'],
-            zeilen: imRaum.map((platz) => [platz.anfangNachname, platz.sitzplatznummer]),
-          };
-        })
-        .filter((abschnitt) => abschnitt.zeilen.length > 0);
-      downloadFile('aushang.pdf', await tabellenPdf(abschnitte), 'application/pdf');
-      setHinweis(`Aushang als PDF: ${abschnitte.length} Räume.`);
+  /**
+   * Eine Liste als CSV: eine Datei – oder eine ZIP, wo die Liste je Raum
+   * getrennt gehört (Aufsichtsliste). Zusammengestellt wird sie im Core
+   * (`baueListe`), damit Datei und Papier dieselben Spalten haben.
+   */
+  const listeAlsCsv = (art: ListenArt) =>
+    mitPdfLauf('Die Liste', async () => {
+      const liste = baueListe(art, sitzplaetze, raeume);
+      const dateien = listenDateien(liste);
+      if (dateien.size === 1) {
+        const [[name, inhalt]] = [...dateien];
+        downloadCsv(name, inhalt);
+        setHinweis(`${liste.titel} als CSV gespeichert (${name}).`);
+        return;
+      }
+      downloadZip(
+        `${liste.dateiname}.zip`,
+        await erstelleZip(new Map<string, Uint8Array | string>(dateien)),
+      );
+      setHinweis(`${liste.titel} als CSV: ${dateien.size} Dateien in der ZIP.`);
     });
 
-  /** Dozentenliste (nach Sitzplatz) und Tutorenliste (nach Nachname). */
-  const listeAlsPdf = (fuer: 'dozent' | 'tutor') =>
-    mitPdfLauf(fuer === 'dozent' ? 'Die Dozentenliste' : 'Die Tutorenliste', async () => {
-      const plaetze = sitzplaetze;
-      const sortiert =
-        fuer === 'dozent'
-          ? [...plaetze].sort((a, b) => a.sitzplatznummer - b.sitzplatznummer)
-          : sortByNachname(plaetze);
-      const pdf = await tabellenPdf([
-        {
-          titel: fuer === 'dozent' ? 'Dozentenliste (nach Sitzplatz)' : 'Tutorenliste (nach Nachname)',
-          untertitel: raeume.map((raum) => einsatzTitel(raum)).join(', '),
-          spalten: ['Sitzplatz', 'Nachname', 'Vorname', 'Matrikelnr.', 'Raum', 'Anwesend'],
-          zeilen: sortiert.map((platz) => [
-            platz.sitzplatznummer,
-            platz.nachname,
-            platz.vorname,
-            platz.matrikelnummer,
-            platz.raum,
-            '',
-          ]),
-        },
-      ]);
-      downloadFile(`${fuer === 'dozent' ? 'dozentenliste' : 'tutorenliste'}.pdf`, pdf, 'application/pdf');
-      setHinweis(`${fuer === 'dozent' ? 'Dozentenliste' : 'Tutorenliste'} als PDF gespeichert.`);
-    });
+  /**
+   * Eine Liste drucken – und zwar so, wie sie am Bildschirm aussähe: Die
+   * Tabelle wird kurz außerhalb des Bildes gerendert und dann gedruckt
+   * („Als PDF sichern“ im Druckdialog). Ein zweites Layout im Code gäbe es
+   * sonst zweimal zu pflegen, und Zebrastreifen kann pdf-lib nicht.
+   */
+  const listeDrucken = (art: ListenArt) => {
+    setFehler(null);
+    setHinweis(null);
+    setDruckListe(art);
+  };
+
+  /** Die Liste ist gerendert – jetzt drucken und den Bereich wieder räumen. */
+  useEffect(() => {
+    if (druckListe === null) return;
+    const gleich = setTimeout(() => {
+      const knoten = druckRef.current as unknown as HTMLElement | null;
+      const titel = baueListe(druckListe, [], []).titel;
+      if (druckeAnsicht(knoten, titel)) {
+        setHinweis(`${titel}: Druckdialog geöffnet – dort „Als PDF sichern“ wählen.`);
+      } else {
+        setFehler('Das Druckfenster wurde blockiert. Bitte Pop-ups für diese Seite erlauben.');
+      }
+      setDruckListe(null);
+    }, 80);
+    return () => clearTimeout(gleich);
+  }, [druckListe]);
+
   const anzahlRaeume = new Set(sitzplaetze.map((platz) => platz.raumSchluessel)).size;
   /**
    * „in einem Raum“ statt „in 1 Räumen“: Seit die Räume nacheinander gefüllt
@@ -1138,11 +1129,10 @@ export function RaumzuteilungScreen() {
    * und es einen Raum dazu gibt. Daran hängt auch die Fußleiste: Ohne Plan
    * gibt es nichts zu zoomen.
    */
-  const zeigtRaum = phase === 'verteilung' && ansicht === 'raum' && offenerRaum !== null;
+  const zeigtRaum = phase === 'verteilung' && offenerRaum !== null;
 
   const raumWechseln = (schluessel: string) => {
     setOffenenRaum(schluessel);
-    setAnsicht('raum');
     // Die Auswahl gehört zum vorherigen Plan – im neuen wäre sie geraten.
     editor.setzeAuswahl(null);
   };
@@ -1171,176 +1161,80 @@ export function RaumzuteilungScreen() {
     titel: 'Datei',
     testID: 'raum-menue-datei',
     eintraege: [
-      { art: 'trenner', titel: 'Speichern' },
+      { art: 'trenner', titel: 'Für die Studierenden' },
       {
         art: 'aktion',
-        titel: 'Sitzplan-CSV speichern',
-        hinweis: `im Projekt als ${dateiname}`,
-        deaktiviert: !verteilt,
-        onWaehlen: () => {
-          if (!verteilt) return;
-          const csv = sitzplaetzeToCsv(sitzplaetze);
-          downloadCsv(dateiname, csv);
-          projekt.schreibe(dateiname, csv, 'sitzplan');
-          setHinweis(`Sitzplan gespeichert – im Projekt als ${dateiname}.`);
-        },
-        testID: 'raum-download',
-      },
-      {
-        art: 'aktion',
-        titel: 'Räume der Klausur speichern',
-        hinweis: 'klausurraeume.csv – nicht der Bestand des Hauses',
-        onWaehlen: () => {
-          // Nicht in `Raeume/`: Dort steht der Bestand des Hauses, hier die
-          // Auswahl für diese eine Klausur (mit ihren Durchgängen).
-          const csv = raeumeToCsv(raeume);
-          downloadCsv('klausurraeume.csv', csv);
-          setHinweis('Räume der Klausur heruntergeladen (klausurraeume.csv).');
-        },
-        testID: 'raum-speichern',
-      },
-      {
-        art: 'aktion',
-        titel: 'Raster als CSV speichern',
-        hinweis: 'je Raum eine Datei in Raeume/',
-        deaktiviert: schemata.length === 0,
-        onWaehlen: async () => {
-          // Je Raum eine Datei; im Projekt ersetzen sie den bisherigen
-          // Bestand, damit kein Raster liegen bleibt, das es nicht mehr gibt.
-          const dateien = raumschemaDateien(schemata);
-          projekt.ersetze('raumschema', dateien);
-          const namen = [...dateien.keys()];
-          if (namen.length === 1) {
-            downloadCsv(namen[0], dateien.get(namen[0]) ?? '');
-          } else {
-            const inhalte = new Map<string, Uint8Array | string>(
-              [...dateien].map(([name, csv]) => [`Raeume/${name}`, csv]),
-            );
-            downloadZip('raumschema.zip', await erstelleZip(inhalte));
-          }
-          setHinweis(`Raster gespeichert – je Raum eine Datei in Raeume/: ${namen.join(', ')}.`);
-        },
-        testID: 'raum-schema-speichern',
-      },
-      {
-        art: 'aktion',
-        titel: 'Sitzplan als Raster-CSV (Nummern)',
-        hinweis: 'sitzplan_nummern.csv – der Raumplan als Tabelle, je Feld die Sitzplatznummer',
-        deaktiviert: raster.length === 0,
-        onWaehlen: () => rasterCsvSpeichern('nummer'),
-        testID: 'raum-raster-nummern',
-      },
-      {
-        art: 'aktion',
-        titel: 'Sitzplan als Raster-CSV (mit Namen)',
-        hinweis: 'sitzplan_namen.csv – je Feld Sitzplatznummer, Matrikelnummer und Name',
-        deaktiviert: raster.length === 0,
-        onWaehlen: () => rasterCsvSpeichern('person'),
-        testID: 'raum-raster-namen',
-      },
-      {
-        art: 'aktion',
-        titel: 'Belegung als CSV herunterladen',
-        hinweis: 'wer wo sitzt, samt freigehaltener Plätze und Vorgaben',
-        deaktiviert: belegung.length === 0,
-        onWaehlen: () => {
-          downloadCsv('raumbelegung.csv', belegungToCsv(belegung, sitzplaetze, nummern));
-          setHinweis('Belegung heruntergeladen – im Projekt steht sie ohnehin.');
-        },
-        testID: 'raum-belegung-speichern',
-      },
-      { art: 'trenner', titel: pdfLaeuft ? 'PDF läuft …' : 'PDF' },
-      {
-        art: 'aktion',
-        titel: 'Sitzpläne als PDF',
-        hinweis: 'alle Räume in einer Datei, je Einsatz eine Seite',
-        deaktiviert: pdfLaeuft || raster.length === 0,
-        onWaehlen: sitzplaeneAlsPdf,
-        testID: 'raum-sitzplan-pdf',
-      },
-      {
-        art: 'aktion',
-        titel: 'Aushang als PDF',
-        hinweis: 'Sitzplatz → Anfang Nachname, je Raum eine Seite',
-        deaktiviert: pdfLaeuft || !verteilt,
-        onWaehlen: aushangAlsPdf,
-        testID: 'raum-aushang-pdf',
-      },
-      {
-        art: 'aktion',
-        titel: 'Liste nach Sitzplatznummer als PDF',
-        hinweis: 'für die Aufsicht in den Reihen (Dozentenliste)',
-        deaktiviert: pdfLaeuft || !verteilt,
-        onWaehlen: () => listeAlsPdf('dozent'),
-        testID: 'raum-dozent-pdf',
-      },
-      {
-        art: 'aktion',
-        titel: 'Liste nach Nachname als PDF',
-        hinweis: 'für den Einlass (Tutorenliste)',
-        deaktiviert: pdfLaeuft || !verteilt,
-        onWaehlen: () => listeAlsPdf('tutor'),
-        testID: 'raum-tutor-pdf',
-      },
-      {
-        art: 'aktion',
-        titel: 'Sitzplatz-PDFs als ZIP',
-        hinweis: 'je Person ein Schreiben, benannt nach der Matrikelnummer',
+        titel: 'Sitzplatz-PDFs für Stud.IP',
+        hinweis: 'je Person ein Schreiben, benannt nach der Matrikelnummer (ZIP)',
         deaktiviert: pdfLaeuft || !verteilt,
         onWaehlen: pdfsHerunterladen,
         testID: 'raum-download-pdfs',
       },
+      { art: 'trenner', titel: 'Exportieren' },
+      // Je Liste ein Untermenü: „als CSV“ oder „drucken“ – die Frage kommt am
+      // Namen der Liste auf, nicht davor.
+      ...AUSGABEN.map(
+        (ausgabe): MenuEintrag => ({
+          art: 'unter',
+          titel: ausgabe.titel,
+          hinweis: ausgabe.hinweis,
+          deaktiviert: !verteilt,
+          testID: `raum-export-${ausgabe.art}`,
+          eintraege: [
+            {
+              art: 'aktion',
+              titel: 'Als CSV speichern',
+              hinweis:
+                ausgabe.art === 'aufsicht'
+                  ? 'je Raumeinsatz eine Datei, als ZIP'
+                  : 'eine Datei mit allen Zeilen',
+              deaktiviert: pdfLaeuft || !verteilt,
+              onWaehlen: () => listeAlsCsv(ausgabe.art),
+              testID: `raum-export-${ausgabe.art}-csv`,
+            },
+            {
+              art: 'aktion',
+              titel: 'Als PDF drucken',
+              hinweis: 'die Tabelle wie am Bildschirm – im Dialog „Als PDF sichern“',
+              deaktiviert: !verteilt,
+              onWaehlen: () => listeDrucken(ausgabe.art),
+              testID: `raum-export-${ausgabe.art}-pdf`,
+            },
+          ],
+        }),
+      ),
       {
-        art: 'aktion',
-        titel: 'Text der PDFs anpassen',
-        hinweis: 'die Vorlage der Sitzplatz-Schreiben',
-        onWaehlen: () => setVorlageOffen(true),
-        testID: 'raum-vorlage-oeffnen',
-      },
-      {
-        art: 'aktion',
-        titel: 'Liste drucken',
-        hinweis: 'die Liste, die gerade zu sehen ist',
-        deaktiviert: !verteilt || zeigtRaum,
-        onWaehlen: listeDrucken,
-        testID: 'raum-aushaenge-pdf',
-      },
-      { art: 'trenner', titel: 'Laden' },
-      {
-        art: 'datei',
-        titel: 'Teilnehmer-CSV laden',
-        accept: '.csv',
-        onDateien: teilnehmerLaden,
-        testID: 'raum-teilnehmer-laden',
-      },
-      {
-        art: 'datei',
-        titel: 'Räume-CSV laden',
-        accept: '.csv',
-        onDateien: raeumeLaden,
-        testID: 'raum-raeume-laden',
-      },
-      {
-        art: 'datei',
-        titel: 'Raumschema-CSVs laden',
-        hinweis: 'mehrere auf einmal – je Raum eine Datei',
-        accept: '.csv',
-        mehrere: true,
-        onDateien: schemaLaden,
-        testID: 'raum-schema-laden',
-      },
-      {
-        art: 'datei',
-        titel: 'Belegung-CSV laden',
-        accept: '.csv',
-        onDateien: belegungLaden,
-        testID: 'raum-belegung-laden',
-      },
-      {
-        art: 'aktion',
-        titel: 'Beispieldaten laden',
-        onWaehlen: beispielLaden,
-        testID: 'raum-beispiel',
+        art: 'unter',
+        titel: 'Sitzpläne',
+        hinweis: 'die Raumpläne mit der Belegung',
+        deaktiviert: raster.length === 0,
+        testID: 'raum-export-sitzplaene',
+        eintraege: [
+          {
+            art: 'aktion',
+            titel: 'Als PDF',
+            hinweis: 'eine Datei, je Raumeinsatz eine Seite',
+            deaktiviert: pdfLaeuft || raster.length === 0,
+            onWaehlen: sitzplaeneAlsPdf,
+            testID: 'raum-sitzplan-pdf',
+          },
+          {
+            art: 'aktion',
+            titel: 'Als CSV (nur Nummern)',
+            hinweis: 'je Raumeinsatz eine Datei, als ZIP – der Plan als Tabelle',
+            deaktiviert: pdfLaeuft || raster.length === 0,
+            onWaehlen: () => sitzplaeneAlsCsv('nummer'),
+            testID: 'raum-raster-nummern',
+          },
+          {
+            art: 'aktion',
+            titel: 'Als CSV (mit Namen)',
+            hinweis: 'je Feld Nummer, Matrikelnummer und Name',
+            deaktiviert: pdfLaeuft || raster.length === 0,
+            onWaehlen: () => sitzplaeneAlsCsv('person'),
+            testID: 'raum-raster-namen',
+          },
+        ],
       },
       { art: 'trenner', titel: 'Projekt' },
       projektEintrag,
@@ -1432,24 +1326,6 @@ export function RaumzuteilungScreen() {
               testID: eintrag.testID,
             }),
           ),
-  };
-
-  /** Raumplan oder eine der drei Listen. */
-  const ansichtMenu: MenuGruppe = {
-    titel: 'Ansicht',
-    wert: ANSICHTEN.find((eintrag) => eintrag.key === ansicht)?.titel,
-    testID: 'raum-menue-ansicht',
-    eintraege: ANSICHTEN.map(
-      (eintrag): MenuEintrag => ({
-        art: 'aktion',
-        titel: eintrag.titel,
-        hinweis: eintrag.hinweis,
-        gewaehlt: ansicht === eintrag.key,
-        deaktiviert: eintrag.key === 'raum' ? raumEintraege.length === 0 : !verteilt,
-        onWaehlen: () => setAnsicht(eintrag.key),
-        testID: eintrag.testID,
-      }),
-    ),
   };
 
   /**
@@ -1551,6 +1427,14 @@ export function RaumzuteilungScreen() {
         },
         testID: 'raum-sitz-reihe',
       },
+      { art: 'trenner', titel: 'Sitzplatz-PDFs' },
+      {
+        art: 'aktion',
+        titel: 'Text der Sitzplatz-PDFs',
+        hinweis: 'Markdown mit Platzhaltern – gilt für alle Schreiben',
+        onWaehlen: () => setVorlageOffen(true),
+        testID: 'raum-vorlage-oeffnen',
+      },
       { art: 'trenner', titel: 'Was in den Kästen steht' },
       {
         art: 'schalter',
@@ -1624,7 +1508,6 @@ export function RaumzuteilungScreen() {
           dateiMenu,
           verteilungMenu,
           raumMenu,
-          ansichtMenu,
           werkzeugeMenu,
           einstellungenMenu,
           ...(ohnePlatz.length > 0 ? [warnungMenu] : []),
@@ -1646,15 +1529,6 @@ export function RaumzuteilungScreen() {
   ]
     .filter((teil): teil is string => !!teil)
     .join(' · ');
-
-  /** Die Liste, die gerade gezeigt wird – für Tabelle und Druck. */
-  const listenZeilen = () => {
-    if (ansicht === 'aushang') {
-      return [...sitzplaetze].sort((a, b) => a.anfangNachname.localeCompare(b.anfangNachname, 'de'));
-    }
-    if (ansicht === 'alphabetisch') return sortByNachname(sitzplaetze);
-    return [...sitzplaetze].sort((a, b) => a.sitzplatznummer - b.sitzplatznummer);
-  };
 
   return (
     <>
@@ -1707,12 +1581,20 @@ export function RaumzuteilungScreen() {
                   Sie lässt sich hier auswählen, wie in den Schritten davor (und weiterhin oben
                   unter „Datei“).
                 </Text>
-                <FilePickerButton
-                  label="allowedStudents.csv auswählen"
-                  accept=".csv"
-                  onFiles={teilnehmerLaden}
-                  testID="raum-teilnehmer-datei"
-                />
+                <View style={styles.buttonZeile}>
+                  <FilePickerButton
+                    label="allowedStudents.csv auswählen"
+                    accept=".csv"
+                    onFiles={teilnehmerLaden}
+                    testID="raum-teilnehmer-datei"
+                  />
+                  <AppButton
+                    title="Beispieldaten laden"
+                    variant="secondary"
+                    onPress={beispielLaden}
+                    testID="raum-beispiel"
+                  />
+                </View>
                 {teilnehmerStatus ? <StatusText kind="info">{teilnehmerStatus}</StatusText> : null}
                 <ProjektQuelle rolle="teilnehmer" testID="raum-quelle-teilnehmer" />
                 {anmeldungen !== null ? (
@@ -1805,16 +1687,12 @@ export function RaumzuteilungScreen() {
               </Section>
 
               <Section title="Ausgaben" testID="raum-ausgaben">
-                <LabeledTextInput
-                  label="Dateiname des Sitzplans"
-                  value={dateiname}
-                  onChangeText={setDateiname}
-                  testID="raum-dateiname"
-                />
                 <Text style={styles.hinweis}>
-                  Unter diesem Namen legt „Sitzplan-CSV speichern“ die Datei ab. Was in den
-                  Sitzplatz-PDFs steht, lässt sich als Markdown mit Platzhaltern anpassen – der
-                  Text wird im Projekt gespeichert und liegt in Vorlagen/.
+                  Die Listen und Pläne stehen im Menü „Datei“ unter „Exportieren“ – je Liste
+                  wahlweise als CSV oder gedruckt (im Druckdialog „Als PDF sichern“). Was in den
+                  Sitzplatz-PDFs steht, lässt sich als Markdown mit Platzhaltern anpassen: im
+                  Menü „Einstellungen“ unter „Text der Sitzplatz-PDFs“. Der Text wird im Projekt
+                  gespeichert und liegt in Vorlagen/.
                 </Text>
                 {vorlage !== VORLAGE_SITZPLATZ ? (
                   <StatusText kind="info" testID="raum-vorlage-geaendert">
@@ -1828,7 +1706,7 @@ export function RaumzuteilungScreen() {
                 ) : null}
                 <StudipEinsicht art="sitzplatz" testID="raum-studip-schritte" />
                 <ProjektDownload
-                  hinweis="Enthält Räume und Raumschema in Raeume/ sowie Sitzplan und Belegung in 4_Raumzuteilung_Export/."
+                  hinweis="Enthält die Räume dieser Klausur und die Belegung in 4_Raumzuteilung_Export/, die Raster in Raeume/. Die Listen und Pläne kommen über „Exportieren“ als eigene Dateien heraus."
                   testID="raum-projekt-download-gross"
                 />
               </Section>
@@ -1852,55 +1730,31 @@ export function RaumzuteilungScreen() {
             />
           ) : (
             <Reiterinhalt testID="raum-listen">
-              <Section
-                title={ANSICHTEN.find((eintrag) => eintrag.key === ansicht)?.titel ?? 'Liste'}
-                testID="raum-ansichten"
-              >
-                {verteilt ? (
-                  <View ref={aushangRef}>
-                    {ansicht === 'aushang' ? (
-                      <DataTable
-                        columns={[
-                          { key: 'anfangNachname', title: 'Anfang Nachname' },
-                          { key: 'sitzplatznummer', title: 'Sitzplatznummer' },
-                          { key: 'raum', title: 'Raum' },
-                        ]}
-                        rows={listenZeilen().map((platz) => ({
-                          anfangNachname: platz.anfangNachname,
-                          sitzplatznummer: platz.sitzplatznummer,
-                          raum: platz.raum,
-                        }))}
-                      />
-                    ) : (
-                      <DataTable
-                        columns={[
-                          { key: 'sitzplatz', title: 'Sitzplatz' },
-                          { key: 'nachname', title: 'Nachname' },
-                          { key: 'vorname', title: 'Vorname' },
-                          { key: 'raum', title: 'Raum' },
-                          { key: 'anwesend', title: 'Anwesend' },
-                        ]}
-                        rows={listenZeilen().map((platz) => ({
-                          sitzplatz: platz.sitzplatznummer,
-                          nachname: platz.nachname,
-                          vorname: platz.vorname,
-                          raum: platz.raum,
-                          anwesend: platz.anwesend,
-                        }))}
-                      />
-                    )}
-                  </View>
-                ) : (
-                  <StatusText kind="info">
-                    Noch keine Verteilung – im Menü „Verteilung“ auf „Neu verteilen“ gehen oder
-                    über „Zurück zur Auswahl“ Teilnehmende und Räume prüfen.
-                  </StatusText>
-                )}
+              <Section title="Kein Raumplan" testID="raum-ansichten">
+                <StatusText kind="info">
+                  Zu den gewählten Räumen gibt es kein Raster – ohne Raster gibt es keinen Plan.
+                  Über „Zurück zur Auswahl“ einen Raum aufnehmen, dessen Raster in Raeume/ liegt,
+                  oder das Raster in Schritt 5 anlegen.
+                </StatusText>
               </Section>
             </Reiterinhalt>
           )
         }
       </Arbeitsflaeche>
+
+      {/* Außerhalb des Bildes: Hier wird die Liste gerendert, die gedruckt
+          werden soll – gedruckt wird genau dieser Knoten, damit das Papier
+          aussieht wie die Tabelle am Bildschirm. */}
+      {druckListe !== null ? (
+        <View style={styles.druckbereich}>
+          {/* Die Verschiebung aus dem Bild sitzt **außen**: Gedruckt wird der
+              Knoten darin, und der soll im Druckfenster ganz normal oben links
+              stehen. */}
+          <View ref={druckRef} testID="raum-druckbereich">
+            <ListenDruck liste={baueListe(druckListe, sitzplaetze, raeume)} />
+          </View>
+        </View>
+      ) : null}
 
       <VorlagenModal
         offen={vorlageOffen}
@@ -2041,6 +1895,15 @@ const styles = StyleSheet.create({
   },
   blattBlock: { gap: spacing.sm },
   blattTitel: { fontSize: 16, fontWeight: '700', color: colors.text },
+  /**
+   * Der Druckbereich liegt außerhalb des Bildes, ist aber gerendert: Ein
+   * `display: none` hätte keine Maße, und der Druck bekäme eine leere Seite.
+   * Die feste Breite gibt der Tabelle ein Blatt, an dem sie sich ausrichtet.
+   */
+  druckbereich: { position: 'absolute', left: -20000, top: 0, width: 1000, opacity: 0 },
+  druckBlatt: { gap: spacing.md, backgroundColor: colors.surface, padding: spacing.md },
+  druckAbschnitt: { gap: spacing.xs },
+  druckTitel: { fontSize: 16, fontWeight: '700', color: colors.text },
   raumTabellen: { gap: spacing.md },
   raumTabelle: { gap: spacing.xs },
   raumUeberschrift: { fontSize: 15, fontWeight: '600', color: colors.text },

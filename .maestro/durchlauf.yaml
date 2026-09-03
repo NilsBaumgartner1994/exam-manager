@@ -83,14 +83,13 @@ url: http://localhost:8081
 
 # ---------- Screen 4: Raumzuteilung & Sitzplan ----------
 # Zwei Bilder: erst die Auswahl (Teilnehmende, Räume), dann die Arbeitsfläche
-# mit der Menüleiste (Datei, Verteilung, Raum, Ansicht, Werkzeuge,
-# Einstellungen), der Fläche und der Fußleiste. Jede Aktion steht in einem
+# mit der Menüleiste (Datei, Verteilung, Raum, Werkzeuge, Einstellungen),
+# der Fläche und der Fußleiste. Jede Aktion steht in einem
 # Menü – erst den Namen antippen, dann den Eintrag.
 - launchApp
 - tapOn: '4. Raumzuteilung & Sitzplan'
 - tapOn:
-    id: 'raum-menue-datei'
-- tapOn: 'Beispieldaten laden'
+    id: 'raum-beispiel'
 # Welche Räume die Klausur benutzt, wird in der Auswahl zusammengestellt – aus
 # dem Bestand in Raeume/; derselbe Raum darf mehrfach dabei sein.
 - assertVisible: 'Räume der Klausur'
@@ -111,28 +110,17 @@ url: http://localhost:8081
 - assertVisible: 'Neu verteilen'
 - tapOn:
     id: 'raum-menue-verteilung'
-# Der Plan als Tabelle: einmal nur mit den Nummern (Aushang), einmal mit
-# Matrikelnummer und Name (Aufsicht).
+# Die Ausgaben liegen im Menü „Datei“ unter „Exportieren“ – je Liste ein
+# Untermenü mit „Als CSV speichern“ und „Als PDF drucken“.
 - tapOn:
     id: 'raum-menue-datei'
-- tapOn: 'Sitzplan als Raster-CSV (Nummern)'
-- assertVisible: 'je Feld die Sitzplatznummer'
+- assertVisible: 'Sitzplatz-PDFs für Stud.IP'
 - tapOn:
-    id: 'raum-menue-datei'
-- tapOn: 'Sitzplan als Raster-CSV (mit Namen)'
-- assertVisible: 'je Feld Nummer, Matrikelnummer und Name'
-# Die Listen liegen im Menü „Ansicht“ – eine zur Zeit.
-- tapOn:
-    id: 'raum-menue-ansicht'
-- tapOn:
-    id: 'raum-ansicht-nummern'
-- assertVisible: 'Liste nach Sitzplatznummer'
-- tapOn:
-    id: 'raum-menue-ansicht'
-- tapOn:
-    id: 'raum-ansicht-aushang'
-- assertVisible: 'Anfang Nachname'
-# Zurück zum Raumplan – die Räume dieser Klausur stehen im Menü „Raum“.
+    id: 'raum-export-aufsicht'
+- assertVisible: 'Als CSV speichern'
+- tapOn: 'Als CSV speichern'
+- assertVisible: 'Aufsichtsliste je Raum als CSV'
+# Die Räume dieser Klausur stehen im Menü „Raum“.
 - tapOn:
     id: 'raum-menue-raum'
 - tapOn:

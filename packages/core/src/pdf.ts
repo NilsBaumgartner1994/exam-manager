@@ -332,8 +332,8 @@ export interface SitzplanPdfOptionen {
  * Die Sitzpläne als PDF – dasselbe Raster wie am Bildschirm, einschließlich
  * Drehung, Textfeldern und dem, was die Anzeige-Häkchen in die Kästen
  * schreiben. Jeder Raumeinsatz beginnt auf einer **neuen Seite**, wie bei den
- * Listen aus `tabellenPdf()`: So kommt aus Schritt 4 eine Datei heraus und
- * kein Stapel einzelner Dateien.
+ * gedruckten Listen: So kommt aus Schritt 4 eine Datei heraus und kein Stapel
+ * einzelner Dateien.
  */
 export async function sitzplaenePdf(plaene: SitzplanPdfOptionen[]): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
@@ -504,90 +504,13 @@ function kuerzeAufBreite(
   return kurz.length > 1 ? `${kurz}.` : kurz;
 }
 
-/** Ein Abschnitt einer Listen-PDF – jeder beginnt auf einer neuen Seite. */
-export interface TabellenAbschnitt {
-  titel: string;
-  untertitel?: string;
-  spalten: string[];
-  zeilen: (string | number)[][];
-}
-
-/**
- * Listen als PDF: je Abschnitt eine neue Seite, lange Tabellen laufen über
- * mehrere Seiten weiter. Damit entstehen Aushang, Dozenten- und Tutorenliste
- * aus denselben Daten wie die Tabellen am Bildschirm.
+/*
+ * Listen entstehen **nicht** hier: Aushang, Tutoren- und Aufsichtsliste werden
+ * in Schritt 4 als sichtbare Tabelle gerendert und über den Druckdialog
+ * ausgegeben (`apps/web/src/print.ts`). So sieht das Papier aus wie der
+ * Bildschirm – samt Zebrastreifen –, und es gibt kein zweites Listenlayout,
+ * das mitgepflegt werden müsste. Mit pdf-lib entstehen nur die PDFs, die auch
+ * ohne Browser laufen müssen: die Schreiben an einzelne Personen und die
+ * Sitzpläne.
  */
-export async function tabellenPdf(abschnitte: TabellenAbschnitt[]): Promise<Uint8Array> {
-  const doc = await PDFDocument.create();
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const fett = await doc.embedFont(StandardFonts.HelveticaBold);
-  const groesse = 10;
-  const zeilenHoehe = 16;
-  const maxBreite = A4.width - 2 * MARGIN;
 
-  for (const abschnitt of abschnitte) {
-    const spalten = abschnitt.spalten.map(winAnsiText);
-    const zeilen = abschnitt.zeilen.map((zeile) => zeile.map((wert) => winAnsiText(String(wert))));
-    // Spaltenbreiten aus dem breitesten Eintrag, zusammen auf die Seitenbreite
-    // gestreckt – so bleibt eine Sitzplatznummer schmal und ein Name breit.
-    const roh = spalten.map((titel, i) =>
-      Math.max(
-        fett.widthOfTextAtSize(titel, groesse),
-        ...zeilen.map((zeile) => font.widthOfTextAtSize(zeile[i] ?? '', groesse)),
-      ) + 12,
-    );
-    const summe = roh.reduce((a, b) => a + b, 0) || 1;
-    const breiten = roh.map((breite) => (breite / summe) * maxBreite);
-
-    let seite = doc.addPage([A4.width, A4.height]);
-    let y = A4.height - MARGIN;
-    const kopf = (mitTitel: boolean) => {
-      if (mitTitel) {
-        seite.drawText(winAnsiText(abschnitt.titel), {
-          x: MARGIN, y, size: 15, font: fett, color: rgb(0, 0, 0),
-        });
-        y -= 18;
-        if (abschnitt.untertitel) {
-          seite.drawText(winAnsiText(abschnitt.untertitel), {
-            x: MARGIN, y, size: 10, font, color: rgb(0.32, 0.38, 0.44),
-          });
-          y -= 14;
-        }
-        y -= 6;
-      }
-      let x = MARGIN;
-      spalten.forEach((titel, i) => {
-        seite.drawText(titel, { x, y, size: groesse, font: fett, color: rgb(0, 0, 0) });
-        x += breiten[i];
-      });
-      y -= 4;
-      seite.drawLine({
-        start: { x: MARGIN, y: y - 2 },
-        end: { x: MARGIN + maxBreite, y: y - 2 },
-        thickness: 0.5,
-        color: rgb(0.7, 0.74, 0.78),
-      });
-      y -= zeilenHoehe - 4;
-    };
-    kopf(true);
-
-    for (const zeile of zeilen) {
-      if (y < MARGIN + zeilenHoehe) {
-        seite = doc.addPage([A4.width, A4.height]);
-        y = A4.height - MARGIN;
-        kopf(false);
-      }
-      let x = MARGIN;
-      zeile.forEach((wert, i) => {
-        seite.drawText(kuerzeAufBreite(wert, font, groesse, breiten[i] - 6), {
-          x, y, size: groesse, font, color: rgb(0.12, 0.16, 0.2),
-        });
-        x += breiten[i];
-      });
-      y -= zeilenHoehe;
-    }
-  }
-
-  if (doc.getPageCount() === 0) doc.addPage([A4.width, A4.height]);
-  return doc.save();
-}

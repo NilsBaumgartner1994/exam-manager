@@ -303,8 +303,13 @@ Und die vier Schritte selbst:
    und der Titel, darunter die **Menüleiste** – wie in Word oder Excel klappt
    jedes Menü mit einem Klick auf seinen Namen auf:
 
-   - **Datei** – speichern (Sitzplan, Räume, Raster, Belegung), die PDFs,
-     laden, Projekt.
+   - **Datei** – ganz oben die **Sitzplatz-PDFs für Stud.IP** (je Person ein
+     Schreiben, benannt nach der Matrikelnummer, als ZIP). Darunter
+     **Exportieren**: Teilnehmendenliste, Tutorenliste (Einlass),
+     Aufsichtsliste je Raum und Zeit, Aushang und die Sitzpläne. Jede davon
+     hat ein **Untermenü** (es klappt beim Überfahren rechts auf): **als CSV
+     speichern** oder **als PDF drucken**. Zuletzt der Download des ganzen
+     Projektordners.
    - **Verteilung** – **neu verteilen** (Vorgaben und freigehaltene Plätze
      bleiben), **von vorne verteilen** (verwirft alles von Hand Gesetzte:
      Vorgaben und umgesetzte Personen – die freigehaltenen Plätze bleiben),
@@ -313,23 +318,40 @@ Und die vier Schritte selbst:
      wie vielen einen Platz haben.
    - **Raum** – zwischen den Räumen dieser Klausur wechseln (je Einsatz ein
      Eintrag mit „x/y belegt“).
-   - **Ansicht** – **Raumplan**, **Aushang** (Namenskürzel → Sitzplatz),
-     **Liste nach Nachname** (für den Einlass) und **Liste nach
-     Sitzplatznummer** (für die Aufsicht in den Reihen). Gezeigt wird immer
-     genau eins davon: Wer einen Raum ansieht, sieht den Raum – nicht Plan und
-     Tabelle untereinander.
    - **Werkzeuge** – was ein Tippen auf einen Platz tut: das **Blatt öffnen**
      (Voreinstellung), **freihalten** oder **freihalten aufheben**; dazu
      Drehen der Ansicht und Rückgängig/Wiederholen. Nur im Raumplan zu
      gebrauchen; in einer Liste steht dort der Hinweis darauf.
    - **Einstellungen** – Sitzplatznummern **nur für belegte Plätze**
      (Voreinstellung) oder für jeden Tisch, Räume **nacheinander** oder
-     **gleichmäßig** füllen, Plätze **mit Abstand** oder der Reihe nach, und
-     was in den Kästen steht (Namenskürzel, Matrikelnummer, Sitzplatznummer,
-     „Pult“). Jede Umstellung der Verteilung rechnet den Plan sofort neu.
+     **gleichmäßig** füllen, Plätze **mit Abstand** oder der Reihe nach, der
+     **Text der Sitzplatz-PDFs** und was in den Kästen steht (Namenskürzel,
+     Matrikelnummer, Sitzplatznummer, „Pult“). Jede Umstellung der Verteilung
+     rechnet den Plan sofort neu.
    - **⚠ n ohne Platz** – erscheint **rot**, sobald jemand keinen Platz hat
      (etwa weil ein besetzter Platz freigehalten wurde). Darin stehen die
      Namen und „Neu verteilen“.
+
+   Auf der Arbeitsfläche steht der **Raumplan** – der Raum, der im Menü „Raum“
+   gewählt ist. Die Listen gibt es nicht mehr als eigene Ansicht: Sie sind
+   Ausgaben und stehen unter „Exportieren“.
+
+   **Die Listen im Einzelnen** (Spalten in dieser Reihenfolge):
+
+   | Liste | Spalten | Sortierung | Datei |
+   |---|---|---|---|
+   | Teilnehmendenliste | Anfang Nachname, Sitzplatznummer, Zeit und Raum, Matrikelnummer, Anwesend, Nachname, Vorname, E-Mail | Sitzplatznummer | eine |
+   | Tutorenliste (Einlass) | Nachname, Vorname, Matrikelnummer, Zeit und Raum, Sitzplatznummer | Nachname, dann Vorname | eine |
+   | Aufsichtsliste je Raum und Zeit | Sitzplatznummer, Nachname, Vorname, Matrikelnummer, Anwesend, Zeit und Raum | Sitzplatznummer, je Raumeinsatz getrennt | je Raumeinsatz eine (ZIP) |
+   | Aushang | Anfang Nachname, Sitzplatznummer, Zeit und Raum | Namenskürzel | eine |
+   | Sitzpläne | der Raumplan als Raster | – | CSV: je Raumeinsatz eine (ZIP); PDF: eine Datei, je Einsatz eine Seite |
+
+   **Als PDF heißt drucken:** Die Listen werden dafür so gerendert, wie sie am
+   Bildschirm aussähen – dieselbe Tabelle mit Zebrastreifen – und über den
+   Druckdialog ausgegeben („Als PDF sichern“). So gibt es kein zweites
+   Listenlayout im Code, das mitgepflegt werden müsste. Die Sitzpläne und die
+   Schreiben an einzelne Personen entstehen weiterhin mit pdf-lib: Sie müssen
+   auch ohne Druckdialog entstehen können.
 
    Dazwischen nichts als die Arbeitsfläche in voller Breite; unten die
    **Fußleiste** mit Ansicht/Zoom und dem Stand (belegte Plätze, Rastergröße,
@@ -440,10 +462,9 @@ Und die vier Schritte selbst:
      Matrikelnummer, Sitzplatznummer, „Pult“ beschriften. Sie gelten für den
      Bildschirm **und** für die PDFs; auf dem Aushang steht die Sitzplatznummer
      immer.
-   - **PDFs** – „Sitzpläne als PDF“ erzeugt eine Datei mit einer Seite je Raum,
-     dazu getrennt „Aushang als PDF“ (eine Seite je Raum),
-     „Dozentenliste als PDF“ (nach Sitzplatz) und „Tutorenliste als PDF“ (nach
-     Nachname). Gezeichnet wird dasselbe Raster wie am Bildschirm.
+   - **PDFs** – „Sitzpläne → Als PDF“ erzeugt eine Datei mit einer Seite je
+     Raumeinsatz; gezeichnet wird dasselbe Raster wie am Bildschirm. Die
+     Listen werden gedruckt (siehe oben).
    - **Das Raster selbst ändert Schritt 5** – Tische setzen, Wände ziehen,
      Zellen verbinden, beschriften: alles in „Räume & Raumpläne“, mit
      derselben Ansicht und derselben Bedienung (siehe dort). Schritt 4 zeigt

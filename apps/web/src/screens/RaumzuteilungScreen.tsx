@@ -16,7 +16,9 @@ import {
   entfernePerson,
   nichtDarstellbareZeichen,
   Nummerierung,
+  ohneReserven,
   ohneSitzplatz,
+  ohneVorgaben,
   PLAN_ANZEIGE_STANDARD,
   PlanAnzeige,
   parseBelegung,
@@ -653,10 +655,14 @@ export function RaumzuteilungScreen() {
    * rechnen, bevor der Zustand angekommen ist: Wer im Menü „gleichmäßig“
    * wählt, soll das Ergebnis sofort sehen.
    */
-  const verteilen = (abweichung: Partial<SitzplanOptionen> = {}) => {
+  const verteilen = (
+    abweichung: Partial<SitzplanOptionen> = {},
+    /** Womit gerechnet wird – ohne Angabe die bestehende Belegung. */
+    basis: Platzbelegung[] = belegungRef.current,
+  ) => {
     setFehler(null);
     editor.merkeStand();
-    const ergebnis = planeSitzplan(teilnehmer, raeume, schemataRef.current, belegungRef.current, {
+    const ergebnis = planeSitzplan(teilnehmer, raeume, schemataRef.current, basis, {
       sitzverteilung,
       fuellung,
       nummerierung,
@@ -722,6 +728,23 @@ export function RaumzuteilungScreen() {
       `Neu verteilt: ${ergebnis.sitzplaetze.length} Plätze` +
         (ergebnis.ohnePlatz.length > 0 ? `, ${ergebnis.ohnePlatz.length} ohne Platz` : '') +
         ' – freigehaltene Plätze und Vorgaben sind geblieben.',
+    );
+  };
+
+  /**
+   * Von vorne: alles verwerfen, was von Hand am Plan geschah – Vorgaben und
+   * umgesetzte Personen –, und neu rechnen. Wer sich beim Umsetzen verrannt
+   * hat, kommt so zurück zum gerechneten Plan. Freigehaltene Plätze bleiben:
+   * Ein defekter Tisch ist keine Vorgabe, und für sie gibt es den Eintrag
+   * darunter.
+   */
+  const vonVorneVerteilen = () => {
+    const vorgaben = belegungRef.current.filter((platz) => platz.vorgabe).length;
+    const ergebnis = verteilen({}, ohneVorgaben(belegungRef.current));
+    setHinweis(
+      `Von vorne verteilt: ${ergebnis.sitzplaetze.length} Plätze` +
+        (vorgaben > 0 ? `, ${vorgaben} Vorgabe${vorgaben === 1 ? '' : 'n'} verworfen` : '') +
+        ' – freigehaltene Plätze sind geblieben.',
     );
   };
 
@@ -1341,8 +1364,17 @@ export function RaumzuteilungScreen() {
       },
       {
         art: 'aktion',
+        titel: 'Von vorne verteilen',
+        hinweis: 'verwirft Vorgaben und alles von Hand Umgesetzte',
+        deaktiviert: teilnehmer.length === 0 || raster.length === 0,
+        onWaehlen: vonVorneVerteilen,
+        testID: 'raum-von-vorne',
+      },
+      { art: 'trenner', titel: 'Von Hand Gesetztes' },
+      {
+        art: 'aktion',
         titel: 'Alle Vorgaben lösen',
-        hinweis: 'niemand sitzt danach mehr fest',
+        hinweis: 'niemand sitzt danach mehr fest, bleibt aber, wo er ist',
         deaktiviert: !belegung.some((platz) => platz.vorgabe),
         onWaehlen: () => {
           editor.merkeStand();
@@ -1354,12 +1386,11 @@ export function RaumzuteilungScreen() {
       {
         art: 'aktion',
         titel: 'Alle freigehaltenen Plätze aufheben',
+        hinweis: 'auch die Nachrichten daran',
         deaktiviert: !belegung.some((platz) => platz.reserviert),
         onWaehlen: () => {
           editor.merkeStand();
-          uebernehmeBelegung(
-            belegungRef.current.map(({ notiz: _weg, ...platz }) => ({ ...platz, reserviert: false })),
-          );
+          uebernehmeBelegung(ohneReserven(belegungRef.current));
           setHinweis('Alle freigehaltenen Plätze sind wieder frei – neu verteilen füllt sie.');
         },
         testID: 'raum-reserven-aufheben',

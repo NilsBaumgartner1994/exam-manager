@@ -431,6 +431,13 @@ Konventionen des Datensatzes:
   „Einstellungen“ (nacheinander/gleichmäßig, Abstand/Reihe) rufen `verteilen()`
   mit dem gerade gewählten Wert, statt auf einen Knopf zu warten. Der Plan
   **ist** die Vorschau.
+- **Von Hand Gesetztes lässt sich zurücknehmen**, und zwar in drei Stufen:
+  einzeln im Blatt des Platzes, gesammelt mit „Alle Vorgaben lösen“ bzw. „Alle
+  freigehaltenen Plätze aufheben“, und ganz mit **„Von vorne verteilen“**
+  (`ohneVorgaben` + `planeSitzplan`). Die freigehaltenen Plätze bleiben dabei
+  stehen: Ein defekter Tisch ist keine Vorgabe – für die gibt es `ohneReserven`
+  im Eintrag darunter. Ohne diesen Weg bliebe nur, jede Vorgabe einzeln zu
+  suchen, und wer im Plan herumgeschoben hat, findet sie nicht alle wieder.
 - **Ein freigehaltener Platz verdrängt, ohne nachzusetzen:** Wer dort saß,
   fällt heraus und steht als „⚠ n ohne Platz“ rot im Menüband; von dort führt
   „Neu verteilen“ zurück. Stillschweigend nachzusetzen hieße, dass eine

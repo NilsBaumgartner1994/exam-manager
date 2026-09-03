@@ -5,6 +5,8 @@
  */
 import {
   belegungToCsv,
+  ohneReserven,
+  ohneVorgaben,
   parseBelegung,
   parseRaumschemata,
   planeSitzplan,
@@ -157,6 +159,53 @@ describe('Personen zuordnen (nach der Platzwahl)', () => {
     const b = planeSitzplan(PERSONEN, A_UND_B, ZWEI_RAEUME, [], { fuellung: 'gleichmaessig' });
     expect(a.belegung).toEqual(b.belegung);
     expect(a.sitzplaetze).toEqual(b.sitzplaetze);
+  });
+});
+
+describe('Von Hand Gesetztes zurücknehmen', () => {
+  /** Ein Plan mit einer Vorgabe und einem gesperrten Platz. */
+  const stand = () => {
+    const erst = planeSitzplan(PERSONEN, [{ raum: 'Reihe', reservierteZeit: '' }], REIHE);
+    return setzeNotiz(
+      erst.belegung.map((platz) =>
+        platz.spalte === 0 ? { ...platz, matrikelnummer: '1000004', vorgabe: true } : platz,
+      ),
+      'Reihe',
+      0,
+      3,
+      'Tisch wackelt',
+    );
+  };
+
+  it('verwirft Vorgaben und Platzierungen, lässt aber freigehaltene Plätze stehen', () => {
+    const zurueck = ohneVorgaben(stand());
+    expect(zurueck.filter((platz) => platz.vorgabe)).toHaveLength(0);
+    expect(zurueck.filter((platz) => platz.matrikelnummer !== '')).toHaveLength(0);
+    expect(zurueck.find((platz) => platz.spalte === 3)).toMatchObject({
+      reserviert: true,
+      notiz: 'Tisch wackelt',
+    });
+  });
+
+  it('verteilt danach wieder alle – das ist „von vorne“', () => {
+    const { sitzplaetze, ohnePlatz } = planeSitzplan(
+      PERSONEN,
+      [{ raum: 'Reihe', reservierteZeit: '' }],
+      REIHE,
+      ohneVorgaben(stand()),
+    );
+    expect(ohnePlatz).toHaveLength(0);
+    expect(sitzplaetze.map((s) => s.nachname)).toEqual(['Archi', 'Bohr', 'Curie', 'Darwin']);
+    // Der gesperrte Tisch bleibt leer.
+    expect(sitzplaetze).toHaveLength(4);
+  });
+
+  it('gibt freigehaltene Plätze samt Nachricht wieder frei', () => {
+    const frei = ohneReserven(stand());
+    expect(frei.some((platz) => platz.reserviert)).toBe(false);
+    expect(frei.some((platz) => platz.notiz !== undefined)).toBe(false);
+    // Die Vorgabe bleibt: Sie ist eine andere Frage.
+    expect(frei.find((platz) => platz.spalte === 0)).toMatchObject({ vorgabe: true });
   });
 });
 

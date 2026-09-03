@@ -305,9 +305,12 @@ Und die vier Schritte selbst:
 
    - **Datei** – speichern (Sitzplan, Räume, Raster, Belegung), die PDFs,
      laden, Projekt.
-   - **Verteilung** – neu verteilen, alle Vorgaben lösen, alle freigehaltenen
-     Plätze aufheben, zurück zur Auswahl. Hinter dem Namen steht, wie viele
-     von wie vielen einen Platz haben.
+   - **Verteilung** – **neu verteilen** (Vorgaben und freigehaltene Plätze
+     bleiben), **von vorne verteilen** (verwirft alles von Hand Gesetzte:
+     Vorgaben und umgesetzte Personen – die freigehaltenen Plätze bleiben),
+     dazu einzeln „alle Vorgaben lösen“ und „alle freigehaltenen Plätze
+     aufheben“ sowie zurück zur Auswahl. Hinter dem Namen steht, wie viele von
+     wie vielen einen Platz haben.
    - **Raum** – zwischen den Räumen dieser Klausur wechseln (je Einsatz ein
      Eintrag mit „x/y belegt“).
    - **Ansicht** – **Raumplan**, **Aushang** (Namenskürzel → Sitzplatz),
@@ -414,7 +417,10 @@ Und die vier Schritte selbst:
      **Reserve** freihalten.
    - **Vorgabe** – wer von Hand gesetzt wird, bleibt dort: auch beim nächsten
      Verteilen. Im Plan bekommt der Kasten einen **roten Rand** und darunter
-     „fest“ – das sieht man auch aus der Entfernung.
+     „fest“ – das sieht man auch aus der Entfernung. Wer sich beim Umsetzen
+     verrannt hat, kommt mit **„Von vorne verteilen“** (Menü „Verteilung“)
+     zurück zum gerechneten Plan; einzelne Vorgaben löst das Blatt des
+     Platzes, alle auf einmal „Alle Vorgaben lösen“.
    - **Reserve** – ein Platz, der für **diese** Klausur frei bleibt. Wer dort
      saß, fällt heraus und wird **nicht** stillschweigend nachgesetzt:
      Stattdessen steht oben rot „⚠ 1 ohne Platz“, und ein Klick darauf bietet

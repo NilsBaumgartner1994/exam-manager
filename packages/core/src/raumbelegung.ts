@@ -382,6 +382,26 @@ export function ohneFreieBelegung(belegung: Platzbelegung[]): Platzbelegung[] {
 }
 
 /**
+ * Alles von Hand Gesetzte verwerfen: Vorgaben und Platzierungen. Was übrig
+ * bleibt, sind die **freigehaltenen** Plätze samt ihrer Nachricht – die gehören
+ * zum Raum an diesem Tag (defekter Tisch, Nachteilsausgleich) und nicht zu der
+ * Frage, wer wo sitzt; sie hebt `ohneReserven` auf.
+ *
+ * Das ist die Grundlage für „von vorne verteilen“: Wer sich beim Umsetzen
+ * verrannt hat, kommt so zurück zum gerechneten Plan.
+ */
+export function ohneVorgaben(belegung: Platzbelegung[]): Platzbelegung[] {
+  return belegung.map((platz) =>
+    platz.reserviert ? platz : { ...platz, matrikelnummer: '', vorgabe: false },
+  );
+}
+
+/** Alle freigehaltenen Plätze wieder freigeben – die Nachricht geht mit. */
+export function ohneReserven(belegung: Platzbelegung[]): Platzbelegung[] {
+  return belegung.map(({ notiz: _weg, ...platz }) => ({ ...platz, reserviert: false }));
+}
+
+/**
  * Person auf einen Platz setzen. Sitzt dort schon jemand, tauschen die beiden
  * die Plätze – so lässt sich im Sitzplan frei umsetzen.
  */

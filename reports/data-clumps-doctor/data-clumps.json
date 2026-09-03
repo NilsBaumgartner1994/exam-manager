@@ -1,6 +1,6 @@
 {
   "report_version": "^0.1.103",
-  "report_timestamp": "2026-09-03T09:39:27.411Z",
+  "report_timestamp": "2026-09-03T10:23:07.244Z",
   "target_language": "typescript",
   "report_summary": {
     "additional": {
@@ -8,8 +8,8 @@
         "invertedFieldToClasses": {
           "median": 1.5,
           "maximum": 17,
-          "average": 1.6055045871559632,
-          "amountSavedValuesForKeys": 350,
+          "average": 1.6,
+          "amountSavedValuesForKeys": 352,
           "amountKeys": 9
         },
         "invertedParameterToMethods": {
@@ -22,24 +22,24 @@
         "invertedParameterToClasses": {
           "median": 1.5,
           "maximum": 17,
-          "average": 1.6055045871559632,
-          "amountSavedValuesForKeys": 350,
+          "average": 1.6,
+          "amountSavedValuesForKeys": 352,
           "amountKeys": 9
         }
       },
       "timer_information": {
-        "ast_generation_time_ms": 792,
+        "ast_generation_time_ms": 764,
         "detection_time_ms": 20,
         "machine_information": {
           "os": "Linux",
           "os_release": "6.17.0-1022-azure",
           "os_platform": "linux",
           "os_arch": "x64",
-          "os_uptime": 489.03,
-          "os_memory_free": 15009439744,
+          "os_uptime": 141.87,
+          "os_memory_free": 14972608512,
           "os_memory_total": 16766414848,
           "os_cpu_cores": 4,
-          "os_cpu_model": "AMD EPYC 7763 64-Core Processor",
+          "os_cpu_model": "AMD EPYC 9V74 80-Core Processor",
           "os_cpu_speed": 0
         }
       }
@@ -55,17 +55,17 @@
   "project_info": {
     "project_url": "https://github.com/NilsBaumgartner1994/exam-manager",
     "project_name": "exam-manager",
-    "project_version": "4512a79d8a519b485aff065dd4c065975815008c",
-    "project_commit_hash": "4512a79d8a519b485aff065dd4c065975815008c",
+    "project_version": "768505b28da77f8b0f076efb1341a3b3b4d769c4",
+    "project_commit_hash": "768505b28da77f8b0f076efb1341a3b3b4d769c4",
     "project_tag": null,
-    "project_commit_date": "1788428305",
+    "project_commit_date": "1788430938",
     "additional": {
       "relative_path_to_source_folder_in_project": ""
     },
     "number_of_files": 44,
-    "number_of_classes_or_interfaces": 112,
+    "number_of_classes_or_interfaces": 111,
     "number_of_methods": 64,
-    "number_of_data_fields": 350,
+    "number_of_data_fields": 352,
     "number_of_method_parameters": 78
   },
   "detector": {

@@ -17,6 +17,7 @@ import {
   parseBelegung,
   ohneFreieBelegung,
   parseRaumschemaDateien,
+  belegbareZellen,
   parseRaumschemata,
   plaetzeMitAbstand,
   reservezellen,
@@ -395,9 +396,21 @@ describe('Sitzplan als Raster-CSV', () => {
     email: person.email,
   }));
   const raster = [{ schema: schemata[0] }];
+  /** Der Aushang: nur die Nummer im Feld. */
+  const NUR_NUMMERN = {
+    pultText: false,
+    namensPraefix: false,
+    matrikelnummer: false,
+    sitzplatznummer: true,
+  };
+  /** Der Plan der Aufsicht: Name, Matrikelnummer und Nummer. */
+  const MIT_PERSON = { ...NUR_NUMMERN, namensPraefix: true, matrikelnummer: true };
+
+  /** Ohne freigehaltenen Platz: Dann steht in jedem Feld genau eine Zeile. */
+  const schlicht = verteileImRaum(schemata[0], ['1000001', '1000003'], []).belegung;
 
   it('setzt die Sitzplatznummer in das Feld des Tisches', () => {
-    const zeilen = sitzplanRasterCsv(raster, belegung, personen, nummern, 'nummer')
+    const zeilen = sitzplanRasterCsv(raster, schlicht, personen, nummern, NUR_NUMMERN)
       .trim()
       .split('\n');
     // Je Raumeinsatz eine Kopfzeile, darunter das Raster des Raums.
@@ -409,10 +422,10 @@ describe('Sitzplan als Raster-CSV', () => {
     expect(zeilen[4]).toBe('D;;;;');
   });
 
-  it('schreibt Nummer, Matrikelnummer und Name untereinander in ein Feld', () => {
-    const csv = sitzplanRasterCsv(raster, belegung, personen, nummern, 'person');
-    expect(csv).toContain('"1001\n1000001\nArchi, Archimedes"');
-    expect(csv).toContain('"1003\nfreigehalten"');
+  it('schreibt Name, Matrikelnummer und Nummer untereinander in ein Feld', () => {
+    const csv = sitzplanRasterCsv(raster, belegung, personen, nummern, MIT_PERSON);
+    expect(csv).toContain('"Archi, Archimedes\n1000001\n1001"');
+    expect(csv).toContain('"freigehalten\n1003"');
     // Ein Tisch, an dem niemand sitzt, trägt weiterhin seine Nummer.
     expect(csv).toContain('1006');
   });
@@ -420,10 +433,10 @@ describe('Sitzplan als Raster-CSV', () => {
   it('dreht die Tabelle mit der Ansicht', () => {
     const gedreht = sitzplanRasterCsv(
       [{ schema: schemata[0], drehungen: 1 }],
-      belegung,
+      schlicht,
       personen,
       nummern,
-      'nummer',
+      NUR_NUMMERN,
     )
       .trim()
       .split('\n');
@@ -484,15 +497,28 @@ describe('Raum kopieren und umbenennen', () => {
 });
 
 describe('Reserveplätze im Raster', () => {
-  it('liest `R` als dauerhaft freigehaltenen Tisch – ohne Sitzplatznummer', () => {
+  it('liest `R` als Reserve-Tisch: kein Sitzplatz, aber belegbar', () => {
     const schema = parseRaumschemata('Raum;X\nT;R;T\n')[0];
     expect(schema.zellen[0]).toEqual(['tisch', 'reserve', 'tisch']);
+    // Er zählt nicht zu den Plätzen des Raums …
     expect(tischzellen(schema)).toHaveLength(2);
     expect(reservezellen(schema)).toEqual([{ zeile: 0, spalte: 1 }]);
-    // Nummeriert und belegt werden nur die Sitzplätze.
-    expect([...sitzplatznummern([schema], 1001).keys()]).toEqual(['X|0|0', 'X|0|2']);
+    expect(belegbareZellen(schema)).toHaveLength(3);
+    // … bekommt aber einen Eintrag in der Belegung und eine Nummer, denn von
+    // Hand lässt sich dort jemand hinsetzen.
+    expect([...sitzplatznummern([schema], 1001).keys()]).toEqual(['X|0|0', 'X|0|1', 'X|0|2']);
     const { belegung } = verteileImRaum(schema, ['a', 'b'], []);
-    expect(belegung.map((p) => p.spalte)).toEqual([0, 2]);
+    expect(belegung.map((p) => p.spalte)).toEqual([0, 1, 2]);
+    // Verteilt wird nur auf die Sitzplätze – der Reserve-Tisch bleibt leer.
+    expect(belegung.map((p) => p.matrikelnummer)).toEqual(['a', '', 'b']);
+  });
+
+  it('lässt eine Person von Hand auf dem Reserve-Tisch sitzen', () => {
+    const schema = parseRaumschemata('Raum;X\nT;R;T\n')[0];
+    const gesetzt = setzePerson(verteileImRaum(schema, [], []).belegung, 'X', 0, 1, 'c');
+    // Auch beim nächsten Verteilen bleibt sie dort sitzen.
+    const { belegung } = verteileImRaum(schema, ['a', 'b', 'c'], gesetzt);
+    expect(belegung.map((p) => p.matrikelnummer)).toEqual(['a', 'c', 'b']);
   });
 
   it('schreibt Reserveplätze wieder als `R` heraus', () => {

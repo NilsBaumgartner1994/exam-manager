@@ -344,7 +344,15 @@ Und die vier Schritte selbst:
    | Tutorenliste (Einlass) | Nachname, Vorname, Matrikelnummer, Zeit und Raum, Sitzplatznummer | Nachname, dann Vorname | eine |
    | Aufsichtsliste je Raum und Zeit | Sitzplatznummer, Nachname, Vorname, Matrikelnummer, Anwesend, Zeit und Raum | Sitzplatznummer, je Raumeinsatz getrennt | je Raumeinsatz eine (ZIP) |
    | Aushang | Anfang Nachname, Sitzplatznummer, Zeit und Raum | Namenskürzel | eine |
-   | Sitzpläne | der Raumplan als Raster | – | CSV: je Raumeinsatz eine (ZIP); PDF: eine Datei, je Einsatz eine Seite |
+   | Sitzpläne (alle Räume) | der Raumplan als Raster | – | CSV: je Raumeinsatz eine (ZIP); PDF: eine Datei, je Einsatz eine Seite |
+   | Sitzplan (der gezeigte Raum) | derselbe Plan, nur dieser eine | – | eine CSV bzw. eine PDF |
+
+   **Sitzplan-Ausgaben zeigen, was am Bildschirm steht:** In den Kästen des
+   PDFs **und** der CSV steht das, was unter „Einstellungen → Was in den Kästen
+   steht“ angehakt ist – Namenskürzel, Matrikelnummer, Sitzplatznummer. Wer den
+   Aushang braucht, blendet die Namen aus; wer den Plan für die Aufsicht
+   braucht, blendet sie ein. Im PDF werden zu lange Texte **umgebrochen** statt
+   abgeschnitten.
 
    **Als PDF heißt drucken:** Die Listen werden dafür so gerendert, wie sie am
    Bildschirm aussähen – dieselbe Tabelle mit Zebrastreifen – und über den
@@ -472,12 +480,13 @@ Und die vier Schritte selbst:
      Verteilen aus Versehen den Saal um.
    - **Sitzplatz, Reserve oder Pult?** Alle drei sind Tische. Ein
      **Sitzplatz** (`T`) ist ein Tisch, an dem jemand geprüft wird: Nur diese
-     werden nummeriert und belegt, und nur sie zählt die Platzzahl des Raums.
-     Ein **Reserve**-Tisch (`R`) bleibt in diesem Raum dauerhaft frei – der
-     defekte Tisch, der Platz direkt an der Tafel, der der Aufsicht – und
-     bekommt keine Nummer; warum, schreibt man in Schritt 5 mit dem
-     Textwerkzeug daneben. Das **Pult** (`P`) ist der einfache Tisch für alles
-     andere (Ablage, Materialtisch).
+     werden **verteilt**, und nur sie zählt die Platzzahl des Raums. Ein
+     **Reserve**-Tisch (`R`) zählt nicht mit und wird nie automatisch belegt –
+     der Tisch an der Tür, der für Nachschreiber, der mit mehr Platz –, aber in
+     Schritt 4 lässt sich dort **von Hand** jemand hinsetzen; dann bekommt er
+     auch eine Sitzplatznummer. Angezeigt wird das als „28 Sitzplätze
+     (2 Reserve)“. Das **Pult** (`P`) ist der einfache Tisch für alles andere
+     (Ablage, Materialtisch).
    - **Flache Kästen:** Eine Zelle ist halb so hoch wie breit – es sind Tische,
      keine Quadrate. So passen doppelt so viele Reihen ins Bild, ohne dass die
      Kästen schmaler werden.
@@ -493,10 +502,11 @@ Und die vier Schritte selbst:
      Raum ist und wo sich klicken lässt – auch dort, wo noch nichts steht.
      Der Aushang verzichtet darauf.
    - **Größe der Ansicht** – in der Fußleiste, drei Möglichkeiten, weil je
-     nach Raum eine andere passt: **Ganzer Raum** (Voreinstellung) zeigt auch
+     nach Raum eine andere passt: **Auf Breite** (Voreinstellung) nutzt die
+     volle Breite und scrollt in die Höhe – so sind die Kästen groß genug,
+     dass Namen und Nummern darin lesbar bleiben. **Ganzer Raum** zeigt auch
      einen Hörsaal mit 47 × 34 Feldern am Stück – der Plan füllt die
-     Arbeitsfläche, gescrollt werden muss nichts. **Auf Breite** nutzt die
-     volle Breite und scrollt in die Höhe, wenn die Kästen größer sein sollen.
+     Arbeitsfläche, gescrollt werden muss nichts, dafür wird es klein.
      Mit **−** und **+** stellt man die Zellgröße selbst ein wie beim Zoomen
      in ein Bild; die Leiste nennt sie dann in Pixeln. Der Zoom setzt auf der
      gerade sichtbaren Größe auf, springt also nicht.

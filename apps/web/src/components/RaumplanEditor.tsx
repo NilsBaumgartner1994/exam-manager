@@ -16,7 +16,7 @@ import {
   setzeBeschriftungsText,
   setzeZelle,
   Sitzplatz,
-  tischzellen,
+  plaetzeText,
   trenneZellen,
   verbindeZellen,
   verschiebeBereich,
@@ -702,7 +702,7 @@ export function rasterText(editor: RaumplanEditor, schema: Raumschema): string {
   const drehungen = editor.drehungen[schema.raum] ?? 0;
   return (
     `Raster ${schema.zellen[0]?.length ?? 0} Spalten × ${schema.zellen.length} Zeilen · ` +
-    `${tischzellen(schema).length} Sitzplätze` +
+    `${plaetzeText(schema)}` +
     (auswahl ? ` · Auswahl ${bereichName(anzeigeBereich(auswahl, schema, drehungen))}` : '')
   );
 }

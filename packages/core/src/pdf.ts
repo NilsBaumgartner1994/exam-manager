@@ -426,11 +426,34 @@ function zeichneSitzplan(
       const texte = zellTexte(zelle.typ, anzeige, { platz, person, nummer });
       if (texte.length === 0) continue;
 
-      const groesse = Math.max(3.5, Math.min(hoehe / (texte.length + 0.6), breite / 4.5));
-      texte.forEach((text, i) => {
-        const gekuerzt = kuerzeAufBreite(winAnsiText(text), font, groesse, rechteck.width - 2);
-        seite.drawText(gekuerzt, {
-          x: rechteck.x + (rechteck.width - font.widthOfTextAtSize(gekuerzt, groesse)) / 2,
+      // Was nicht in die Breite passt, wird **umgebrochen** statt abgeschnitten:
+      // Ein halber Name im Kasten hilft niemandem. Weil die Schriftgröße an der
+      // Zeilenzahl hängt und der Umbruch an der Schriftgröße, wird beides
+      // zweimal nachgerechnet – danach steht es fest.
+      const maxBreite = rechteck.width - 2;
+      const groesseFuer = (zeilen: number) =>
+        Math.max(3.2, Math.min(hoehe / (zeilen + 0.6), breite / 4.5));
+      let groesse = groesseFuer(texte.length);
+      let gesetzt = texte.map(winAnsiText);
+      for (let runde = 0; runde < 3; runde++) {
+        const umgebrochen = texte.flatMap((text) =>
+          umbrichAufBreite(winAnsiText(text), font, groesse, maxBreite),
+        );
+        const naechste = groesseFuer(umgebrochen.length);
+        gesetzt = umgebrochen;
+        if (Math.abs(naechste - groesse) < 0.05) break;
+        groesse = naechste;
+      }
+      // Mehr Zeilen, als in den Kasten passen, würden über den Rand laufen –
+      // die letzte wird dann doch gekürzt.
+      const passt = Math.max(1, Math.floor((rechteck.height - 1) / (groesse * 1.15)));
+      if (gesetzt.length > passt) {
+        gesetzt = gesetzt.slice(0, passt);
+        gesetzt[passt - 1] = kuerzeAufBreite(gesetzt[passt - 1], font, groesse, maxBreite);
+      }
+      gesetzt.forEach((text, i) => {
+        seite.drawText(text, {
+          x: rechteck.x + (rechteck.width - font.widthOfTextAtSize(text, groesse)) / 2,
           y: rechteck.y + rechteck.height - (i + 1) * groesse * 1.15 + groesse * 0.25,
           size: groesse,
           font,
@@ -486,6 +509,50 @@ function zellTexte(
   }
   if (anzeige.sitzplatznummer && inhalt.nummer !== undefined) texte.push(String(inhalt.nummer));
   return texte;
+}
+
+/**
+ * Text auf mehrere Zeilen umbrechen, bis jede in die Breite passt.
+ *
+ * Erst an den Leerzeichen, dann – wenn ein einzelnes Wort zu lang ist – mitten
+ * im Wort: Ein Name, der nicht hineinpasst, soll im Kasten trotzdem lesbar
+ * stehen, statt abgeschnitten zu werden.
+ */
+function umbrichAufBreite(
+  text: string,
+  font: import('pdf-lib').PDFFont,
+  groesse: number,
+  maxBreite: number,
+): string[] {
+  if (maxBreite <= 0 || text === '') return [text];
+  if (font.widthOfTextAtSize(text, groesse) <= maxBreite) return [text];
+
+  const zeilen: string[] = [];
+  let zeile = '';
+  const anhaengen = (wort: string) => {
+    const versuch = zeile === '' ? wort : `${zeile} ${wort}`;
+    if (font.widthOfTextAtSize(versuch, groesse) <= maxBreite) {
+      zeile = versuch;
+      return;
+    }
+    if (zeile !== '') zeilen.push(zeile);
+    zeile = '';
+    // Ein Wort, das allein schon zu breit ist, wird hart getrennt.
+    let rest = wort;
+    while (rest !== '' && font.widthOfTextAtSize(rest, groesse) > maxBreite) {
+      let laenge = rest.length - 1;
+      while (laenge > 1 && font.widthOfTextAtSize(rest.slice(0, laenge), groesse) > maxBreite) {
+        laenge--;
+      }
+      zeilen.push(rest.slice(0, laenge));
+      rest = rest.slice(laenge);
+    }
+    zeile = rest;
+  };
+
+  for (const wort of text.split(/\s+/).filter((teil) => teil !== '')) anhaengen(wort);
+  if (zeile !== '') zeilen.push(zeile);
+  return zeilen.length > 0 ? zeilen : [text];
 }
 
 /** Text so weit kürzen, dass er in die Breite passt (mit „…“ am Ende). */

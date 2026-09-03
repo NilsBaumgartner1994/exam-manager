@@ -13,6 +13,8 @@ import {
   Platzbelegung,
   raumfuellungAus,
   setzeNotiz,
+  setzePerson,
+  setzeVorgabe,
   sitzplatznummern,
   waehlePlaetze,
   Zulassung,
@@ -159,6 +161,44 @@ describe('Personen zuordnen (nach der Platzwahl)', () => {
     const b = planeSitzplan(PERSONEN, A_UND_B, ZWEI_RAEUME, [], { fuellung: 'gleichmaessig' });
     expect(a.belegung).toEqual(b.belegung);
     expect(a.sitzplaetze).toEqual(b.sitzplaetze);
+  });
+});
+
+describe('Reserve-Tische im Raster', () => {
+  /** Fünf Tische, davon zwei Reserve (Spalten 1 und 3). */
+  const MIT_RESERVE = parseRaumschemata('Raum;Reihe\nT;R;T;R;T\n');
+  const EIN_RAUM = [{ raum: 'Reihe', reservierteZeit: '' }];
+
+  it('verteilt nur auf die Sitzplätze, nicht auf die Reserve', () => {
+    const { belegung, ohnePlatz, nummern } = planeSitzplan(PERSONEN, EIN_RAUM, MIT_RESERVE);
+    // Drei Sitzplätze für vier Personen – die Reserve zählt nicht mit.
+    expect(belegung.filter((platz) => platz.matrikelnummer !== '')).toHaveLength(3);
+    expect(ohnePlatz).toHaveLength(1);
+    expect(belegung.find((platz) => platz.spalte === 1)?.matrikelnummer).toBe('');
+    // Nummern bekommen nur die belegten Tische.
+    expect(nummern.get('Reihe|0|1')).toBeUndefined();
+  });
+
+  it('lässt jemanden von Hand auf einem Reserve-Tisch sitzen – mit Nummer', () => {
+    const erst = planeSitzplan(PERSONEN, EIN_RAUM, MIT_RESERVE);
+    // Von Hand gesetzt heißt in der App zugleich „fest“ (siehe Schritt 4):
+    // sonst nähme ihn das nächste Verteilen wieder herunter.
+    const gesetzt = setzeVorgabe(
+      setzePerson(erst.belegung, 'Reihe', 0, 1, '1000004'),
+      'Reihe',
+      0,
+      1,
+      true,
+    );
+    const { belegung, nummern, sitzplaetze } = planeSitzplan(
+      PERSONEN,
+      EIN_RAUM,
+      MIT_RESERVE,
+      gesetzt,
+    );
+    expect(belegung.find((platz) => platz.spalte === 1)?.matrikelnummer).toBe('1000004');
+    expect(nummern.get('Reihe|0|1')).toBeDefined();
+    expect(sitzplaetze.map((platz) => platz.nachname)).toContain('Darwin');
   });
 });
 

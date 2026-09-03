@@ -421,18 +421,54 @@ export function zellenVomTyp(schema: Raumschema, typ: ZellTyp): { zeile: number;
 /**
  * Alle Sitzplätze in Lesereihenfolge des gespeicherten Rasters.
  *
- * Reserveplätze (`reserve`) sind **nicht** dabei: Sie sind Tische, an denen in
- * diesem Raum nie jemand geprüft wird (defekt, zu nah an der Tafel, für die
- * Aufsicht freigehalten). Sie bekommen deshalb auch keine Sitzplatznummer –
- * anders als ein Platz, den Schritt 4 für eine einzelne Klausur freihält.
+ * Reserve-Tische (`reserve`) sind **nicht** dabei: Sie zählen nicht zu den
+ * Plätzen des Raums und werden nie automatisch belegt (defekt, zu nah an der
+ * Tafel, für die Aufsicht). Von Hand lässt sich dort trotzdem jemand
+ * hinsetzen – dafür gibt es `belegbareZellen`.
  */
 export function tischzellen(schema: Raumschema): { zeile: number; spalte: number }[] {
   return zellenVomTyp(schema, 'tisch');
 }
 
-/** Die dauerhaft freigehaltenen Tische des Raums. */
+/** Die Reserve-Tische des Raums. */
 export function reservezellen(schema: Raumschema): { zeile: number; spalte: number }[] {
   return zellenVomTyp(schema, 'reserve');
+}
+
+/**
+ * Alle Tische, auf die sich jemand setzen lässt – Sitzplätze **und**
+ * Reserve-Tische –, in Lesereihenfolge des gespeicherten Rasters.
+ *
+ * Der Unterschied liegt im Verteilen, nicht im Sitzen: Ein Reserve-Tisch zählt
+ * nicht zu den Plätzen des Raums und wird nie automatisch belegt, aber von
+ * Hand lässt sich jemand daraufsetzen (Nachschreiber, Nachteilsausgleich, der
+ * Platz an der Tür). Deshalb bekommt er einen Eintrag in der Belegung und,
+ * sobald dort jemand sitzt, auch eine Sitzplatznummer.
+ */
+export function belegbareZellen(
+  schema: Raumschema,
+): { zeile: number; spalte: number; reserve: boolean }[] {
+  const zellen: { zeile: number; spalte: number; reserve: boolean }[] = [];
+  schema.zellen.forEach((zeile, z) =>
+    zeile.forEach((typ, s) => {
+      if (typ === 'tisch' || typ === 'reserve') {
+        zellen.push({ zeile: z, spalte: s, reserve: typ === 'reserve' });
+      }
+    }),
+  );
+  return zellen;
+}
+
+/**
+ * Die Plätze eines Rasters in Worten: „28 Sitzplätze (2 Reserve)“.
+ *
+ * Die Reserve steht in Klammern und nicht in der Zahl: Sie zählt nicht zu den
+ * Plätzen, auf die verteilt wird – aber wer den Raum plant, will wissen, dass
+ * es sie gibt.
+ */
+export function plaetzeText(schema: Raumschema, wort = 'Sitzplätze'): string {
+  const reserve = reservezellen(schema).length;
+  return `${tischzellen(schema).length} ${wort}${reserve > 0 ? ` (${reserve} Reserve)` : ''}`;
 }
 
 /**

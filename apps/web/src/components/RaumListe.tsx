@@ -50,24 +50,38 @@ function mehrfach(zeilen: RaumZeile[], index: number): boolean {
   return zeilen.filter((zeile) => zeile.raum.trim() === name).length > 1;
 }
 
-/** Wie viele Plätze dieser Raum hat – als Text neben seiner Zeile. */
-function plaetzeText(zeile: RaumZeile, plaetze: Map<string, number>): string {
+/**
+ * Wie viele Plätze dieser Raum hat – als Text neben seiner Zeile. Reserve-
+ * Tische stehen dahinter: Sie zählen nicht mit, lassen sich aber von Hand
+ * belegen.
+ */
+function plaetzeText(
+  zeile: RaumZeile,
+  plaetze: Map<string, number>,
+  reserve: Map<string, number>,
+): string {
   const name = zeile.raum.trim();
   if (name === '') return 'Raum noch ohne Namen';
   if (!plaetze.has(name)) return 'kein Raster – 0 Plätze';
-  return `${plaetzeDesRaums({ raum: name }, plaetze)} Plätze im Raster`;
+  const reserveTische = reserve.get(name) ?? 0;
+  return (
+    `${plaetzeDesRaums({ raum: name }, plaetze)} Plätze im Raster` +
+    (reserveTische > 0 ? ` (${reserveTische} Reserve)` : '')
+  );
 }
 
 /** Eine Eingabezeile des Raum-Editors. */
 function RaumEditorZeile({
   zeile,
   plaetze,
+  reserve,
   onChange,
   onRemove,
   testID,
 }: {
   zeile: RaumZeile;
   plaetze: Map<string, number>;
+  reserve: Map<string, number>;
   onChange: (zeile: RaumZeile) => void;
   onRemove: () => void;
   testID?: string;
@@ -90,7 +104,7 @@ function RaumEditorZeile({
       <Text
         style={[styles.plaetze, isCompact ? voll : styles.plaetzeSpalte, ohneRaster && styles.plaetzeFehlt]}
       >
-        {plaetzeText(zeile, plaetze)}
+        {plaetzeText(zeile, plaetze, reserve)}
       </Text>
       <TextInput
         style={[styles.raumInput, isCompact ? voll : styles.raumInputZeit]}
@@ -129,6 +143,8 @@ interface Props {
   zeilen: RaumZeile[];
   /** Plätze je Raum, aus den Rastern (`plaetzeJeRaum`). */
   plaetze: Map<string, number>;
+  /** Reserve-Tische je Raum – sie zählen nicht als Platz, stehen aber daneben. */
+  reserve?: Map<string, number>;
   onChange: (zeilen: RaumZeile[]) => void;
   /** Beschriftung des Knopfes zum Anlegen – je nach Screen anders formuliert. */
   hinzufuegenTitel?: string;
@@ -152,6 +168,7 @@ interface Props {
 export function RaumListe({
   zeilen,
   plaetze,
+  reserve = new Map<string, number>(),
   onChange,
   hinzufuegenTitel = 'Raum hinzufügen',
   mitDurchgang,
@@ -169,6 +186,7 @@ export function RaumListe({
           <RaumEditorZeile
             zeile={zeile}
             plaetze={plaetze}
+            reserve={reserve}
             onChange={(neu) => onChange(zeilen.map((alt, j) => (j === i ? neu : alt)))}
             onRemove={() => onChange(zeilen.filter((_, j) => j !== i))}
             testID={`${testIDPrefix}-zeile-${i}`}

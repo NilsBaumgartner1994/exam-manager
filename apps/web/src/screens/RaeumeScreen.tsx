@@ -10,6 +10,8 @@ import {
   raumschemaDateien,
   sitzplaenePdf,
   standardRaumschema,
+  plaetzeText,
+  reservezellen,
   tischzellen,
 } from '@exam-manager/core';
 import {
@@ -233,14 +235,30 @@ export function RaeumeScreen() {
   const { ersetze: projektErsetze } = projekt;
   /** Erst schreiben, wenn hier je etwas lag – sonst leerte der erste Besuch den Ordner. */
   const schonGeschrieben = useRef(false);
+  /** Was noch nicht geschrieben ist – für den Fall, dass der Screen wechselt. */
+  const offen = useRef<Raumschema[] | null>(null);
   useEffect(() => {
     if (schemata.length === 0 && !schonGeschrieben.current) return;
+    offen.current = schemata;
     const gleich = setTimeout(() => {
       projektErsetze('raumschema', raumschemaDateien(schemata));
       schonGeschrieben.current = true;
+      offen.current = null;
     }, 400);
     return () => clearTimeout(gleich);
   }, [schemata, projektErsetze]);
+
+  /**
+   * Beim Verlassen des Screens wird sofort geschrieben, was noch aussteht:
+   * Sonst verlöre ein Wechsel kurz nach dem letzten Strich genau diesen –
+   * die Bündelung soll das Schreiben verzögern, nicht verschlucken.
+   */
+  useEffect(
+    () => () => {
+      if (offen.current) projektErsetze('raumschema', raumschemaDateien(offen.current));
+    },
+    [projektErsetze],
+  );
 
   const editor = useRaumplanEditor({
     schemata: schemataRef,
@@ -272,7 +290,12 @@ export function RaeumeScreen() {
    * `Raeume/` ist die Liste.
    */
   const bestand = useMemo(
-    () => schemata.map((schema) => ({ raum: schema.raum, sitzplaetze: tischzellen(schema).length })),
+    () =>
+      schemata.map((schema) => ({
+        raum: schema.raum,
+        sitzplaetze: tischzellen(schema).length,
+        reserve: reservezellen(schema).length,
+      })),
     [schemata],
   );
 
@@ -368,7 +391,7 @@ export function RaeumeScreen() {
         {
           schema,
           titel: schema.raum,
-          untertitel: `${tischzellen(schema).length} Sitzplätze`,
+          untertitel: plaetzeText(schema),
           // Gedruckt wird, was am Bildschirm steht – samt Drehung und „Pult“.
           drehungen: editor.drehungen[schema.raum] ?? 0,
           anzeige: ANZEIGE_RAUMPLANUNG,
@@ -406,7 +429,6 @@ export function RaeumeScreen() {
   };
 
   /** Wie viele Plätze der offene Raum hat: die Tische in seinem Raster. */
-  const plaetzeText = (schema: Raumschema): string => `${tischzellen(schema).length} Plätze`;
 
   const projektEintrag = useProjektDownloadEintrag(setFehler, 'raeume-projekt-download');
 
@@ -497,7 +519,7 @@ export function RaeumeScreen() {
           (schema): MenuEintrag => ({
             art: 'aktion',
             titel: schema.raum,
-            hinweis: `${tischzellen(schema).length} Sitzplätze`,
+            hinweis: plaetzeText(schema),
             gewaehlt: schema.raum === offenerReiter,
             onWaehlen: () => reiterWechseln(schema.raum),
             testID: `raeume-waehlen-${schema.raum}`,
@@ -549,7 +571,7 @@ export function RaeumeScreen() {
     fehler,
     fehler ? null : hinweis,
     aktivesSchema
-      ? `${plaetzeText(aktivesSchema)} · ${rasterText(editor, aktivesSchema)} · ${PALETTEN_HINWEIS_ZEILE}`
+      ? `${rasterText(editor, aktivesSchema)} · ${PALETTEN_HINWEIS_ZEILE}`
       : `${schemata.length} Räume im Bestand · ${bestand.reduce((summe, raum) => summe + raum.sitzplaetze, 0)} Plätze`,
   ]
     .filter((teil): teil is string => !!teil)

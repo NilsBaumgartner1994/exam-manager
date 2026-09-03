@@ -11,6 +11,7 @@ import {
   bestandeneBlaetter,
   defaultZulassungsDateiname,
   einsatzRaster,
+  PlanAnzeige,
   planeSitzplan,
   kursAusDateiname,
   ladeZulassungsBestand,
@@ -602,16 +603,27 @@ const raumzuteilung: Befehl = {
     }
     schreibeDatei(ziel, sitzplaetzeToCsv(sitzplaetze));
     // Neben die Liste der Raumplan als Tabelle – einmal für den Aushang (nur
-    // Nummern) und einmal für die Aufsicht (mit Matrikelnummer und Name).
+    // Nummern) und einmal für die Aufsicht (mit Matrikelnummer und Name). Was
+    // im Feld steht, sagt dieselbe `PlanAnzeige` wie am Bildschirm.
     const tabellen = einsaetze.map((schema) => ({ schema }));
     const daneben = (dateiname: string) => join(dirname(ziel), dateiname);
+    const nurNummern: PlanAnzeige = {
+      pultText: false,
+      namensPraefix: false,
+      matrikelnummer: false,
+      sitzplatznummer: true,
+    };
     schreibeDatei(
       daneben('sitzplan_nummern.csv'),
-      sitzplanRasterCsv(tabellen, belegung, sitzplaetze, nummern, 'nummer'),
+      sitzplanRasterCsv(tabellen, belegung, sitzplaetze, nummern, nurNummern),
     );
     schreibeDatei(
       daneben('sitzplan_namen.csv'),
-      sitzplanRasterCsv(tabellen, belegung, sitzplaetze, nummern, 'person'),
+      sitzplanRasterCsv(tabellen, belegung, sitzplaetze, nummern, {
+        ...nurNummern,
+        namensPraefix: true,
+        matrikelnummer: true,
+      }),
     );
   },
 };

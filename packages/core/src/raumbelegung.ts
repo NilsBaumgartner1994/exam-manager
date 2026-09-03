@@ -21,10 +21,10 @@
 import { parseCsvObjects, toCsv } from './csv';
 import {
   anzeigeRaster,
+  belegbareZellen,
   Bereich,
   imBereich,
   Raumschema,
-  tischzellen,
   ZELL_KUERZEL,
 } from './raumschema';
 import { raumSchluessel } from './raumzuteilung';
@@ -99,14 +99,14 @@ export function platzSchluessel(raum: string, zeile: number, spalte: number): st
 
 /**
  * Sitzplatznummern der Tische: über alle Räume fortlaufend, je Raum in
- * Lesereihenfolge des Rasters. Reserveplätze bekommen ebenfalls eine Nummer –
- * der Tisch steht ja im Raum.
+ * Lesereihenfolge des Rasters. Reserve-Tische bekommen ebenfalls eine Nummer –
+ * der Tisch steht ja im Raum, und von Hand kann dort jemand sitzen.
  */
 export function sitzplatznummern(schemata: Raumschema[], ersteNummer: number): Map<string, number> {
   const nummern = new Map<string, number>();
   let naechste = ersteNummer;
   for (const schema of schemata) {
-    for (const zelle of tischzellen(schema)) {
+    for (const zelle of belegbareZellen(schema)) {
       nummern.set(platzSchluessel(schema.raum, zelle.zeile, zelle.spalte), naechste++);
     }
   }
@@ -147,7 +147,7 @@ export function platzNummern(
   const nummern = new Map<string, number>();
   let naechste = ersteNummer;
   for (const schema of schemata) {
-    for (const zelle of tischzellen(schema)) {
+    for (const zelle of belegbareZellen(schema)) {
       const schluessel = platzSchluessel(schema.raum, zelle.zeile, zelle.spalte);
       if (belegt.has(schluessel)) nummern.set(schluessel, naechste++);
     }
@@ -256,8 +256,14 @@ export function verteileImRaum(
   const offen = new Set(matrikelnummern);
   const belegung: Platzbelegung[] = [];
 
-  // 1. Durchgang: Reserven und bereits gesetzte Personen übernehmen.
-  for (const zelle of tischzellen(schema)) {
+  // 1. Durchgang: Reserven und bereits gesetzte Personen übernehmen. Die
+  // Reserve-Tische des Rasters sind dabei: Wer dort von Hand sitzt, bleibt
+  // sitzen – automatisch belegt werden sie im 2. Durchgang nicht.
+  const reserveTische = new Set<string>();
+  for (const zelle of belegbareZellen(schema)) {
+    if (zelle.reserve) {
+      reserveTische.add(platzSchluessel(schema.raum, zelle.zeile, zelle.spalte));
+    }
     const alt = bestehendNachPlatz.get(platzSchluessel(schema.raum, zelle.zeile, zelle.spalte));
     const reserviert = alt?.reserviert ?? false;
     // Eine Vorgabe bleibt, auch wenn die Person (noch) nicht zu diesem Raum
@@ -276,9 +282,15 @@ export function verteileImRaum(
     });
   }
 
-  // 2. Durchgang: restliche Personen auf die freien Tische verteilen.
+  // 2. Durchgang: restliche Personen auf die freien Tische verteilen –
+  // Reserve-Tische des Rasters bleiben außen vor.
   const uebrig = matrikelnummern.filter((nummer) => offen.has(nummer));
-  const freieTische = belegung.filter((platz) => !platz.reserviert && platz.matrikelnummer === '');
+  const freieTische = belegung.filter(
+    (platz) =>
+      !platz.reserviert &&
+      platz.matrikelnummer === '' &&
+      !reserveTische.has(platzSchluessel(platz.raum, platz.zeile, platz.spalte)),
+  );
   const ziele =
     verteilung === 'abstand'
       ? plaetzeMitAbstand(
@@ -518,15 +530,12 @@ export function sitzplaetzeMitBelegung(
 }
 
 /**
- * Was in den Feldern eines Sitzplan-Rasters steht:
- *
- * - `nummer` – nur die Sitzplatznummer. Das ist der Aushang: Wer sucht,
- *   sucht seine Nummer, und wer den Plan sieht, erfährt nichts über andere.
- * - `person` – Nummer, Matrikelnummer und Name untereinander. Das ist der
- *   Plan für die Aufsicht, mit dem sie durch die Reihen geht.
+ * Was in einem Feld des Sitzplan-Rasters steht – **dieselbe Einstellung wie am
+ * Bildschirm** (`PlanAnzeige`): Wer im Plan die Matrikelnummer einblendet,
+ * findet sie auch in der Tabelle wieder. Vorher gab es dafür zwei feste
+ * Varianten („nur Nummern“, „mit Namen“), und wer etwas anderes brauchte,
+ * hatte Pech.
  */
-export type SitzplanFeld = 'nummer' | 'person';
-
 /** Erste Spalte der Kopfzeile eines Raumeinsatzes im Raster-CSV. */
 export const SITZPLAN_RASTER_KOPF = 'Sitzplan';
 
@@ -560,7 +569,7 @@ export function sitzplanRasterCsv(
   belegung: Platzbelegung[],
   personen: Sitzplatz[],
   nummern: Map<string, number>,
-  feld: SitzplanFeld,
+  anzeige: PlanAnzeige = PLAN_ANZEIGE_STANDARD,
 ): string {
   const jeMatrikel = new Map(personen.map((person) => [person.matrikelnummer, person]));
   const zeilen: string[][] = [];
@@ -575,18 +584,27 @@ export function sitzplanRasterCsv(
     for (const anzeigeZeile of anzeigeRaster(einsatz.schema, einsatz.drehungen ?? 0)) {
       zeilen.push(
         anzeigeZeile.map((zelle) => {
-          if (zelle.typ !== 'tisch') return zelle.typ === 'leer' ? '' : ZELL_KUERZEL[zelle.typ];
+          if (zelle.typ === 'pult') return anzeige.pultText ? 'Pult' : ZELL_KUERZEL.pult;
+          if (zelle.typ !== 'tisch' && zelle.typ !== 'reserve') {
+            return zelle.typ === 'leer' ? '' : ZELL_KUERZEL[zelle.typ];
+          }
           const platzKey = platzSchluessel(schluessel, zelle.zeile, zelle.spalte);
           const nummer = nummern.get(platzKey);
-          const kopf = nummer === undefined ? '' : String(nummer);
-          if (feld === 'nummer') return kopf;
           const platz = jePlatz.get(platzKey);
-          if (platz?.reserviert) return [kopf, platz.notiz || 'freigehalten'].join('\n');
           const person = platz?.matrikelnummer ? jeMatrikel.get(platz.matrikelnummer) : undefined;
-          if (!person) return kopf;
-          // Drei Zeilen in einem Feld – wie die drei Zeilen im Kasten des
-          // Plans. Die Tabellenkalkulation zeigt sie untereinander.
-          return [kopf, person.matrikelnummer, `${person.nachname}, ${person.vorname}`].join('\n');
+          // Dieselbe Reihenfolge wie im Kasten des Plans: erst wer, dann
+          // welche Nummer. Die Tabellenkalkulation zeigt sie untereinander.
+          const teile: string[] = [];
+          if (platz?.reserviert) {
+            teile.push(platz.notiz || 'freigehalten');
+          } else if (person) {
+            if (anzeige.namensPraefix) teile.push(`${person.nachname}, ${person.vorname}`);
+            if (anzeige.matrikelnummer) teile.push(person.matrikelnummer);
+          } else if (zelle.typ === 'reserve') {
+            teile.push('Reserve');
+          }
+          if (anzeige.sitzplatznummer && nummer !== undefined) teile.push(String(nummer));
+          return teile.join('\n');
         }),
       );
     }

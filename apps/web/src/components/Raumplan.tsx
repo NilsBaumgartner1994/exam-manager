@@ -237,14 +237,14 @@ export interface PlanAnsicht {
 export const PLAN_ANSICHT: PlanAnsicht = { modus: 'einpassen', zellGroesse: 32 };
 
 /**
- * Voreinstellung im Editor: der ganze Raum am Stück.
+ * Voreinstellung im Editor: **auf Breite**.
  *
- * Der Plan füllt dort die Arbeitsfläche zwischen Menüband und Fußleiste – bei
- * dieser Höhe passt auch ein Hörsaal mit 44 × 32 Feldern hinein, und man sieht
- * den Raum, ohne ihn erst zusammenscrollen zu müssen. Wer es größer braucht,
- * schaltet in der Fußleiste auf „Auf Breite“ oder zoomt.
+ * Eingepasst wird ein Hörsaal zwar ganz sichtbar, aber so klein, dass in den
+ * Kästen nichts mehr steht – und lesen will man sie. Auf Breite nutzt der Plan
+ * den Platz, den er hat, und man scrollt in die Höhe; „Ganzer Raum“ steht in
+ * der Fußleiste einen Klick daneben, wenn es um die Übersicht geht.
  */
-export const PLAN_ANSICHT_EDITOR: PlanAnsicht = { modus: 'einpassen', zellGroesse: 32 };
+export const PLAN_ANSICHT_EDITOR: PlanAnsicht = { modus: 'breite', zellGroesse: 32 };
 
 function begrenze(wert: number, min: number, max: number): number {
   return Math.round(Math.min(Math.max(wert, min), max));
@@ -1200,6 +1200,17 @@ const Zelle = memo(function Zelle({
   const inhalt = (() => {
     if (verdeckt || !masse.zeigeNamen) return null;
     switch (zelle.typ) {
+      // Ein Reserve-Tisch des Rasters zählt nicht als Sitzplatz, kann aber von
+      // Hand belegt werden – sitzt dort jemand, steht er im Kasten wie überall.
+      case 'reserve':
+        if (!platz?.matrikelnummer) {
+          return (
+            <Text style={[styles.reserve, { fontSize: masse.kleinSchrift }]} numberOfLines={1}>
+              Reserve
+            </Text>
+          );
+        }
+      // eslint-disable-next-line no-fallthrough
       case 'tisch': {
         const zeilen: { text: string; stil: object }[] = [];
         if (platz?.reserviert) {
@@ -1243,12 +1254,6 @@ const Zelle = memo(function Zelle({
           </>
         );
       }
-      case 'reserve':
-        return (
-          <Text style={[styles.reserve, { fontSize: masse.kleinSchrift }]} numberOfLines={1}>
-            Reserve
-          </Text>
-        );
       case 'tuer':
         return <Text style={[styles.symbolText, { fontSize: masse.kleinSchrift }]}>Tür</Text>;
       case 'pult':
@@ -1274,7 +1279,10 @@ const Zelle = memo(function Zelle({
         zelle.typ === 'pult' && styles.pult,
         zelle.typ === 'wand' && styles.wand,
         zelle.typ === 'tisch' && platz?.reserviert && styles.reserviertZelle,
-        zelle.typ === 'tisch' && !!person && styles.belegt,
+        !!person && styles.belegt,
+        // Der Reserve-Tisch bleibt gestrichelt, auch wenn jemand darauf sitzt:
+        // Er ist und bleibt der Tisch, der nicht mitzählt.
+        zelle.typ === 'reserve' && styles.dauerReserve,
         istAusgewaehlt && styles.personAusgewaehlt,
         markiert && styles.markiert,
         vorschau && styles.vorschau,

@@ -14,6 +14,11 @@ export interface RaumBestandEintrag {
   raum: string;
   /** Tische im Raster – die Plätze des Raums. */
   sitzplaetze: number;
+  /**
+   * Reserve-Tische im Raster: Sie zählen nicht zu den Plätzen, lassen sich
+   * aber in Schritt 4 von Hand belegen. Deshalb stehen sie daneben.
+   */
+  reserve?: number;
 }
 
 interface Props {
@@ -53,7 +58,10 @@ export function RaumBestandListe({
         <View key={eintrag.raum} style={styles.eintrag} testID={`raeume-bestand-${eintrag.raum}`}>
           <View style={styles.kopf}>
             <Text style={styles.name}>{eintrag.raum}</Text>
-            <Text style={styles.status}>{`${eintrag.sitzplaetze} Sitzplätze im Raster`}</Text>
+            <Text style={styles.status}>
+              {`${eintrag.sitzplaetze} Sitzplätze im Raster` +
+                (eintrag.reserve ? ` (${eintrag.reserve} Reserve)` : '')}
+            </Text>
           </View>
           <View style={styles.knoepfe}>
             <AppButton

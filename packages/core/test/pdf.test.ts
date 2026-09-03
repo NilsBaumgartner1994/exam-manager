@@ -211,4 +211,43 @@ describe('Sitzplan und Listen als PDF (Screen 4)', () => {
     expect((await PDFDocument.load(pdf)).getPageCount()).toBe(1);
   });
 
+  it('bricht einen langen Namen im Kasten um, statt ihn wegzulassen', async () => {
+    const { belegung } = verteileImRaum(schema, ['1000005'], []);
+    const pdf = await sitzplaenePdf([
+      {
+        schema,
+        titel: '94/E01',
+        belegung,
+        nummern: sitzplatznummern([schema], 1001),
+        anzeige: {
+          pultText: false,
+          namensPraefix: true,
+          matrikelnummer: false,
+          sitzplatznummer: true,
+        },
+        personen: new Map([
+          [
+            '1000005',
+            {
+              anfangNachname: 'Meyer-Wolfeschlegelstein',
+              sitzplatznummer: 1001,
+              raum: '94/E01',
+              raumSchluessel: '94/E01',
+              reservierteZeit: '',
+              matrikelnummer: '1000005',
+              anwesend: '',
+              nachname: 'Meyer-Wolfeschlegelstein',
+              vorname: 'Erwin',
+              zeitUndRaum: '',
+              email: '',
+            },
+          ],
+        ]),
+      },
+    ]);
+    // Der Name steht im Dokument – auf mehrere Zeilen verteilt, aber
+    // vollständig; abgeschnitten wäre er nur zur Hälfte da.
+    const text = pdfZeilen(pdf).join(' ');
+    expect(text.replace(/\s+/g, '')).toContain('Meyer-Wolfeschlegelstein');
+  });
 });

@@ -428,6 +428,17 @@ Konventionen des Datensatzes:
   und sie liefen auseinander. Die Aufsichtsliste zerfällt dabei in Abschnitte
   je Raumeinsatz – daraus wird beim CSV je Raum eine Datei (ZIP), beim Druck
   je Raum eine Seite.
+- **Der Sitzplan-Export folgt der Ansicht:** PDF **und** CSV zeichnen das, was
+  „Einstellungen → Was in den Kästen steht“ sagt (`PlanAnzeige` geht in
+  `sitzplaenePdf` wie in `sitzplanRasterCsv`). Vorher gab es für die Tabelle
+  zwei feste Varianten („nur Nummern“, „mit Namen“); wer etwas anderes
+  brauchte, hatte Pech. Neben allen Räumen lässt sich auch **nur der gezeigte**
+  ausgeben – meist will man genau den Plan, den man vor sich hat.
+- **Im PDF wird umgebrochen, nicht abgeschnitten** (`umbrichAufBreite` in
+  `pdf.ts`): Ein Name, der nicht in den Kasten passt, steht auf zwei Zeilen –
+  ein halber Name hilft niemandem. Die Schriftgröße hängt an der Zeilenzahl und
+  der Umbruch an der Schriftgröße, deshalb wird beides zweimal nachgerechnet;
+  passt es dann immer noch nicht, wird die letzte Zeile gekürzt.
 - **„Als PDF“ heißt bei Listen: drucken.** Die Liste wird außerhalb des Bildes
   gerendert (`druckbereich`, absolut nach links geschoben – nicht
   `display: none`, das hätte keine Maße) und dann mit `druckeAnsicht`
@@ -461,7 +472,9 @@ Konventionen des Datensatzes:
   „Neu verteilen“ zurück. Stillschweigend nachzusetzen hieße, dass eine
   Sperrung den halben Plan verschiebt, ohne dass jemand es sieht.
 - **Auswahl und Belegung wandern von selbst in den Projektstand** (gebündelt,
-  400 ms – wie die Raster in Schritt 5): Teilnehmerliste, `klausurraeume.csv`
+  400 ms – wie die Raster in Schritt 5; beim Verlassen des Screens wird
+  sofort geschrieben, was noch aussteht, sonst verschluckte die Bündelung die
+  letzte Änderung): Teilnehmerliste, `klausurraeume.csv`
   und `raumbelegung.csv` stehen nach einem Wechsel des Screens wieder da.
   Geladene Raster schreibt der Screen nach `Raeume/`; sonst hätten die Räume
   nach der Rückkehr keine Plätze mehr.
@@ -473,17 +486,24 @@ Konventionen des Datensatzes:
   Wand, Pult) und die Drehung der Ansicht, `raumbelegung.ts` die Frage, wer an
   welchem Tisch sitzt (Reserveplätze, Vorgaben, Umsetzen).
 - **`tisch`, `reserve` und `pult` sind alle drei Tische**, der Unterschied ist
-  der Zweck: `tisch` ist ein Sitzplatz (wird nummeriert und belegt,
-  `tischzellen()` zählt ihn), `reserve` ein Tisch, der in diesem Raum dauerhaft
-  frei bleibt (`reservezellen()`, keine Nummer, keine Belegung), `pult` ein
-  Tisch ohne Sitzplatz. In der Oberfläche heißen sie „Sitzplatz“, „Reserve“ und
+  der Zweck: `tisch` ist ein Sitzplatz (wird verteilt und gezählt,
+  `tischzellen()`), `reserve` ein Tisch, auf den **nie automatisch** verteilt
+  wird und der nicht zu den Plätzen zählt (`reservezellen()`) – von Hand lässt
+  sich dort trotzdem jemand hinsetzen (Nachschreiber, Nachteilsausgleich, der
+  Platz an der Tür), und dann bekommt er auch eine Sitzplatznummer. Beides
+  zusammen sind die `belegbareZellen()`, aus denen Belegung und Nummerierung
+  entstehen. `pult` ist ein Tisch ohne Sitzplatz. Angezeigt wird die Zahl als
+  „28 Sitzplätze (2 Reserve)“ (`plaetzeText`): Die Reserve steht in Klammern,
+  nicht in der Zahl. In der Oberfläche heißen sie „Sitzplatz“, „Reserve“ und
   „Pult“ und sind in Holztönen gezeichnet – gleiche Familie, unterschiedliche
   Helligkeit; die Reserve gestrichelt.
 - **Zwei Sorten Reserve, und das ist Absicht:** `reserve` im Raster gehört zum
-  Raum und steht in `Raeume/` (defekter Tisch, Platz an der Tafel); ein
-  Reserveplatz in der `Platzbelegung` gehört zu **einer** Klausur und steht in
-  `4_Raumzuteilung_Export/raumbelegung.csv`. Wer im Sitzplan einen Platz
-  freihält, ändert deshalb nie das Raster.
+  Raum und steht in `Raeume/` (der Tisch, der nicht mitzählt, aber da ist); ein
+  freigehaltener Platz in der `Platzbelegung` gehört zu **einer** Klausur und
+  steht in `4_Raumzuteilung_Export/raumbelegung.csv`. Wer im Sitzplan einen
+  Platz freihält, ändert deshalb nie das Raster. Der Unterschied in der
+  Wirkung: Auf einen Reserve-Tisch setzt man von Hand jemanden, ein
+  freigehaltener Platz bleibt leer.
 - **Ein freigehaltener Platz darf sagen, warum** (`Platzbelegung.notiz`,
   gesetzt mit `setzeNotiz`): Die Nachricht steht statt „Reserve“ im Kasten des
   Plans, im PDF, in der Spalte `Hinweis` der Belegungs-CSV und im Sitzplan als

@@ -32,7 +32,7 @@ import {
   Platzbelegung,
   Sitzverteilung,
 } from './raumbelegung';
-import { Raumschema, tischzellen } from './raumschema';
+import { belegbareZellen, Raumschema } from './raumschema';
 import { eindeutigeNamenspraefixe, raumSchluessel } from './raumzuteilung';
 import { Raum, Sitzplatz, Zulassung } from './types';
 
@@ -159,13 +159,19 @@ export function waehlePlaetze(
     const frei: PlatzAdresse[] = [];
     const belegt: PlatzAdresse[] = [];
     let nutzbar = 0;
-    for (const zelle of tischzellen(schema)) {
+    for (const zelle of belegbareZellen(schema)) {
       const alt = vorher.get(platzSchluessel(schema.raum, zelle.zeile, zelle.spalte));
       const platz = { raum: schema.raum, zeile: zelle.zeile, spalte: zelle.spalte };
       if (alt?.reserviert) continue;
+      // Ein Reserve-Tisch des Rasters wird nie automatisch gewählt; wer dort
+      // von Hand sitzt, zählt aber für den Abstand mit – er sitzt ja da.
+      if (alt?.matrikelnummer) {
+        belegt.push(platz);
+        continue;
+      }
+      if (zelle.reserve) continue;
       nutzbar++;
-      if (alt?.matrikelnummer) belegt.push(platz);
-      else frei.push(platz);
+      frei.push(platz);
     }
     return {
       schluessel: schema.raum,
@@ -173,7 +179,7 @@ export function waehlePlaetze(
       naechster: frei.map((platz) =>
         belegt.reduce((min, anderer) => Math.min(min, platzAbstand(platz, anderer)), Infinity),
       ),
-      plaetze: nutzbar,
+      plaetze: nutzbar + belegt.length,
       belegt: belegt.length,
     };
   });
@@ -244,7 +250,9 @@ export function planeSitzplan(
   // Sitzplatznummern – die Zuordnung unten läuft an ihr entlang.
   const belegung: Platzbelegung[] = [];
   for (const schema of raster) {
-    for (const zelle of tischzellen(schema)) {
+    // Die Reserve-Tische sind dabei: Sie werden nicht automatisch belegt, aber
+    // ohne Eintrag ließe sich von Hand niemand daraufsetzen.
+    for (const zelle of belegbareZellen(schema)) {
       const alt = vorher.get(platzSchluessel(schema.raum, zelle.zeile, zelle.spalte));
       const reserviert = alt?.reserviert ?? false;
       belegung.push({
